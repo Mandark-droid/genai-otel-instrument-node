@@ -28,6 +28,15 @@ both languages:
 - `GENAI_ENABLED_INSTRUMENTORS` is split on commas and each name trimmed. Empty means the
   default list. A name this SDK has not ported is reported in the log.
 
+## Start-up cost
+
+`instrument()` loads every client library it instruments that is installed, to patch it -
+as the Python library imports every one it finds. With two or three libraries that is a
+few tens of milliseconds, and the application would load them anyway. In a project with
+many installed and few used, name the ones in use (`GENAI_ENABLED_INSTRUMENTORS=openai,anthropic`)
+and switch datastore instrumentation off if it is not wanted
+(`GENAI_ENABLE_MCP_INSTRUMENTATION=false`).
+
 ## Variables in effect in this version
 
 | Variable | Default | Notes |

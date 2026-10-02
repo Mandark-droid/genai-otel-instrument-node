@@ -60,8 +60,15 @@ describe('instrument()', () => {
     quietLogger();
     const port = await closedPort();
 
+    // No instrumentors: what is timed is the exporter set-up against a dead
+    // collector, not the loading of client libraries.
     const started = Date.now();
-    const handle = instrument({ serviceName: 'unreachable', endpoint: `http://127.0.0.1:${port}`, enabledInstrumentors: [] });
+    const handle = instrument({
+      serviceName: 'unreachable',
+      endpoint: `http://127.0.0.1:${port}`,
+      enabledInstrumentors: [],
+      enableMcpInstrumentation: false,
+    });
     expect(Date.now() - started).toBeLessThan(1000);
     expect(handle).toBeDefined();
     expect(isInstrumented()).toBe(true);
