@@ -150,7 +150,6 @@ const NOT_READ: Record<string, string> = {
   ENVIRONMENT: 'read only by the legacy config.setup_tracing(), which instrument() does not use',
   GENAI_DETOXIFY_MODEL_PATH: 'evaluation, phase 4; Detoxify is a Python ML backend',
   GENAI_ENABLE_OLLAMA_SERVER_METRICS: 'Ollama instrumentor, phase 2',
-  GENAI_MCP_HASH_SALT: 'MCP semantic conventions, phase 3',
   GENAI_OLLAMA_MAX_VRAM_GB: 'Ollama instrumentor, phase 2',
   GENAI_OLLAMA_METRICS_INTERVAL: 'Ollama instrumentor, phase 2',
   GENAI_TOXICITY_DETOXIFY_PATH: 'evaluation, phase 4; Detoxify is a Python ML backend',
@@ -165,6 +164,7 @@ const NOT_READ: Record<string, string> = {
   TYPESAFE_DEFAULT_MODEL: 'TypeSafe instrumentor, phase 2',
 };
 const READ_OUTSIDE_CONFIG = [
+  'GENAI_MCP_HASH_SALT',
   'GENAI_OTEL_LOG_LEVEL',
   'GENAI_SERVICE_INSTANCE_ID_MODE',
   'GENAI_SKIP_COLLECTOR_CHECK',

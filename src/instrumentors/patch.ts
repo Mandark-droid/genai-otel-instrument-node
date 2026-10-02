@@ -54,19 +54,21 @@ function esmEntries(name: string, resolved: string): string[] {
   const sibling = join(dirname(resolved), 'index.mjs');
   if (existsSync(sibling)) entries.add(sibling);
 
+  // `@scope/pkg/sub/path.js` -> package `@scope/pkg`, subpath `./sub/path.js`.
+  const segments = name.split('/');
+  const packageName = name.startsWith('@') ? segments.slice(0, 2).join('/') : (segments[0] as string);
+  const rest = name.slice(packageName.length);
+  const subpath = rest ? `.${rest}` : '.';
+
   // Walk up to the package's own package.json.
   let directory = dirname(resolved);
-  for (let depth = 0; depth < 8; depth += 1) {
+  for (let depth = 0; depth < 12; depth += 1) {
     const manifestPath = join(directory, 'package.json');
     if (existsSync(manifestPath)) {
       try {
         const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { name?: string; type?: string; exports?: unknown };
-        if (manifest.name === name) {
-          const root =
-            typeof manifest.exports === 'object' && manifest.exports !== null && '.' in manifest.exports
-              ? (manifest.exports as Record<string, unknown>)['.']
-              : manifest.exports;
-          const target = importTarget(root);
+        if (manifest.name === packageName) {
+          const target = importTarget(exportFor(manifest.exports, subpath));
           if (target) {
             const file = join(directory, target);
             // The same file as the CommonJS entry is not a second copy.
@@ -84,6 +86,30 @@ function esmEntries(name: string, resolved: string): string[] {
     directory = parent;
   }
   return [...entries];
+}
+
+/** The `exports` entry for a subpath: an exact key, or a `./*` pattern with the match substituted. */
+function exportFor(exportsField: unknown, subpath: string): unknown {
+  if (typeof exportsField !== 'object' || exportsField === null) return subpath === '.' ? exportsField : undefined;
+  const table = exportsField as Record<string, unknown>;
+  // Conditions at the top level describe the root entry.
+  if (!Object.keys(table).some((key) => key.startsWith('.'))) return subpath === '.' ? table : undefined;
+  if (subpath in table) return table[subpath];
+  for (const [pattern, value] of Object.entries(table)) {
+    const star = pattern.indexOf('*');
+    if (star < 0) continue;
+    const prefix = pattern.slice(0, star);
+    const suffix = pattern.slice(star + 1);
+    if (!subpath.startsWith(prefix) || !subpath.endsWith(suffix) || subpath.length < prefix.length + suffix.length) continue;
+    return substitute(value, subpath.slice(prefix.length, subpath.length - suffix.length));
+  }
+  return undefined;
+}
+
+function substitute(value: unknown, match: string): unknown {
+  if (typeof value === 'string') return value.replace('*', match);
+  if (typeof value !== 'object' || value === null) return value;
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, substitute(entry, match)]));
 }
 
 export interface ModuleCopies {

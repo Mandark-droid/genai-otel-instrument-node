@@ -98,6 +98,12 @@
 - Instrumentors for Replicate (`replicate`), ElevenLabs (`@elevenlabs/elevenlabs-js`) and
   Sarvam AI (`sarvamai`), and `traceHuggingFaceClient()` for `@huggingface/inference`,
   whose client can only be traced by wrapping it. With examples.
+- MCP instrumentation (`@modelcontextprotocol/sdk`), opt-in under the reference name
+  `mcp_client`: one client span per tool call with the `mcp.*` and `commerce.*`
+  attribution, and - not in the reference - a server span where an `McpServer` runs a tool
+  handler. `MCPToolRegistry`, `MCPSessionState`, `withMcpSession()`, `withExpectedTool()`,
+  `hashIdentifier()`. Arguments and results are never recorded; user ids are hashed with
+  `GENAI_MCP_HASH_SALT`. Example: `examples/mcp`.
 - Datastore instrumentation, on by default (`GENAI_ENABLE_MCP_INSTRUMENTATION`): one client
   span per operation and the `mcp.requests`, `mcp.client.operation.duration`,
   `mcp.request.size` and `mcp.response.size` metrics, for PostgreSQL (`pg`, with

@@ -55,6 +55,7 @@ and switch datastore instrumentation off if it is not wanted
 | `GENAI_SERVICE_INSTANCE_ID_MODE` | `random` | `derived`: a v5 UUID stable across restarts |
 | `GENAI_ENABLED_INSTRUMENTORS` | reference list | See `docs/parity-matrix.md` |
 | `GENAI_ENABLE_COST_TRACKING` | `true` | |
+| `GENAI_MCP_HASH_SALT` | | Salt for hashed user identifiers on MCP spans. Unset: a random per-process salt, with a warning; hashes then do not match across processes |
 | `GENAI_ENABLE_HTTP_INSTRUMENTATION` | `false` | A span per outbound `fetch` call (`api.call.<method>.<host>`). Off by default: every provider client already has a span, and its requests go through `fetch` too |
 | `GENAI_ENABLE_MCP_INSTRUMENTATION` | `true` | Datastore and tool instrumentation: one client span and the `mcp.*` metrics per operation. `db.statement` only with content capture on |
 | `GENAI_CUSTOM_PRICING_JSON` | | Same shape as the pricing table; merged over it. Applied by every instrumentor and by the cost-enrichment processor (the Python library v1.30.0 ignores it in most instrumentors) |

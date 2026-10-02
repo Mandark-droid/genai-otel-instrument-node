@@ -9,6 +9,7 @@ import { ElevenLabsInstrumentor } from './elevenlabs';
 import { GoogleGenAIInstrumentor, VertexAIInstrumentor } from './google';
 import { GroqInstrumentor } from './groq';
 import { huggingFaceInferenceInstrumentor } from './huggingface';
+import { mcpInstrumentor } from '../mcp/client-instrumentor';
 import { MistralInstrumentor } from './mistral';
 import { OllamaInstrumentor } from './ollama';
 import { OpenAIInstrumentor } from './openai';
@@ -44,6 +45,9 @@ registerInstrumentor('cohere', () => new CohereInstrumentor());
 registerInstrumentor('ollama', () => new OllamaInstrumentor());
 registerInstrumentor('google.generativeai', () => new GoogleGenAIInstrumentor());
 registerInstrumentor('vertexai', () => new VertexAIInstrumentor());
+// Opt-in, as in the reference: named in GENAI_ENABLED_INSTRUMENTORS.
+registerInstrumentor('mcp_client', () => mcpInstrumentor());
+registerInstrumentor('mcp', () => mcpInstrumentor());
 registerInstrumentor('replicate', () => new ReplicateInstrumentor());
 registerInstrumentor('elevenlabs', () => new ElevenLabsInstrumentor());
 registerInstrumentor('sarvamai', () => new SarvamInstrumentor());

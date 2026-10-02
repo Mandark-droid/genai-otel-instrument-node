@@ -102,6 +102,20 @@ describe('loadModuleCopies', () => {
   });
 });
 
+describe('a package subpath', () => {
+  it('yields the CommonJS file and, through the exports map, the ES-module one', async () => {
+    const copies = loadModuleCopies('@modelcontextprotocol/sdk/client/index.js');
+    expect(copies.commonjs.length).toBeGreaterThanOrEqual(1);
+    const esm = await copies.esm;
+    expect(esm.length).toBeGreaterThanOrEqual(1);
+    const commonjsClients = copies.commonjs.map((module) => (module as { Client?: unknown }).Client);
+    const esmClient = (esm[0] as { Client?: unknown }).Client;
+    expect(typeof esmClient).toBe('function');
+    // A different class object: patching one build would leave the other untraced.
+    expect(commonjsClients).not.toContain(esmClient);
+  });
+});
+
 describe('two owners on one method', () => {
   const make = (tag: string, log: string[]) => (original: (...args: never[]) => unknown) =>
     function (this: unknown, ...args: unknown[]) {

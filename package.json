@@ -106,6 +106,7 @@
     "@google/genai": "*",
     "@huggingface/inference": "*",
     "@mistralai/mistralai": "*",
+    "@modelcontextprotocol/sdk": "*",
     "@opensearch-project/opensearch": "*",
     "@pinecone-database/pinecone": "*",
     "@qdrant/js-client-rest": "*",
@@ -153,6 +154,9 @@
       "optional": true
     },
     "@mistralai/mistralai": {
+      "optional": true
+    },
+    "@modelcontextprotocol/sdk": {
       "optional": true
     },
     "@opensearch-project/opensearch": {
@@ -227,6 +231,7 @@
     "@google/genai": "^2.26.0",
     "@huggingface/inference": "^4.13.30",
     "@mistralai/mistralai": "^2.7.0",
+    "@modelcontextprotocol/sdk": "^1.31.0",
     "@opensearch-project/opensearch": "^3.9.0",
     "@pinecone-database/pinecone": "^9.0.0",
     "@qdrant/js-client-rest": "^1.19.0",
@@ -258,6 +263,7 @@
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.71.0",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "zod": "^4.6.5"
   }
 }
