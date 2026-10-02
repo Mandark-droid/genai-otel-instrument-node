@@ -46,6 +46,7 @@ both languages:
 | `GENAI_SERVICE_INSTANCE_ID_MODE` | `random` | `derived`: a v5 UUID stable across restarts |
 | `GENAI_ENABLED_INSTRUMENTORS` | reference list | See `docs/parity-matrix.md` |
 | `GENAI_ENABLE_COST_TRACKING` | `true` | |
+| `GENAI_ENABLE_MCP_INSTRUMENTATION` | `true` | Datastore and tool instrumentation: one client span and the `mcp.*` metrics per operation. `db.statement` only with content capture on |
 | `GENAI_CUSTOM_PRICING_JSON` | | Same shape as the pricing table; merged over it. Applied by every instrumentor and by the cost-enrichment processor (the Python library v1.30.0 ignores it in most instrumentors) |
 | `GENAI_ENABLE_CONTENT_CAPTURE` | `false` | |
 | `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` | | `NO_CONTENT`, `SPAN_ONLY`, `EVENT_ONLY`, `SPAN_AND_EVENT`; wins over the line above |
@@ -72,7 +73,7 @@ reported in the log at start-up; it is never silently ignored.
 | `GENAI_ENABLE_CO2_TRACKING`, `GENAI_CARBON_INTENSITY`, `GENAI_CO2_*`, `GENAI_CODECARBON_LOG_LEVEL` | Energy and CO2 | 4 |
 | `GENAI_ENABLE_PII_DETECTION`, `GENAI_PII_*`, `GENAI_ENABLE_TOXICITY_DETECTION`, `GENAI_TOXICITY_*`, `GENAI_ENABLE_BIAS_DETECTION`, `GENAI_BIAS_*`, `GENAI_ENABLE_PROMPT_INJECTION_DETECTION`, `GENAI_PROMPT_INJECTION_*`, `GENAI_ENABLE_RESTRICTED_TOPICS`, `GENAI_RESTRICTED_TOPICS_*`, `GENAI_ENABLE_HALLUCINATION_DETECTION`, `GENAI_HALLUCINATION_THRESHOLD` | Evaluation | 4 |
 | `GENAI_OTEL_MEDIA_*` | Multimodal capture | 4 |
-| `GENAI_ENABLE_MCP_INSTRUMENTATION`, `GENAI_ENABLE_HTTP_INSTRUMENTATION` | MCP / datastore / HTTP instrumentors | 3 |
+| `GENAI_ENABLE_HTTP_INSTRUMENTATION` | HTTP instrumentor | 3 |
 | `GENAI_ENABLE_CONCURRENCY_METRICS` | Server concurrency gauge | 4 |
 
 Variables the Python library reads that this SDK does not, and why, are listed in

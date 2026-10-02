@@ -105,9 +105,14 @@
     "@huggingface/inference": "*",
     "@mistralai/mistralai": "*",
     "cohere-ai": "*",
+    "falkordb": "*",
     "groq-sdk": "*",
+    "ioredis": "*",
+    "mysql2": "*",
     "ollama": "*",
     "openai": ">=4.0.0",
+    "pg": "*",
+    "redis": "*",
     "replicate": "*",
     "sarvamai": "*",
     "together-ai": "*"
@@ -137,13 +142,28 @@
     "cohere-ai": {
       "optional": true
     },
+    "falkordb": {
+      "optional": true
+    },
     "groq-sdk": {
+      "optional": true
+    },
+    "ioredis": {
+      "optional": true
+    },
+    "mysql2": {
       "optional": true
     },
     "ollama": {
       "optional": true
     },
     "openai": {
+      "optional": true
+    },
+    "pg": {
+      "optional": true
+    },
+    "redis": {
       "optional": true
     },
     "replicate": {
@@ -167,14 +187,20 @@
     "@mistralai/mistralai": "^2.7.0",
     "@smithy/node-http-handler": "^4.12.1",
     "@types/node": "^20.19.43",
+    "@types/pg": "^8.23.1",
     "@vitest/coverage-v8": "^4.1.11",
     "cohere-ai": "^8.1.0",
     "esbuild": "^0.28.2",
     "eslint": "^9.39.5",
+    "falkordb": "^6.8.0",
     "groq-sdk": "^1.6.0",
     "happy-dom": "^20.14.5",
+    "ioredis": "^6.0.0",
+    "mysql2": "^3.24.5",
     "ollama": "^0.6.4",
     "openai": "^7.27.0",
+    "pg": "^8.23.1",
+    "redis": "^6.3.0",
     "replicate": "^1.4.0",
     "sarvamai": "^1.1.10",
     "together-ai": "^0.57.0",

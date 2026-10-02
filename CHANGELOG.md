@@ -98,6 +98,11 @@
 - Instrumentors for Replicate (`replicate`), ElevenLabs (`@elevenlabs/elevenlabs-js`) and
   Sarvam AI (`sarvamai`), and `traceHuggingFaceClient()` for `@huggingface/inference`,
   whose client can only be traced by wrapping it. With examples.
+- Datastore instrumentation, on by default (`GENAI_ENABLE_MCP_INSTRUMENTATION`): one client
+  span per operation and the `mcp.requests`, `mcp.client.operation.duration`,
+  `mcp.request.size` and `mcp.response.size` metrics, for PostgreSQL (`pg`, with
+  TimescaleDB operations named), MySQL (`mysql2`), Redis (`redis`, `ioredis`) and FalkorDB.
+  Statement text is recorded only with content capture on; parameter values never.
 - On-device inference (spec 6a):
   - transformers.js (`@huggingface/transformers`): `transformers.model.load`,
     `huggingface.pipeline`, `huggingface.model.generate` with measured token counts, time

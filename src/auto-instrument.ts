@@ -32,6 +32,8 @@ import {
   type SpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
 import { ConfigError, loadConfig, type Env, type OTelConfig } from './config';
+import { datastoreInstrumentors } from './datastores';
+import { resetMcpMetrics } from './datastores/mcp-metrics';
 import { costCalculatorFor } from './cost/default';
 import { CostEnrichmentSpanProcessor } from './cost/enrichment-processor';
 import { resetPricingMissingCounter } from './cost/pricing-missing';
@@ -89,6 +91,7 @@ interface ActiveState {
 function resetMeterBoundState(): void {
   resetPricingMissingCounter();
   resetSharedMetrics();
+  resetMcpMetrics();
 }
 
 function activeState(): ActiveState | undefined {
@@ -205,10 +208,7 @@ function reportUnhonouredSettings(config: OTelConfig, env: Env): void {
   }
   // On by default in the reference implementation, so only say it loudly when
   // the operator asked for it by name.
-  for (const [enabled, name] of [
-    [config.enableGpuMetrics, 'GENAI_ENABLE_GPU_METRICS'],
-    [config.enableMcpInstrumentation, 'GENAI_ENABLE_MCP_INSTRUMENTATION'],
-  ] as const) {
+  for (const [enabled, name] of [[config.enableGpuMetrics, 'GENAI_ENABLE_GPU_METRICS']] as const) {
     if (!enabled) continue;
     const message = `${name} is enabled but not available in @traceverse/genai-otel-instrument ${VERSION}; nothing is collected for it.`;
     if (env[name] !== undefined) logger.warn(message);
@@ -248,6 +248,23 @@ function startInstrumentors(
       logger.error(`Failed to instrument ${name}: ${String(error)}`);
       if (config.failOnError) throw error;
     }
+  }
+  // Datastores and tools: all of them, each a no-op when its library is absent.
+  if (config.enableMcpInstrumentation) {
+    for (const instrumentor of datastoreInstrumentors()) {
+      try {
+        const pending = instrumentor.instrument(config);
+        if (pending && typeof pending.then === 'function') {
+          pendingWork.push(pending.then(undefined, (error: unknown) => logger.error(`Failed to instrument a datastore: ${String(error)}`)));
+        }
+        started.push(instrumentor);
+      } catch (error) {
+        logger.error(`Failed to instrument a datastore: ${String(error)}`);
+        if (config.failOnError) throw error;
+      }
+    }
+  } else {
+    logger.info('MCP / datastore instrumentation disabled (GENAI_ENABLE_MCP_INSTRUMENTATION=false)');
   }
   return { started, ready: Promise.all(pendingWork).then(() => undefined) };
 }

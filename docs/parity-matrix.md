@@ -91,6 +91,32 @@ A name from the reference list that is not shipped here is skipped at start-up. 
 was requested explicitly (`GENAI_ENABLED_INSTRUMENTORS` or the `enabledInstrumentors`
 option) a warning says so; with the default list it is logged at debug level.
 
+## Datastores and tools
+
+Started together when `GENAI_ENABLE_MCP_INSTRUMENTATION` is on (the default), as the
+reference's `MCPInstrumentorManager` does. Each is skipped when its library is not
+installed. Every operation is one client span plus the four `mcp.*` metrics
+(`mcp.requests`, `mcp.client.operation.duration`, `mcp.request.size`,
+`mcp.response.size`).
+
+| Store | Reference | Node library | Status |
+|---|---|---|---|
+| PostgreSQL | psycopg2 (contrib span + metrics) | `pg` | **shipped** - span named for the verb, `db.system = postgresql`; pool queries counted once |
+| TimescaleDB | psycopg2 cursor | `pg` | **shipped** - a statement using a TimescaleDB function is named `timescaledb.<operation>`, with the reference's operation list |
+| MySQL | mysql-connector | `mysql2` | **shipped** - `query`, `execute`, also through the promise wrapper |
+| MongoDB | pymongo | `mongodb` | not ported: not in the Node target list |
+| SQLAlchemy | sqlalchemy | - | not applicable: a Python ORM; the drivers are covered directly |
+| Redis | redis-py (contrib span) | `redis`, `ioredis` | **shipped** - span named for the command |
+| FalkorDB | falkordb | `falkordb` | **shipped** - `falkordb.query`, `falkordb.ro_query`, `falkordb.delete`, `falkordb.copy` |
+| Kafka | kafka-python (contrib span) | `kafkajs` | planned, phase 3 |
+| RabbitMQ | pika | `amqplib` | planned, phase 3 |
+| OpenSearch | opensearch-py | `@opensearch-project/opensearch` | planned, phase 3 |
+| Elasticsearch | elasticsearch-py (contrib span) | `@elastic/elasticsearch` | planned, phase 3 |
+| MinIO / S3 | minio | `minio`, `@aws-sdk/client-s3` | planned, phase 3 |
+| Qdrant, Pinecone, Weaviate, Chroma, Milvus | their Python clients | their JavaScript clients | planned, phase 3 |
+| FAISS, LanceDB | faiss, lancedb | - | not ported: not in the Node target list |
+| HTTP | httpx | global `fetch` | planned, phase 3 (opt-in, `GENAI_ENABLE_HTTP_INSTRUMENTATION`) |
+
 ## Not present in Python
 
 Additions fixed across all four SDKs by `contract/SDK_ADDITIONS.md`, so that they agree
@@ -142,6 +168,9 @@ These are choices, each with a reason. Everything else is meant to be identical.
 | Text-to-speech audio streams (ElevenLabs, Sarvam) | The audio iterator is wrapped: the span covers the whole synthesis and records time to first byte | The span ends when the stream is handed to the application | The JavaScript clients return a web `ReadableStream`, usually read through a reader or piped; that cannot be observed in place without replacing the object the application receives |
 | `huggingface.pipeline` token counts | Estimated from text length and marked as estimated; the `generate` span nested in it carries counts too | The pipeline span carries no tokens and no cost; the nested `huggingface.model.generate` span carries the measured ones | Both carrying them counts every token twice |
 | Model load: cache or download | n/a | Not reported | transformers.js does not say which happened; a guess from timing would be a fabricated fact. Fetch time and session-create time are reported instead |
+| Datastore spans | Taken from the OpenTelemetry contrib instrumentation of each driver (psycopg2, redis, kafka, elasticsearch, httpx); this library adds the `mcp.*` metrics | Made by this SDK, to the same database conventions (`db.system`, `db.operation`, `db.name`, `db.user`, `net.peer.name`, `net.peer.port`, client kind), plus the same metrics | The contrib packages for Node hook module loading, which misses modules loaded earlier and needs a second loader flag for ES-module applications. Prototype patching works for both, with no extra dependency |
+| `db.statement` | Recorded always by the contrib instrumentations; FalkorDB records it bounded | Recorded only with content capture on, bounded by `GENAI_CONTENT_MAX_LENGTH` (2000 characters when that is 0). Bound parameter values and Redis values are never recorded; `AUTH` arguments never | A statement can carry literal personal data; telemetry must not collect it by accident |
+| `db.system` label on the `mcp.*` metrics | The Python driver's name (`psycopg2`, `mysql`, `pymongo`) | The database (`postgresql`, `mysql`, `redis`, ...), the same value as the span attribute | A driver name of another language means nothing here; the label matches the span |
 | Instrumentation scope / tracer name | `genai_otel.instrumentors.base` | the same | A backend keys on it |
 | `OTEL_METRICS_EXEMPLAR_FILTER` defaulted to `always_off` | yes | not needed: the JS SDK records no exemplars | |
 
