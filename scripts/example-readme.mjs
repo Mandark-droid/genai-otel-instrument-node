@@ -86,6 +86,40 @@ export const EXAMPLES = [
     live: '**No.** No AWS credentials were available where this was written',
     notes: 'The instrumentor is registered as `boto3`, the name the Python library uses for it, so one `GENAI_ENABLED_INSTRUMENTORS` value works for both.',
   },
+  {
+    dir: 'replicate',
+    title: 'Replicate',
+    file: 'run.mjs',
+    does: 'One `run()` through the `replicate` package. Replicate bills by hardware time, so the span carries no tokens and no cost.',
+    spans: '`replicate.run`',
+    run: 'REPLICATE_API_TOKEN=r8_... OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node examples/replicate/run.mjs',
+  },
+  {
+    dir: 'huggingface-inference',
+    title: 'HuggingFace Inference',
+    file: 'chat.mjs',
+    does: 'A chat completion through `@huggingface/inference`, on a client wrapped with `traceHuggingFaceClient()`.',
+    spans: '`huggingface.inference.chat_completion`',
+    run: 'HF_TOKEN=hf_... OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node examples/huggingface-inference/chat.mjs',
+    notes: 'This client cannot be patched from outside: its constructor defines each method on the instance as a non-configurable property and the module exports are read-only. Wrap the client you create; a client that is not wrapped is not traced.',
+  },
+  {
+    dir: 'elevenlabs',
+    title: 'ElevenLabs',
+    file: 'speech.mjs',
+    does: 'One text-to-speech call through `@elevenlabs/elevenlabs-js`, priced by the character.',
+    spans: '`elevenlabs.text_to_speech.convert`',
+    run: 'ELEVENLABS_API_KEY=... OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node examples/elevenlabs/speech.mjs',
+    notes: 'The span ends when the audio stream is handed to the application, not when the last byte is read.',
+  },
+  {
+    dir: 'sarvam',
+    title: 'Sarvam AI',
+    file: 'translate.mjs',
+    does: 'One translation through `sarvamai`, priced per thousand characters.',
+    spans: '`sarvam.text.translate`',
+    run: 'SARVAM_API_KEY=... OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node examples/sarvam/translate.mjs',
+  },
 ];
 
 function readme(example) {

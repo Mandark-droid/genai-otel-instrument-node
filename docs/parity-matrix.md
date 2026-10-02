@@ -49,16 +49,17 @@ evaluation, media.
 | `groq` | `groq-sdk` | **shipped** - chat completions (buffered, streamed) |
 | `together` | `together-ai` | **shipped** - chat completions, embeddings |
 | `ollama` | `ollama` | **shipped** - `chat`, `generate` (buffered, streamed), `embed`, `embeddings`; token estimate when the server reports no counts. Server-metrics poller: phase 4 |
-| `replicate` | `replicate` | planned, phase 2 |
-| `elevenlabs` | `@elevenlabs/elevenlabs-js` | planned, phase 2 |
-| `sarvamai` | `sarvamai` | planned, phase 2 - library to be confirmed |
+| `replicate` | `replicate` | **shipped** - `run()`. No tokens and no cost: Replicate bills by hardware time, as the reference notes |
+| `elevenlabs` | `@elevenlabs/elevenlabs-js` | **shipped** - `textToSpeech.convert` / `stream` (cost by character), `speechToText.convert` (cost by second) |
+| `sarvamai` | `sarvamai` | **shipped** - chat completions, translate, transliterate, identify-language, speech-to-text (transcribe, translate), text-to-speech (convert, stream); cost per thousand characters |
 | `openrouter` | `openai` at `openrouter.ai` | **shipped** - chat completions (buffered, streamed, tool calls), embeddings |
 | `cometapi` | `openai` / `@anthropic-ai/sdk` at `cometapi.com` | **shipped** - chat completions, embeddings, `messages.create` |
 | `hyperbolic` | `openai` at `api.hyperbolic.xyz` | **shipped** - chat completions. Not in the default list, as in the reference: enable it by name. The reference traces raw `requests.post`; JavaScript applications use the OpenAI client |
 | `sambanova` | `openai` at `api.sambanova.ai` | **shipped** - chat completions. The reference patches the `sambanova` Python SDK; there is no maintained JavaScript one |
 | `anyscale` | `openai` | **shipped** as the no-op it is in the reference; calls are traced by the `openai` instrumentor |
 | `vllm`, `llamacpp` (server) | `openai` with a base URL | Traced by the `openai` instrumentor with the endpoint in `server.address`. Server-metrics pollers: phase 4 |
-| `transformers` | `@huggingface/inference`, `@huggingface/transformers` | planned, phase 2 |
+| `transformers` (inference client half) | `@huggingface/inference` | **shipped, by wrapping** - `chatCompletion`, `chatCompletionStream`, `textGeneration` on a client passed through `traceHuggingFaceClient()`. The client cannot be patched from outside (per-instance non-configurable methods, read-only exports) |
+| `transformers` (local pipeline half) | `@huggingface/transformers` | planned, phase 2 (on-device unit) |
 | `litellm_latency`, `litellm` | - | not applicable: LiteLLM is a Python library. A LiteLLM *gateway* is reached through the `openai` client and is traced by the `openai` instrumentor |
 | `llamacpp` (in-process), `vllm` (in-process) | - | not applicable: Python in-process bindings |
 | `sentence_transformers` | - | not applicable: Python-only library |
@@ -135,6 +136,7 @@ These are choices, each with a reason. Everything else is meant to be identical.
 | Aggregator instrumentors (OpenRouter, CometAPI, ...) | Patch the client constructor and wrap methods per instance | Wrap the client's class prototypes a second time and act only for a client whose base URL is the provider's | Same spans; also covers clients created before `instrument()` |
 | Bedrock InvokeModel response body | Read as a string: boto3 returns a one-shot stream, so in practice the body, its usage and its text are not available to the instrumentor | The JavaScript client returns the body as bytes, which are parsed without disturbing the caller. Token counts are read under the spellings the model families use (`inputTokens`, `input_tokens`, `inputTextTokenCount`, `prompt_token_count`, invocation metrics) | A span with tokens and cost where the data is there to be read |
 | Bedrock InvokeModelWithResponseStream | The span ends when the call returns, before the stream is read | The span stays open until the stream ends and takes usage from the invocation metrics on the final chunk | Same rule as every other stream |
+| Text-to-speech audio streams (ElevenLabs, Sarvam) | The audio iterator is wrapped: the span covers the whole synthesis and records time to first byte | The span ends when the stream is handed to the application | The JavaScript clients return a web `ReadableStream`, usually read through a reader or piped; that cannot be observed in place without replacing the object the application receives |
 | Instrumentation scope / tracer name | `genai_otel.instrumentors.base` | the same | A backend keys on it |
 | `OTEL_METRICS_EXEMPLAR_FILTER` defaulted to `always_off` | yes | not needed: the JS SDK records no exemplars | |
 

@@ -5,8 +5,10 @@
 import { AnthropicInstrumentor } from './anthropic';
 import { BedrockInstrumentor } from './bedrock';
 import { CohereInstrumentor } from './cohere';
+import { ElevenLabsInstrumentor } from './elevenlabs';
 import { GoogleGenAIInstrumentor, VertexAIInstrumentor } from './google';
 import { GroqInstrumentor } from './groq';
+import { huggingFaceInferenceInstrumentor } from './huggingface';
 import { MistralInstrumentor } from './mistral';
 import { OllamaInstrumentor } from './ollama';
 import { OpenAIInstrumentor } from './openai';
@@ -18,6 +20,8 @@ import {
   SambaNovaInstrumentor,
 } from './openai-compatible';
 import { registerInstrumentor } from './registry';
+import { ReplicateInstrumentor } from './replicate';
+import { SarvamInstrumentor } from './sarvam';
 import { TogetherInstrumentor } from './together';
 
 registerInstrumentor('openai', () => new OpenAIInstrumentor());
@@ -34,6 +38,11 @@ registerInstrumentor('cohere', () => new CohereInstrumentor());
 registerInstrumentor('ollama', () => new OllamaInstrumentor());
 registerInstrumentor('google.generativeai', () => new GoogleGenAIInstrumentor());
 registerInstrumentor('vertexai', () => new VertexAIInstrumentor());
+registerInstrumentor('replicate', () => new ReplicateInstrumentor());
+registerInstrumentor('elevenlabs', () => new ElevenLabsInstrumentor());
+registerInstrumentor('sarvamai', () => new SarvamInstrumentor());
+// The reference name covers both halves of its HuggingFace instrumentor.
+registerInstrumentor('transformers', () => huggingFaceInferenceInstrumentor());
 // The reference name: its Bedrock instrumentor patches boto3.
 registerInstrumentor('boto3', () => new BedrockInstrumentor());
 
@@ -51,7 +60,11 @@ export { AnthropicInstrumentor } from './anthropic';
 export { BedrockInstrumentor } from './bedrock';
 export { CohereInstrumentor } from './cohere';
 export { GoogleGenAIInstrumentor, VertexAIInstrumentor } from './google';
+export { ElevenLabsInstrumentor } from './elevenlabs';
 export { GroqInstrumentor } from './groq';
+export { traceHuggingFaceClient } from './huggingface';
+export { ReplicateInstrumentor } from './replicate';
+export { SarvamInstrumentor } from './sarvam';
 export { MistralInstrumentor } from './mistral';
 export { OllamaInstrumentor } from './ollama';
 export { OpenAIInstrumentor } from './openai';

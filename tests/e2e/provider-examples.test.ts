@@ -37,6 +37,8 @@ interface ExampleCase {
   system: string;
   /** Spans that must carry a cost. Default: all. */
   costed?: string[];
+  /** A reply built from the mock's URL, where the response must point back at it. */
+  build?: (llm: string) => MockReply[];
 }
 
 const openaiCompatible = (provider: string, domain: string): ExampleCase => ({
@@ -126,6 +128,42 @@ const CASES: ExampleCase[] = [
     spans: ['aws.bedrock.converse', 'aws.bedrock.invoke_model'],
     system: 'aws_bedrock',
   },
+  {
+    script: 'examples/replicate/run.mjs',
+    env: { REPLICATE_API_TOKEN: 'r8-example-not-a-real-key', EXAMPLE_BASE_URL: '{llm}/v1' },
+    replies: [],
+    build: (url) => [
+      {
+        status: 201,
+        json: { id: 'pred-1', status: 'succeeded', output: ['Par', 'is.'], urls: { get: `${url}/v1/predictions/pred-1`, cancel: `${url}/v1/predictions/pred-1/cancel` } },
+      },
+    ],
+    spans: ['replicate.run'],
+    system: 'replicate',
+    // Billed by hardware time: no tokens, no cost.
+    costed: [],
+  },
+  {
+    script: 'examples/huggingface-inference/chat.mjs',
+    env: { HF_TOKEN: 'hf_example_not_a_real_key', EXAMPLE_BASE_URL: '{llm}', EXAMPLE_CHAT_MODEL: 'gpt-4o-mini' },
+    replies: [{ fixture: 'openai/chat.completion.json' }],
+    spans: ['huggingface.inference.chat_completion'],
+    system: 'huggingface',
+  },
+  {
+    script: 'examples/elevenlabs/speech.mjs',
+    env: { ELEVENLABS_API_KEY: 'el-example-not-a-real-key', EXAMPLE_BASE_URL: '{llm}' },
+    replies: [{ raw: Buffer.from('fake-mp3-bytes'), headers: { 'content-type': 'audio/mpeg' } }],
+    spans: ['elevenlabs.text_to_speech.convert'],
+    system: 'elevenlabs',
+  },
+  {
+    script: 'examples/sarvam/translate.mjs',
+    env: { SARVAM_API_KEY: 'sarvam-example-not-a-real-key', EXAMPLE_BASE_URL: '{llm}' },
+    replies: [{ json: { request_id: 'r-1', translated_text: 'namaste', source_language_code: 'en-IN' } }],
+    spans: ['sarvam.text.translate'],
+    system: 'sarvam',
+  },
 ];
 
 describe('provider examples, against a mock provider', () => {
@@ -144,7 +182,7 @@ describe('provider examples, against a mock provider', () => {
   it.each(CASES.map((example) => [`${example.script} (${example.system})`, example] as const))(
     '%s',
     async (_title, example) => {
-      for (const reply of example.replies) llm.reply(reply);
+      for (const reply of example.build ? example.build(llm.url) : example.replies) llm.reply(reply);
       const env: Record<string, string> = { OTEL_EXPORTER_OTLP_ENDPOINT: receiver.url };
       for (const [name, value] of Object.entries(example.env)) env[name] = value.replace('{llm}', llm.url);
       const outcome = await run(example.script, env);

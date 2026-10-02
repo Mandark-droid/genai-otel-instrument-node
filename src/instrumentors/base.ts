@@ -711,10 +711,11 @@ export abstract class BaseInstrumentor implements Instrumentor {
       });
       return result;
     }
-    return result.then(onResult, (error: unknown) => {
-      onError(error);
-      throw error;
-    });
+    // Observed on a branch of its own; the caller gets the very object the SDK
+    // returned. Several clients return a Promise subclass with methods of its
+    // own (`withRawResponse()`), which a derived promise would not have.
+    void result.then(onResult, onError);
+    return result;
   }
 
   /**

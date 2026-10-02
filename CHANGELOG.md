@@ -95,6 +95,9 @@
 - Instrumentors for Google Gemini (`@google/genai`), Vertex AI (`@google-cloud/vertexai`)
   and AWS Bedrock (`@aws-sdk/client-bedrock-runtime`: Converse, ConverseStream, InvokeModel,
   InvokeModelWithResponseStream), with examples.
+- Instrumentors for Replicate (`replicate`), ElevenLabs (`@elevenlabs/elevenlabs-js`) and
+  Sarvam AI (`sarvamai`), and `traceHuggingFaceClient()` for `@huggingface/inference`,
+  whose client can only be traced by wrapping it. With examples.
 - `PatchingInstrumentor`: the shared base for module-patching instrumentors, with
   `instrumentModule(module, config)` for bundled applications. Two instrumentors can now
   wrap the same method; `uninstrument()` removes them last in, first out.
@@ -116,6 +119,9 @@
   semantic-convention and metric contract tests and the new entries' tests.
 
 ### Changed
+- A wrapped call now returns the very promise the client library returned, observed on a
+  side branch, instead of a promise derived from it. Clients that return a promise
+  subclass (`withRawResponse()` on Cohere, ElevenLabs, Sarvam) keep their extra methods.
 - `GENAI_CUSTOM_PRICING_JSON` (option `customPricingJson`) is now applied by every
   instrumentor, OpenAI and Anthropic included, and by the cost-enrichment processor. This
   is a deliberate difference from Python v1.30.0, where most instrumentors ignore it; see
