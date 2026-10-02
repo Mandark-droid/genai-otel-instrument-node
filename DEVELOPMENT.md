@@ -7,7 +7,7 @@ Read `CLAUDE.md` first: the rules there are not negotiable.
 | Command | What it does |
 |---|---|
 | `npm ci` | Install the pinned toolchain |
-| `npm test` | Unit, contract and instrumentor tests with coverage; enforces the 90% floor on `config`, `cost`, `metrics` |
+| `npm test` | Unit, contract and instrumentor tests with coverage; enforces the 95% floor on `config`, `cost`, `metrics` |
 | `npm run typecheck` | `tsc --noEmit` over `src`, `tests`, `scripts` and the examples |
 | `npm run lint` | eslint |
 | `npm run build` | CommonJS + ES-module bundles and type declarations into `dist/` |

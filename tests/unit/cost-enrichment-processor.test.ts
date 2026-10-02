@@ -185,6 +185,12 @@ describe('CostEnrichmentSpanProcessor', () => {
     expect('gen_ai.usage.cost.total' in attributes).toBe(false);
   });
 
+  it('a table entry the calculator raises on is counted as pricing missing', async () => {
+    finish({ 'gen_ai.request.model': 'nvidia/NV-Embed-v2', 'gen_ai.operation.name': 'embeddings', 'gen_ai.usage.input_tokens': 100 });
+    const points = await missing();
+    expect(points).toEqual([{ attributes: { model: 'nvidia/NV-Embed-v2', call_type: 'embedding' }, value: 1 }]);
+  });
+
   it('a calculator failure never reaches the span or the host', () => {
     const broken = new CostCalculator({ pricingData: { chat: { 'bad-entry': 'not-an-object' } } });
     vi.spyOn(broken, 'calculateGranularCost').mockImplementation(() => {

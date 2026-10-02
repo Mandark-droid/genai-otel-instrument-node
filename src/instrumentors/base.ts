@@ -963,7 +963,11 @@ export abstract class BaseInstrumentor implements Instrumentor {
         if (cost === null) recordPricingMissing(model, callType);
       }
     } catch (error) {
+      // A pricing entry in a shape the calculator cannot use (13 shipped entries
+      // are), or usage it cannot do arithmetic on. Either way no cost was
+      // recorded for this call, and that is counted.
       logger.warn(`Failed to calculate cost for span '${spanName}': ${String(error)}`);
+      recordPricingMissing(model, String(spanAttributes(span)[ATTR.GEN_AI_REQUEST_TYPE] ?? 'chat'));
     }
   }
 

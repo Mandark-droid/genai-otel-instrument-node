@@ -16,9 +16,9 @@ export default defineConfig({
       exclude: ['src/**/*.generated.ts', 'src/register.ts', 'src/register.esm.ts'],
       reporter: ['text', 'json-summary'],
       thresholds: {
-        'src/config.ts': { statements: 90, branches: 90, functions: 90, lines: 90 },
-        'src/cost/**': { statements: 90, branches: 90, functions: 90, lines: 90 },
-        'src/metrics.ts': { statements: 90, branches: 90, functions: 90, lines: 90 },
+        'src/config.ts': { statements: 95, branches: 95, functions: 95, lines: 95 },
+        'src/cost/**': { statements: 95, branches: 95, functions: 95, lines: 95 },
+        'src/metrics.ts': { statements: 95, branches: 95, functions: 95, lines: 95 },
       },
     },
   },

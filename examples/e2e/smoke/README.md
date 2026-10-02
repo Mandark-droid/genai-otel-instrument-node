@@ -16,19 +16,17 @@ more instrumentors are built on the same wire format.
 ```bash
 npm ci && npm run build
 
-E2E_LLM_BASE_URL=http://<gateway-host>:4000/v1 \
-E2E_LLM_API_KEY=<gateway key> \
-E2E_LLM_MODEL=<a model alias the gateway serves> \
+E2E_LLM_MODEL=<a model the endpoint serves> \
 OTEL_EXPORTER_OTLP_ENDPOINT=http://<collector-host>:4318 \
 node examples/e2e/smoke/smoke.mjs
 ```
 
 | Variable | Required | Meaning |
 |---|---|---|
-| `E2E_LLM_BASE_URL` | yes | OpenAI-compatible base URL, including `/v1` |
 | `E2E_LLM_MODEL` | yes | Model name to request |
-| `E2E_LLM_API_KEY` | no | Sent as the bearer token; defaults to a placeholder for gateways that need none |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | yes | Collector endpoint. Port 4318 is OTLP/HTTP, 4317 is gRPC |
+| `E2E_LLM_BASE_URL` | no | OpenAI-compatible base URL, including `/v1`. Defaults to a local Ollama, `http://localhost:11434/v1` |
+| `E2E_LLM_API_KEY` | no | Sent as the bearer token. Ollama needs none; a placeholder is sent |
 | `OTEL_SERVICE_NAME` | no | Defaults to `genai-sdk-e2e-node` |
 | `E2E_PROMPT` | no | The user message |
 

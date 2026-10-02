@@ -10,8 +10,3 @@ import { CostCalculator } from './calculator';
 export function getDefaultCostCalculator(): CostCalculator {
   return stateSlot('defaultCostCalculator', () => new CostCalculator());
 }
-
-/** The calculator for a configuration: shared by default, private with custom pricing. */
-export function costCalculatorFor(customPricingJson: string | undefined): CostCalculator {
-  return customPricingJson ? new CostCalculator({ customPricingJson }) : getDefaultCostCalculator();
-}

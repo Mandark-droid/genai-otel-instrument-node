@@ -86,6 +86,16 @@ A name from the reference list that is not shipped here is skipped at start-up. 
 was requested explicitly (`GENAI_ENABLED_INSTRUMENTORS` or the `enabledInstrumentors`
 option) a warning says so; with the default list it is logged at debug level.
 
+## Not present in Python
+
+Additions fixed across all four SDKs by `contract/SDK_ADDITIONS.md`, so that they agree
+with each other where the reference has nothing to agree with.
+
+| Addition | Definition |
+|---|---|
+| Counter `gen_ai.usage.cost.pricing_missing` | unit `""`, meter `genai_otel.instrumentors.base`, attributes `model` and `call_type`. Incremented once per span whose model has no price, including the 13 pricing-table entries on which the calculator raises |
+| `telemetry.distro.name = genai-otel-instrument-node` | The reference emits `genai-otel-instrument`, with no suffix |
+
 ## Deliberate differences from the reference
 
 These are choices, each with a reason. Everything else is meant to be identical.

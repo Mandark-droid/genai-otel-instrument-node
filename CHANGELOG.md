@@ -5,7 +5,7 @@
 ### Added
 - Repository scaffold.
 - Build and test toolchain: TypeScript, CommonJS + ES-module bundles (tsup), vitest with
-  coverage floors (90% on `config`, `cost`, `metrics`), eslint, `tsc --noEmit`.
+  coverage floors on `config`, `cost`, `metrics`, eslint, `tsc --noEmit`.
 - `scripts/sync-from-python.mjs`: vendors the cross-language contract and the pricing
   table from the Python reference at the pinned tag (v1.30.0), verifying every file
   against the manifest's sha256. `--check` fails on drift or a hand edit.
@@ -76,6 +76,17 @@
   major of the client libraries. Both run in CI.
 - `docs/parity-matrix.md`: every reference instrumentor id with its status here, the
   deliberate differences, and the reference behaviours that were ported as they are.
+
+- The pricing-missing counter also counts a call whose pricing-table entry the calculator
+  cannot use (13 shipped entries are in the wrong shape), as fixed across the SDKs in
+  `contract/SDK_ADDITIONS.md`.
+- `contract/PORTING_NOTES.md` and `contract/SDK_ADDITIONS.md` are vendored with the
+  contract.
+
+### Changed
+- Coverage floor on `config`, `cost` and `metrics` raised from 90% to 95%.
+- `examples/e2e/smoke` defaults its model endpoint to a local Ollama
+  (`http://localhost:11434/v1`, no API key); `E2E_LLM_BASE_URL` still overrides it.
 
 ### Notes
 - The reference instrumentors for OpenAI and Anthropic do not apply

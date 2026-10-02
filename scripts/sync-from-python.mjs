@@ -36,7 +36,7 @@ export const PYTHON_TAG = 'v1.30.0';
 const PRICING_FILE = 'llm_pricing.json';
 const MANIFEST_FILE = 'MANIFEST.json';
 /** Carried along for the reader; hashed only if the manifest lists it. */
-const OPTIONAL_FILES = ['SCHEMA.md'];
+const OPTIONAL_FILES = ['SCHEMA.md', 'PORTING_NOTES.md', 'SDK_ADDITIONS.md'];
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 

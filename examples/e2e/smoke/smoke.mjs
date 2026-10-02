@@ -4,11 +4,13 @@
  * by this SDK and exported over OTLP.
  *
  *   npm run build
- *   E2E_LLM_BASE_URL=http://<gateway>:4000/v1 \
- *   E2E_LLM_API_KEY=<key> \
- *   E2E_LLM_MODEL=<model alias> \
+ *   E2E_LLM_MODEL=<model> \
  *   OTEL_EXPORTER_OTLP_ENDPOINT=http://<collector>:4318 \
  *   node examples/e2e/smoke/smoke.mjs
+ *
+ * The model endpoint defaults to a local Ollama (http://localhost:11434/v1, no
+ * API key). Point it elsewhere with E2E_LLM_BASE_URL and, if the endpoint wants
+ * one, E2E_LLM_API_KEY.
  *
  * `OTEL_SERVICE_NAME` defaults to `genai-sdk-e2e-node`, so the data is separable
  * on the platform from everything else and from the other SDKs.
@@ -41,7 +43,7 @@ function required(name) {
   return value;
 }
 
-const baseURL = required('E2E_LLM_BASE_URL');
+const baseURL = process.env.E2E_LLM_BASE_URL || 'http://localhost:11434/v1';
 const model = required('E2E_LLM_MODEL');
 const apiKey = process.env.E2E_LLM_API_KEY ?? 'not-needed';
 required('OTEL_EXPORTER_OTLP_ENDPOINT');

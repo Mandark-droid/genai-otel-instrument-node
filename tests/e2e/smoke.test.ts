@@ -187,9 +187,20 @@ describe('examples/e2e/smoke against a mock model server and a local OTLP receiv
   }, 60000);
 
   it('refuses to run with a required variable missing', async () => {
-    const outcome = await runSmoke({ E2E_LLM_MODEL: 'gpt-4o-mini', OTEL_EXPORTER_OTLP_ENDPOINT: receiver.url });
+    const outcome = await runSmoke({ E2E_LLM_BASE_URL: `${llm.url}/v1`, OTEL_EXPORTER_OTLP_ENDPOINT: receiver.url });
     expect(outcome.code).toBe(64);
-    expect(outcome.stderr).toContain('E2E_LLM_BASE_URL');
+    expect(outcome.stderr).toContain('E2E_LLM_MODEL');
     expect(llm.requests).toHaveLength(0);
+  }, 60000);
+
+  it('with no base URL given it talks to a local Ollama', async () => {
+    // Nothing need be listening there: the summary is printed only on success, so
+    // read the endpoint off the error span the receiver gets.
+    const outcome = await runSmoke({ E2E_LLM_MODEL: 'gemma3:1b', OTEL_EXPORTER_OTLP_ENDPOINT: receiver.url });
+    expect([0, 1]).toContain(outcome.code);
+    expect(llm.requests).toHaveLength(0);
+    const span = receiver.spans.find((candidate) => candidate.name === 'openai.chat.completion');
+    expect(span?.attributes['server.address']).toBe('localhost');
+    expect(span?.attributes['server.port']).toBe(11434);
   }, 60000);
 });

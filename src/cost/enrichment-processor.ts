@@ -115,7 +115,14 @@ export class CostEnrichmentSpanProcessor implements SpanProcessor {
     const completion = Math.trunc(Number(completionTokens));
     const usage = { prompt_tokens: prompt, completion_tokens: completion, total_tokens: prompt + completion };
 
-    const cost = this.costCalculator.calculateGranularCost(String(model), usage, normalizedCallType);
+    let cost: ReturnType<CostCalculator['calculateGranularCost']>;
+    try {
+      cost = this.costCalculator.calculateGranularCost(String(model), usage, normalizedCallType);
+    } catch (error) {
+      // A pricing entry the calculator cannot use: no cost, and that is counted.
+      logger.warn(`Failed to enrich span '${span.name}' with cost: ${String(error)}`);
+      cost = null;
+    }
     if (cost === null) {
       // No price known. No attribute - a zero would read as "free" - but the
       // gap is counted, unless the producing instrumentor already reported it.

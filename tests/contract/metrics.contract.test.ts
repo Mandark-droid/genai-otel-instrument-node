@@ -14,6 +14,7 @@ import {
   resetSharedMetrics,
   SHARED_METRIC_NAMES,
 } from '../../src/metrics';
+import { recordPricingMissing, resetPricingMissingCounter } from '../../src/cost';
 import { installTestMeterProvider, type CollectedMetric, type TestMeter } from '../helpers/metrics';
 
 interface ContractMetric {
@@ -51,6 +52,21 @@ describe('metric definitions', () => {
   it('the shared GenAI client metrics are exactly the base meter of the reference implementation', () => {
     expect(BASE_METER_NAME).toBe('genai_otel.instrumentors.base');
     expect([...SHARED_METRIC_NAMES].sort()).toEqual(base.map((metric) => metric.name).sort());
+  });
+
+  it('the pricing-missing counter is as the cross-SDK decision fixes it', async () => {
+    // contract/SDK_ADDITIONS.md: counter, unit "", meter genai_otel.instrumentors.base, attributes model + call_type.
+    const meter = installTestMeterProvider(metricViews());
+    try {
+      resetPricingMissingCounter();
+      recordPricingMissing('acme-internal-llm', 'chat');
+      const metric = await meter.find('gen_ai.usage.cost.pricing_missing');
+      expect(metric).toMatchObject({ kind: 'sum', monotonic: true, unit: '', scope: 'genai_otel.instrumentors.base' });
+      expect(metric?.points).toEqual([{ attributes: { model: 'acme-internal-llm', call_type: 'chat' }, value: 1 }]);
+    } finally {
+      resetPricingMissingCounter();
+      await meter.shutdown();
+    }
   });
 
   it('metrics this SDK adds are named, and are not in the contract', () => {

@@ -396,3 +396,71 @@ describe('pricingData reassignment', () => {
     expect(c.calculateCost('gpt-x', CHAT, 'chat')).toBeNull();
   });
 });
+
+describe('table and usage shapes at the edges', () => {
+  const odd = (): CostCalculator =>
+    new CostCalculator({
+      pricingData: {
+        chat: { 'no-prices': {}, 'not-an-entry': 'text', 'only-prompt': { promptPrice: 0.002 } },
+        embeddings: { 'dict-priced': { promptPrice: 1 } },
+        images: { 'flat-quality': { standard: 0.04 }, 'not-a-mapping': 0.04 },
+        notes: 'a top-level value that is not a section',
+        prices_checked: { 'no-prices': 'last tuesday', 'only-prompt': '2026-08-13', 'not-an-entry': '2026-08-13' },
+      },
+    });
+
+  it('booleans count as 1 and 0 in token arithmetic, as they do in Python', () => {
+    expect(calc().calculateCost('gpt-x', { prompt_tokens: true, completion_tokens: false }, 'chat')).toBe((1 / 1000) * 0.0025);
+  });
+
+  it('a chat entry with a missing price key prices that part at zero', () => {
+    expect(odd().calculateCost('no-prices', CHAT, 'chat')).toBe(0);
+    expect(odd().calculateCost('only-prompt', CHAT, 'chat')).toBe(0.002);
+    expect(odd().isPriced('no-prices', 'chat')).toBe(true);
+  });
+
+  it('a chat entry that is not an object is not a price', () => {
+    expect(odd().calculateCost('not-an-entry', CHAT, 'chat')).toBeNull();
+    expect(odd().isPriced('not-an-entry', 'chat')).toBe(false);
+  });
+
+  it('a top-level value that is not a section is ignored by the index', () => {
+    expect(odd().normalizeModelName('anything', 'notes')).toBeNull();
+    expect(odd().pricingSource('only-prompt', 'notes')).toBe('unpriced');
+  });
+
+  it('entries in the wrong shape raise TypeError rather than produce a number', () => {
+    expect(() => odd().calculateCost('dict-priced', { prompt_tokens: 10 }, 'embedding')).toThrow(TypeError);
+    expect(() => odd().calculateCost('flat-quality', { size: '1024x1024' }, 'image')).toThrow(TypeError);
+    expect(() => odd().calculateCost('not-a-mapping', { size: '1024x1024' }, 'image')).toThrow(TypeError);
+    expect(() => calc().calculateCost('gpt-x', { completion_tokens_details: 5 }, 'chat')).toThrow(TypeError);
+  });
+
+  it('isPriced is false for everything when there is no table', () => {
+    expect(new CostCalculator({ pricingData: {} }).isPriced('gpt-x', 'chat')).toBe(false);
+    expect(calc().isPriced('gpt-x', 'rerank')).toBe(false);
+    expect(calc().isPriced('embed-small', 'embedding')).toBe(true);
+    expect(calc().isPriced('nope', 'embedding')).toBe(false);
+  });
+
+  it('stalePrices: an unparseable date is itself reported; ties sort by key; no registry means all unverified', () => {
+    const today = new Date('2026-10-02T00:00:00Z');
+    expect(odd().stalePrices(30, false, today)).toEqual([
+      ['not-an-entry', '2026-08-13'],
+      ['only-prompt', '2026-08-13'],
+      ['no-prices', 'last tuesday'],
+    ]);
+    const bare = new CostCalculator({ pricingData: { chat: { b: {}, a: {} } } });
+    expect(bare.stalePrices(30, true, today)).toEqual([
+      ['a', null],
+      ['b', null],
+    ]);
+    expect(bare.stalePrices()).toHaveLength(2);
+  });
+
+  it('the default table is the vendored one', () => {
+    const shipped = new CostCalculator();
+    expect(shipped.pricingSource('gpt-4o')).toBe('table');
+    expect(Object.keys(shipped.pricingData)).toContain('chat');
+  });
+});
