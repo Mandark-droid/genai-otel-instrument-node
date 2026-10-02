@@ -287,10 +287,17 @@ function isApiPromise(value: unknown): value is ApiPromiseLike {
 }
 
 export interface SpanWrapperOptions {
-  /** The method always returns a stream (`chat.stream()`), whatever its parameters say. */
-  streaming?: boolean;
+  /**
+   * The method returns a stream (`chat.stream()`), whatever its parameters
+   * say; or a function deciding it per call.
+   */
+  streaming?: boolean | ((params: Params, args: unknown[]) => boolean);
   /** A span name that depends on the request, where the reference builds one. */
-  spanName?: (params: Params) => string;
+  spanName?: (params: Params, args: unknown[]) => string;
+  /** Where the request parameters are, when they are not the first argument (`client.send(command)`). */
+  params?: (args: unknown[]) => Params;
+  /** Where the stream is in a streamed call's result, when it is not the result itself (`{ stream }`). */
+  streamOf?: (result: unknown) => unknown;
 }
 
 interface Call {
@@ -302,6 +309,7 @@ interface Call {
   /** The model the caller asked for, as written on the span. */
   model: string;
   done: boolean;
+  streamOf?: (result: unknown) => unknown;
 }
 
 // ---------------------------------------------------------------------------
@@ -548,8 +556,8 @@ export abstract class BaseInstrumentor implements Instrumentor {
         let ctx = context.active();
         let spanName = baseSpanName;
         try {
-          const params = paramsOf(args);
-          if (options.spanName) spanName = options.spanName(params);
+          const params = options.params ? options.params(args) : paramsOf(args);
+          if (options.spanName) spanName = options.spanName(params, args);
           if (instrumentor.shouldBypass(this, args, params)) return invoke(this, args);
 
           const initial = instrumentor.initialAttributes(spanName, extractAttributes, this, args, params);
@@ -560,7 +568,9 @@ export abstract class BaseInstrumentor implements Instrumentor {
             spanName,
             startTime: now(),
             params,
-            isStreaming: options.streaming ?? Boolean(params.stream),
+            isStreaming:
+              typeof options.streaming === 'function' ? options.streaming(params, args) : (options.streaming ?? Boolean(params.stream)),
+            streamOf: options.streamOf,
             model: String(params.model ?? initial[ATTR.GEN_AI_REQUEST_MODEL] ?? 'unknown'),
             done: false,
           };
@@ -782,7 +792,7 @@ export abstract class BaseInstrumentor implements Instrumentor {
 
     // A streamed call resolves to the stream, not to the answer: the model has
     // produced nothing yet. The stream wrapper owns the span from here.
-    if (call.isStreaming && this.installStreamMeasurement(call, result)) {
+    if (call.isStreaming && this.installStreamMeasurement(call, call.streamOf ? call.streamOf(result) : result)) {
       this.metrics.counters.requests.add(1, { operation: spanName });
       return result;
     }

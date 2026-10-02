@@ -122,7 +122,8 @@ function importTarget(value: unknown): string | undefined {
   if (typeof value === 'string') return value;
   if (typeof value !== 'object' || value === null) return undefined;
   const conditions = value as Record<string, unknown>;
-  return importTarget(conditions.import) ?? importTarget(conditions.default);
+  // `node` first: a package may ship a separate build for it (@google/genai does).
+  return importTarget(conditions.node) ?? importTarget(conditions.import) ?? importTarget(conditions.default);
 }
 
 /**

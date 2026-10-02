@@ -18,6 +18,8 @@ export interface MockReply {
   headers?: Record<string, string>;
   /** A JSON body. */
   json?: unknown;
+  /** A body sent byte for byte (binary event streams). */
+  raw?: Buffer;
   /** A fixture file; `.sse` files are streamed event by event, `.ndjson` files line by line. */
   fixture?: string;
   /** Milliseconds between streamed events. */
@@ -101,6 +103,11 @@ export async function startMockLlm(): Promise<MockLlm> {
       }
       if (reply.fixture?.endsWith('.sse') || reply.fixture?.endsWith('.ndjson')) {
         void streamEvents(response, fixtureText(reply.fixture), reply, reply.fixture.endsWith('.ndjson'));
+        return;
+      }
+      if (reply.raw) {
+        response.writeHead(reply.status ?? 200, { 'content-type': 'application/octet-stream', ...reply.headers });
+        response.end(reply.raw);
         return;
       }
       const payload = reply.fixture ? fixtureText(reply.fixture) : JSON.stringify(reply.json ?? {});

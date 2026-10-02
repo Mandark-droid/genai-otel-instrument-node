@@ -3,7 +3,9 @@
  * library uses in `GENAI_ENABLED_INSTRUMENTORS`.
  */
 import { AnthropicInstrumentor } from './anthropic';
+import { BedrockInstrumentor } from './bedrock';
 import { CohereInstrumentor } from './cohere';
+import { GoogleGenAIInstrumentor, VertexAIInstrumentor } from './google';
 import { GroqInstrumentor } from './groq';
 import { MistralInstrumentor } from './mistral';
 import { OllamaInstrumentor } from './ollama';
@@ -30,6 +32,10 @@ registerInstrumentor('together', () => new TogetherInstrumentor());
 registerInstrumentor('mistralai', () => new MistralInstrumentor());
 registerInstrumentor('cohere', () => new CohereInstrumentor());
 registerInstrumentor('ollama', () => new OllamaInstrumentor());
+registerInstrumentor('google.generativeai', () => new GoogleGenAIInstrumentor());
+registerInstrumentor('vertexai', () => new VertexAIInstrumentor());
+// The reference name: its Bedrock instrumentor patches boto3.
+registerInstrumentor('boto3', () => new BedrockInstrumentor());
 
 export {
   BaseInstrumentor,
@@ -42,7 +48,9 @@ export {
   type UsageDict,
 } from './base';
 export { AnthropicInstrumentor } from './anthropic';
+export { BedrockInstrumentor } from './bedrock';
 export { CohereInstrumentor } from './cohere';
+export { GoogleGenAIInstrumentor, VertexAIInstrumentor } from './google';
 export { GroqInstrumentor } from './groq';
 export { MistralInstrumentor } from './mistral';
 export { OllamaInstrumentor } from './ollama';

@@ -92,6 +92,9 @@
   which the Python library does not trace) and Ollama (`ollama`), with examples.
 - ES-module-only client packages are found and patched (`@mistralai/mistralai` ships no
   CommonJS build).
+- Instrumentors for Google Gemini (`@google/genai`), Vertex AI (`@google-cloud/vertexai`)
+  and AWS Bedrock (`@aws-sdk/client-bedrock-runtime`: Converse, ConverseStream, InvokeModel,
+  InvokeModelWithResponseStream), with examples.
 - `PatchingInstrumentor`: the shared base for module-patching instrumentors, with
   `instrumentModule(module, config)` for bundled applications. Two instrumentors can now
   wrap the same method; `uninstrument()` removes them last in, first out.

@@ -67,6 +67,25 @@ export const EXAMPLES = [
     run: 'ollama pull qwen3.5:4b && ollama pull embeddinggemma:300m\nOTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node examples/ollama/chat.mjs',
     live: '**No.** No Ollama server was started where this was written; it needs no key, only `ollama serve` and the two models',
   },
+  {
+    dir: 'google-genai',
+    title: 'Google Gemini',
+    file: 'chat.mjs',
+    does: 'A buffered call, a streamed call and an embeddings call through `@google/genai`.',
+    spans: '`google.genai.models.generate_content` (twice), `google.genai.models.embeddings`',
+    run: 'GEMINI_API_KEY=... OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node examples/google-genai/chat.mjs',
+    notes: 'With automatic function calling, each round trip to the model is one span. Vertex AI through this client (`vertexai: true`) is traced the same way; the older `@google-cloud/vertexai` client is traced as `vertexai.generate_content`.',
+  },
+  {
+    dir: 'bedrock',
+    title: 'AWS Bedrock',
+    file: 'converse.mjs',
+    does: 'A Converse call and an InvokeModel call through `@aws-sdk/client-bedrock-runtime`.',
+    spans: '`aws.bedrock.converse`, `aws.bedrock.invoke_model`',
+    run: 'AWS_REGION=us-east-1 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node examples/bedrock/converse.mjs',
+    live: '**No.** No AWS credentials were available where this was written',
+    notes: 'The instrumentor is registered as `boto3`, the name the Python library uses for it, so one `GENAI_ENABLED_INSTRUMENTORS` value works for both.',
+  },
 ];
 
 function readme(example) {

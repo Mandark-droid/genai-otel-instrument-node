@@ -98,15 +98,37 @@
   },
   "peerDependencies": {
     "@anthropic-ai/sdk": ">=0.20.0",
+    "@aws-sdk/client-bedrock-runtime": "*",
+    "@elevenlabs/elevenlabs-js": "*",
+    "@google-cloud/vertexai": "*",
+    "@google/genai": "*",
+    "@huggingface/inference": "*",
     "@mistralai/mistralai": "*",
     "cohere-ai": "*",
     "groq-sdk": "*",
     "ollama": "*",
     "openai": ">=4.0.0",
+    "replicate": "*",
+    "sarvamai": "*",
     "together-ai": "*"
   },
   "peerDependenciesMeta": {
     "@anthropic-ai/sdk": {
+      "optional": true
+    },
+    "@aws-sdk/client-bedrock-runtime": {
+      "optional": true
+    },
+    "@elevenlabs/elevenlabs-js": {
+      "optional": true
+    },
+    "@google-cloud/vertexai": {
+      "optional": true
+    },
+    "@google/genai": {
+      "optional": true
+    },
+    "@huggingface/inference": {
       "optional": true
     },
     "@mistralai/mistralai": {
@@ -124,14 +146,26 @@
     "openai": {
       "optional": true
     },
+    "replicate": {
+      "optional": true
+    },
+    "sarvamai": {
+      "optional": true
+    },
     "together-ai": {
       "optional": true
     }
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.1145.0",
+    "@elevenlabs/elevenlabs-js": "^2.70.0",
     "@eslint/js": "^9.39.5",
+    "@google-cloud/vertexai": "^1.12.0",
+    "@google/genai": "^2.26.0",
+    "@huggingface/inference": "^4.13.30",
     "@mistralai/mistralai": "^2.7.0",
+    "@smithy/node-http-handler": "^4.12.1",
     "@types/node": "^20.19.43",
     "@vitest/coverage-v8": "^4.1.11",
     "cohere-ai": "^8.1.0",
@@ -141,6 +175,8 @@
     "happy-dom": "^20.14.5",
     "ollama": "^0.6.4",
     "openai": "^7.27.0",
+    "replicate": "^1.4.0",
+    "sarvamai": "^1.1.10",
     "together-ai": "^0.57.0",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",

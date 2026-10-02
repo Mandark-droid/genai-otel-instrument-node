@@ -98,6 +98,34 @@ const CASES: ExampleCase[] = [
     // A local embedding model has no price: no cost attribute, by design.
     costed: ['ollama.chat'],
   },
+  {
+    script: 'examples/google-genai/chat.mjs',
+    env: { GEMINI_API_KEY: 'google-example-not-a-real-key', EXAMPLE_BASE_URL: '{llm}' },
+    replies: [
+      { fixture: 'google/generate-content.json' },
+      { fixture: 'google/generate-content.stream.sse' },
+      { fixture: 'google/embed-content.json' },
+    ],
+    spans: ['google.genai.models.generate_content', 'google.genai.models.generate_content', 'google.genai.models.embeddings'],
+    system: 'google',
+    // The embeddings endpoint reports no usage: no tokens, so no cost.
+    costed: ['google.genai.models.generate_content'],
+  },
+  {
+    script: 'examples/bedrock/converse.mjs',
+    env: {
+      AWS_ACCESS_KEY_ID: 'AKIAEXAMPLEEXAMPLE00',
+      AWS_SECRET_ACCESS_KEY: 'example-secret-not-a-real-key',
+      AWS_REGION: 'us-east-1',
+      EXAMPLE_BASE_URL: '{llm}',
+    },
+    replies: [
+      { json: { output: { message: { role: 'assistant', content: [{ text: 'Paris.' }] } }, stopReason: 'end_turn', usage: { inputTokens: 10, outputTokens: 2, totalTokens: 12 } } },
+      { json: { output: { message: { role: 'assistant', content: [{ text: 'Hello.' }] } }, usage: { inputTokens: 4, outputTokens: 2 } } },
+    ],
+    spans: ['aws.bedrock.converse', 'aws.bedrock.invoke_model'],
+    system: 'aws_bedrock',
+  },
 ];
 
 describe('provider examples, against a mock provider', () => {

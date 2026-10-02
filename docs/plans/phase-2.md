@@ -38,7 +38,7 @@ datastores are phase 3; GPU, energy, evaluation and media are phase 4.
 | Cohere | `cohere` | `cohere-ai` | 8.1.0 | maintained | Port |
 | Ollama | `ollama` | `ollama` | 0.6.4 | maintained | Port (server-metrics poller is phase 4) |
 | Google GenAI | `google.genai`, `google.generativeai` | `@google/genai` | 2.26.0 | maintained | Port. `@google/generative-ai` (0.24.1, last release 2025-04) is end-of-life: not instrumented, recorded |
-| Vertex AI | `vertexai` | `@google/genai` with `vertexai: true`; `@google-cloud/vertexai` 1.12.0 | | the latter is superseded | Vertex mode of `@google/genai` reported with `gen_ai.system = vertexai`; `@google-cloud/vertexai` `GenerativeModel.generateContent` patched too while it is still published |
+| Vertex AI | `vertexai` | `@google/genai` with `vertexai: true`; `@google-cloud/vertexai` 1.12.0 | | the latter is superseded | Vertex mode of `@google/genai` is traced by the Google instrumentor as `gen_ai.system = google`, as the reference does; `@google-cloud/vertexai` `GenerativeModel.generateContent` is patched as `vertexai.generate_content` |
 | Bedrock | `boto3` bedrock-runtime | `@aws-sdk/client-bedrock-runtime` | 3.1145 | maintained | Port: `InvokeModel`, `InvokeModelWithResponseStream`, `Converse`, plus `ConverseStream` |
 | Replicate | `replicate` | `replicate` | 1.4.0 | maintained | Port |
 | HuggingFace Inference | `huggingface_hub.InferenceClient` | `@huggingface/inference` | 4.13 | maintained | Port the inference-client half. The `transformers` half is the on-device unit below |
