@@ -45,6 +45,7 @@ import {
 import { logger } from './logger';
 import { metricViews, resetSharedMetrics } from './metrics';
 import { buildResource } from './resource';
+import { SessionSpanProcessor } from './session';
 import { clearStateSlot, globalState } from './state';
 import { VERSION } from './version';
 
@@ -347,7 +348,8 @@ function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumen
 
   const resource = buildResource(config.serviceName, VERSION, config.profile);
 
-  const spanProcessors: SpanProcessor[] = [];
+  // First, so the session is on the span before any other processor reads it.
+  const spanProcessors: SpanProcessor[] = [new SessionSpanProcessor()];
   if (config.enableCostTracking) {
     try {
       // Spans from other instrumentation are priced from the same table as our

@@ -81,4 +81,12 @@ export {
   SUPERSEDED_ATTRIBUTES,
   type SemconvModes,
 } from './semconv';
+export {
+  currentSession,
+  SessionSpanProcessor,
+  setSession,
+  withSession,
+  type SessionOptions,
+  type SessionScope,
+} from './session';
 export { VERSION } from './version';

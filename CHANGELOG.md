@@ -83,6 +83,11 @@
 - `contract/PORTING_NOTES.md` and `contract/SDK_ADDITIONS.md` are vendored with the
   contract.
 
+- Session scope: `withSession(id, fn, { userId })`, `setSession(id, { userId })` and
+  `currentSession()`. Every span started in scope - from any instrumentation - carries
+  `session.id` and `gen_ai.conversation.id` (and `user.id`), which is what the platform
+  builds a session from. Not present in the Python library, which has only the extractor
+  callbacks; an extractor still wins where configured. All three entries export them.
 - Browser and React Native entry points, selected by the `browser` and `react-native`
   export conditions (also `./browser` and `./react-native` subpaths): the runtime-agnostic
   core, an explicit `instrument({...})` exporting OTLP/HTTP JSON over `fetch` with no

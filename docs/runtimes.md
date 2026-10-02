@@ -98,6 +98,13 @@ selects a size tier and `gen_ai.usage.cost.pricing_source` is `estimated`; other
 there is no cost attribute, `pricing_source` is `unpriced`, and the pricing-missing
 counter is incremented.
 
+### Sessions
+
+Call `setSession('chat-41', { userId })` once the app knows which conversation it is in;
+every span from then on carries `session.id`, `gen_ai.conversation.id` and `user.id`.
+`withSession(id, fn)` also exists, but with no context manager in these runtimes it
+covers only what `fn` starts synchronously.
+
 ### Export behaviour
 
 Spans are batched; ending a span only enqueues it. An export that fails (collector down,

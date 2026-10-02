@@ -60,6 +60,23 @@ await flushTelemetry(5); // seconds; resolves false if the collector did not tak
 await uninstrument();
 ```
 
+## Sessions
+
+The platform groups spans into a session by `session.id`. A run whose spans carry none
+shows up as traces with no session. Say which session a piece of work belongs to:
+
+```js
+import { withSession, setSession } from '@traceverse/genai-otel-instrument';
+
+await withSession('chat-41', () => handle(request), { userId: 'u-17' }); // everything started inside
+setSession('chat-41');                                                   // or: everything from now on
+```
+
+Every span started in scope gets `session.id`, `gen_ai.conversation.id` and, if given,
+`user.id`. `sessionIdExtractor` / `userIdExtractor` (the reference library's callbacks)
+are still supported and win for the spans they apply to. In a browser or React Native
+app use `setSession`: there `withSession` does not hold across `await`.
+
 ## Browser and React Native
 
 The same package loads in a browser bundle and in a React Native app, through the

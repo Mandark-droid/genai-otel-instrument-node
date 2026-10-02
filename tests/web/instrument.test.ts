@@ -195,6 +195,21 @@ describe.each([
     expect('gen_ai.usage.cost.total' in (unsized ?? {})).toBe(false);
   });
 
+  it('setSession gives every span the session id the platform groups a run by', async () => {
+    quiet();
+    const { fetch, sent } = fakeFetch();
+    sdk.instrument({ serviceName: 'web-app', endpoint: 'https://c.example', fetch });
+    sdk.setSession('chat-41', { userId: 'u-2' });
+    try {
+      sdk.traceGenAiCall({ name: 'local.generate', system: 'transformers.js', model: 'm' }, () => ({}));
+    } finally {
+      sdk.setSession(undefined);
+    }
+    await sdk.flushTelemetry(2);
+    expect(attrs(spansOf(sent)[0] as Any)).toMatchObject({ 'session.id': 'chat-41', 'gen_ai.conversation.id': 'chat-41', 'user.id': 'u-2' });
+    expect(typeof sdk.withSession).toBe('function');
+  });
+
   it('a manual call that throws ends its span with ERROR status and rethrows', async () => {
     quiet();
     const { fetch, sent } = fakeFetch();

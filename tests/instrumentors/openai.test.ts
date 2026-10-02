@@ -9,6 +9,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { getDefaultCostCalculator } from '../../src/cost';
 import { clearBaseUrlClaims, registerBaseUrlClaim, STREAM_CANCELLED } from '../../src/instrumentors/base';
 import { OpenAIInstrumentor } from '../../src/instrumentors/openai';
+import { withSession } from '../../src/session';
 import { eventually, startHarness, type Harness } from '../helpers/harness';
 import { fixtureJson, startMockLlm, type MockLlm } from '../helpers/mock-llm';
 
@@ -676,6 +677,22 @@ describe('OpenAI instrumentor', () => {
       expect(attributes['session.id']).toBe('s-42');
       expect(attributes['gen_ai.conversation.id']).toBe('s-42');
       expect(attributes['user.id']).toBe('u-17');
+    });
+
+    it('withSession puts the session on provider spans; an extractor still wins', async () => {
+      await start();
+      llm.reply({ fixture: 'openai/chat.completion.json' });
+      await withSession('run-7', () => client.chat.completions.create({ model: 'gpt-4o-mini', messages: MESSAGES }), { userId: 'u-3' });
+      const attributes = harness.span('openai.chat.completion').attributes;
+      expect(attributes['session.id']).toBe('run-7');
+      expect(attributes['gen_ai.conversation.id']).toBe('run-7');
+      expect(attributes['user.id']).toBe('u-3');
+      await harness.stop();
+
+      await start({ sessionIdExtractor: () => 'from-extractor' });
+      llm.reply({ fixture: 'openai/chat.completion.json' });
+      await withSession('run-8', () => client.chat.completions.create({ model: 'gpt-4o-mini', messages: MESSAGES }));
+      expect(harness.span('openai.chat.completion').attributes['session.id']).toBe('from-extractor');
     });
 
     it('an extractor that throws does not disturb the call', async () => {

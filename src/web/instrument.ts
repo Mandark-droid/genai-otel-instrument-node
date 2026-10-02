@@ -27,6 +27,7 @@ import { resetPricingMissingCounter } from '../cost/pricing-missing';
 import { setAmbientEnv, type Env } from '../env';
 import { logger } from '../logger';
 import { metricViews, resetSharedMetrics } from '../metrics';
+import { SessionSpanProcessor } from '../session';
 import { clearStateSlot, globalState } from '../state';
 import { VERSION } from '../version';
 import { manualInstrumentor } from './manual';
@@ -155,7 +156,7 @@ function setup(
     timeoutMillis,
   });
 
-  const spanProcessors: SpanProcessor[] = [];
+  const spanProcessors: SpanProcessor[] = [new SessionSpanProcessor()];
   if (config.enableCostTracking) spanProcessors.push(new CostEnrichmentSpanProcessor(costCalculatorFor(config.customPricingJson)));
   spanProcessors.push(...(options.spanProcessors ?? []));
   // Batched: ending a span only enqueues it. Nothing is sent on the caller's path.

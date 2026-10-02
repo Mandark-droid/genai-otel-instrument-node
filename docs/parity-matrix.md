@@ -24,6 +24,7 @@ evaluation, media.
 | Zero-code entry point | shipped | `node --require .../register` (CommonJS), `node --import .../register` (ES modules) |
 | Sampling, W3C trace-context propagation, flush on exit / SIGTERM | shipped | |
 | Session / user id extractors | shipped | Programmatic only, as in the reference |
+| `withSession()` / `setSession()` | shipped | **Not present in Python.** Puts `session.id`, `gen_ai.conversation.id` and optionally `user.id` on every span in scope; an extractor still wins |
 | Agent budget accounting (`gen_ai.agent.token_budget*`) | planned, phase 3 | Arrives with the agent frameworks |
 | Server concurrency gauge (`GENAI_ENABLE_CONCURRENCY_METRICS`) | planned, phase 4 | |
 | GPU, energy, CO2 metrics | planned, phase 4 | |
@@ -94,6 +95,7 @@ with each other where the reference has nothing to agree with.
 | Addition | Definition |
 |---|---|
 | Counter `gen_ai.usage.cost.pricing_missing` | unit `""`, meter `genai_otel.instrumentors.base`, attributes `model` and `call_type`. Incremented once per span whose model has no price, including the 13 pricing-table entries on which the calculator raises |
+| `withSession(id, fn, { userId })`, `setSession(id, { userId })`, `currentSession()` | The reference has only the `session_id_extractor` / `user_id_extractor` callbacks (ported). These set `session.id` + `gen_ai.conversation.id` (+ `user.id`) on every span started in scope, from any instrumentation. Pending confirmation as a cross-SDK addition |
 | `telemetry.distro.name = genai-otel-instrument-node` | The reference emits `genai-otel-instrument`, with no suffix |
 
 ### JavaScript only: three runtimes
