@@ -89,6 +89,32 @@ describe('instrument()', () => {
     expect(isInstrumented()).toBe(false);
   });
 
+  it('with the collector lost mid-run: what was sent stays sent, the host path carries on, a flush reports failure', async () => {
+    quietLogger();
+    receiver = await startOtlpReceiver();
+    instrument({ serviceName: 'mid-run', endpoint: receiver.url, enabledInstrumentors: [] });
+    const tracer = trace.getTracer('host-app');
+
+    tracer.startSpan('before-outage').end();
+    expect(await flushTelemetry(5)).toBe(true);
+    expect(receiver.spans.map((span) => span.name)).toContain('before-outage');
+
+    // The collector goes away while the application keeps running.
+    await receiver.close();
+    receiver = undefined;
+
+    const started = Date.now();
+    for (let i = 0; i < 500; i += 1) tracer.startSpan(`during-outage-${i}`).end();
+    expect(Date.now() - started).toBeLessThan(1000);
+
+    const flushStarted = Date.now();
+    const flushed = await flushTelemetry(1);
+    expect(flushed).toBe(false);
+    expect(Date.now() - flushStarted).toBeLessThan(5000);
+    // And the application can still do its work afterwards.
+    expect(() => tracer.startSpan('after-flush').end()).not.toThrow();
+  });
+
   it('exports spans over OTLP http/protobuf with the identity attributes on the resource', async () => {
     quietLogger();
     receiver = await startOtlpReceiver();
