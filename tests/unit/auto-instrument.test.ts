@@ -10,6 +10,7 @@ import {
   uninstrument,
 } from '../../src/auto-instrument';
 import { ConfigError } from '../../src/config';
+import { getDefaultCostCalculator } from '../../src/cost';
 import { setLogger } from '../../src/logger';
 import { VERSION } from '../../src/version';
 import { closedPort, startOtlpReceiver, type OtlpReceiver } from '../helpers/otlp-receiver';
@@ -123,6 +124,55 @@ describe('instrument()', () => {
     expect(process.env.OTEL_EXPORTER_OTLP_ENDPOINT).toBe(`http://127.0.0.1:${port}`);
     // The specification reads this variable as milliseconds; ours is seconds (Python). It is passed explicitly.
     expect(process.env.OTEL_EXPORTER_OTLP_TIMEOUT).toBeUndefined();
+  });
+
+  it('prices a span from other instrumentation on its way out, when cost tracking is on', async () => {
+    quietLogger();
+    receiver = await startOtlpReceiver();
+    instrument({ serviceName: 'cost-check', endpoint: receiver.url, enabledInstrumentors: [] });
+    trace
+      .getTracer('some-other-instrumentation')
+      .startSpan('llm', {
+        attributes: { 'gen_ai.request.model': 'gpt-4o', 'gen_ai.usage.input_tokens': 1000, 'gen_ai.usage.output_tokens': 500 },
+      })
+      .end();
+    expect(await flushTelemetry(5)).toBe(true);
+    const span = receiver.spans.find((candidate) => candidate.name === 'llm');
+    expect(span?.attributes['gen_ai.usage.cost.total']).toBe(
+      getDefaultCostCalculator().calculateCost('gpt-4o', { prompt_tokens: 1000, completion_tokens: 500 }, 'chat'),
+    );
+  });
+
+  it('adds no cost when GENAI_ENABLE_COST_TRACKING is off', async () => {
+    quietLogger();
+    receiver = await startOtlpReceiver();
+    instrument({ endpoint: receiver.url, enabledInstrumentors: [], enableCostTracking: false });
+    trace
+      .getTracer('some-other-instrumentation')
+      .startSpan('llm', {
+        attributes: { 'gen_ai.request.model': 'gpt-4o', 'gen_ai.usage.input_tokens': 1000, 'gen_ai.usage.output_tokens': 500 },
+      })
+      .end();
+    expect(await flushTelemetry(5)).toBe(true);
+    const span = receiver.spans.find((candidate) => candidate.name === 'llm');
+    expect(span).toBeDefined();
+    expect('gen_ai.usage.cost.total' in (span?.attributes ?? {})).toBe(false);
+  });
+
+  it('counts a call it could not price, on the meter provider it set up', async () => {
+    quietLogger();
+    receiver = await startOtlpReceiver();
+    instrument({ endpoint: receiver.url, enabledInstrumentors: [] });
+    trace
+      .getTracer('some-other-instrumentation')
+      .startSpan('llm', {
+        attributes: { 'gen_ai.request.model': 'acme-internal-model', 'gen_ai.usage.input_tokens': 10, 'gen_ai.usage.output_tokens': 5 },
+      })
+      .end();
+    expect(await flushTelemetry(5)).toBe(true);
+    const span = receiver.spans.find((candidate) => candidate.name === 'llm');
+    expect('gen_ai.usage.cost.total' in (span?.attributes ?? {})).toBe(false);
+    expect(receiver.metrics.map((metric) => metric.name)).toContain('gen_ai.usage.cost.pricing_missing');
   });
 
   it('accepts extra span processors', async () => {

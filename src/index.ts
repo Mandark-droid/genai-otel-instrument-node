@@ -28,6 +28,16 @@ export {
   type IdExtractor,
   type OTelConfig,
 } from './config';
+export {
+  CostCalculator,
+  CostEnrichmentSpanProcessor,
+  getDefaultCostCalculator,
+  PRICING_MISSING_METRIC,
+  type CostCalculatorOptions,
+  type GranularCost,
+  type PricingSource,
+  type Usage,
+} from './cost';
 export { setLogger, type Logger } from './logger';
 export {
   buildResource,

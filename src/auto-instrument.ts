@@ -32,6 +32,9 @@ import {
   type SpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
 import { ConfigError, loadConfig, type Env, type OTelConfig } from './config';
+import { getDefaultCostCalculator } from './cost/default';
+import { CostEnrichmentSpanProcessor } from './cost/enrichment-processor';
+import { resetPricingMissingCounter } from './cost/pricing-missing';
 import {
   instrumentorFactory,
   isReferenceOnlyInstrumentor,
@@ -91,6 +94,17 @@ export function registerViewProvider(provider: ViewProvider): void {
 
 export function registerSpanProcessorProvider(provider: ProcessorProvider): void {
   processorProviders.push(provider);
+}
+
+/** Hooks that drop instruments created against a meter provider that is going away. */
+const meterResetHooks: (() => void)[] = [resetPricingMissingCounter];
+
+export function registerMeterResetHook(hook: () => void): void {
+  meterResetHooks.push(hook);
+}
+
+function resetMeterBoundState(): void {
+  for (const hook of meterResetHooks) hook();
 }
 
 function activeState(): ActiveState | undefined {
@@ -351,6 +365,16 @@ function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumen
   const resource = buildResource(config.serviceName, VERSION, config.profile);
 
   const spanProcessors: SpanProcessor[] = [];
+  if (config.enableCostTracking) {
+    try {
+      // The shared default-priced calculator, as in the reference implementation:
+      // spans from other instrumentation are priced from the shipped table.
+      spanProcessors.push(new CostEnrichmentSpanProcessor(getDefaultCostCalculator()));
+      logger.info('Cost enrichment processor added');
+    } catch (error) {
+      logger.warn(`Failed to add cost enrichment processor: ${String(error)}`);
+    }
+  }
   for (const provider of processorProviders) spanProcessors.push(...provider(config));
   spanProcessors.push(...(options.spanProcessors ?? []));
 
@@ -416,6 +440,9 @@ function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumen
   else contextManager.disable();
 
   globalState()[STATE_SLOT] = state;
+  // Instruments are bound to the provider that created them; forget the ones
+  // made against whatever provider was global before.
+  resetMeterBoundState();
 
   reportUnhonouredSettings(config, process.env);
   const { started, ready } = startInstrumentors(config, explicitInstrumentors);
@@ -530,6 +557,8 @@ export async function uninstrument(timeoutSeconds = 5.0): Promise<void> {
       }
     }),
   );
+
+  resetMeterBoundState();
 
   // Only take down the globals this call put up; a host application's own
   // providers are not ours to remove.

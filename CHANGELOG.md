@@ -26,6 +26,17 @@
 - GitHub Actions `test` workflow: sync check, typecheck, lint, tests and build on Node
   20 / 22 / 24, and a built-package smoke on Node 18.
 
+- `CostCalculator`: a port of the Python cost calculator - case-insensitive exact match,
+  then the longest pricing key that matches on a token boundary; parameter-count tiers
+  for local models; custom pricing (`GENAI_CUSTOM_PRICING_JSON`) merged over the shipped
+  table; granular cost (prompt, completion, reasoning, cache read, cache write);
+  `pricingSource`, `deprecation`, `priceChecked`, `stalePrices`. Passes every vector in
+  `contract/cost_vectors.json` bit for bit.
+- An unpriced model yields `null`, never `0`: no cost attribute is written, and the call
+  is counted in the new `gen_ai.usage.cost.pricing_missing` counter.
+- `CostEnrichmentSpanProcessor`: prices GenAI and OpenInference spans produced by other
+  instrumentation, at span end.
+
 ### Notes
 - `npm audit`: one low-severity finding in `esbuild` (development server on Windows),
   reached only through the build tool. It does not ship and is not exercised.
