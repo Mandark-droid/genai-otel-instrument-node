@@ -76,6 +76,7 @@ describe('examples/e2e/smoke against a mock model server and a local OTLP receiv
       sdk_cost_usd: number | null;
       pricing_source: string;
       trace_id: string;
+      session_id: string;
       telemetry_flushed: boolean;
       exporter: string;
     };
@@ -86,6 +87,10 @@ describe('examples/e2e/smoke against a mock model server and a local OTLP receiv
     expect(summary.sdk_cost_usd).toBe(expectedCost);
     expect(summary.telemetry_flushed).toBe(true);
     expect(summary.trace_id).toMatch(/^[0-9a-f]{32}$/);
+    // Every span of the run carries the session id the summary prints.
+    expect(summary.session_id).toMatch(/^genai-sdk-e2e-node-\d+$/);
+    expect(receiver.spans.length).toBeGreaterThan(0);
+    for (const exported of receiver.spans) expect(exported.attributes['session.id'], exported.name).toBe(summary.session_id);
 
     // What actually crossed the wire to the collector.
     const span = receiver.spans.find((candidate) => candidate.name === 'openai.chat.completion');

@@ -30,6 +30,7 @@ import { metricViews, resetSharedMetrics } from '../metrics';
 import { SessionSpanProcessor } from '../session';
 import { clearStateSlot, globalState } from '../state';
 import { VERSION } from '../version';
+import { startOnDeviceInstrumentors, stopOnDeviceInstrumentors } from '../on-device';
 import { manualInstrumentor } from './manual';
 import { FetchMetricExporter, FetchSpanExporter, signalUrl, type FetchLike } from './otlp-fetch';
 
@@ -191,6 +192,7 @@ function setup(
   resetPricingMissingCounter();
   resetSharedMetrics();
   manualInstrumentor().instrument(config);
+  startOnDeviceInstrumentors(config);
 
   if (options.appState) {
     // A backgrounded app may be suspended or killed without notice: send what is queued now.
@@ -276,6 +278,7 @@ export async function uninstrument(timeoutSeconds = 5.0): Promise<void> {
     logger.debug(`Could not remove the app-state listener: ${String(error)}`);
   }
   manualInstrumentor().uninstrument();
+  stopOnDeviceInstrumentors();
 
   const timeoutMs = Math.max(1, Math.trunc(timeoutSeconds * 1000));
   await Promise.all(

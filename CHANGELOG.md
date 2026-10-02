@@ -98,6 +98,18 @@
 - Instrumentors for Replicate (`replicate`), ElevenLabs (`@elevenlabs/elevenlabs-js`) and
   Sarvam AI (`sarvamai`), and `traceHuggingFaceClient()` for `@huggingface/inference`,
   whose client can only be traced by wrapping it. With examples.
+- On-device inference (spec 6a):
+  - transformers.js (`@huggingface/transformers`): `transformers.model.load`,
+    `huggingface.pipeline`, `huggingface.model.generate` with measured token counts, time
+    to first token, time per output token and tokens per second, the device asked for and
+    the device used. `instrumentTransformers(module)` in a browser; found by name on Node.
+  - WebGPU: `collectWebGpuFacts()`, `enableWebGpuFacts()` (adapter vendor, architecture,
+    fallback flag, features, limits on model-load spans), `watchWebGpuDevice()`.
+  - cactus-react-native: `instrumentCactus({ CactusLM, CactusSTT })` - download, init,
+    complete (the engine's own token counts, time to first token, decode speed, memory,
+    tool calls), embed, transcribe.
+  - Examples: `examples/browser-transformers` (chat page, and the same on Node),
+    `examples/react-native-cactus`.
 - `PatchingInstrumentor`: the shared base for module-patching instrumentors, with
   `instrumentModule(module, config)` for bundled applications. Two instrumentors can now
   wrap the same method; `uninstrument()` removes them last in, first out.

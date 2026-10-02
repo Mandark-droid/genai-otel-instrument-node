@@ -326,6 +326,13 @@ export abstract class BaseInstrumentor implements Instrumentor {
   abstract uninstrument(): void;
 
   /**
+   * A call that returned normally but did not succeed, for engines that report
+   * failure in the result instead of throwing. The message becomes the span's
+   * error status; no tokens and no cost are recorded.
+   */
+  protected resultFailure?(result: unknown): string | undefined;
+
+  /**
    * Token usage of a result, or of one streamed chunk: `prompt_tokens`,
    * `completion_tokens`, `total_tokens`, plus optional cache / reasoning /
    * per-modality keys. null when the object carries none.
@@ -799,6 +806,13 @@ export abstract class BaseInstrumentor implements Instrumentor {
     }
 
     this.metrics.counters.requests.add(1, { operation: spanName });
+    const failure = this.resultFailure?.(result);
+    if (failure !== undefined) {
+      this.metrics.counters.errors.add(1, { operation: spanName, error_type: 'ResultFailure' });
+      span.setStatus({ code: SpanStatusCode.ERROR, message: failure });
+      this.endOnce(call);
+      return result;
+    }
     try {
       this.recordResultMetrics(span, spanName, result, call.startTime, call.params);
     } catch (error) {
@@ -1165,7 +1179,7 @@ export abstract class BaseInstrumentor implements Instrumentor {
   }
 
   /** A measured TTFT under both attribute spellings and both histograms. */
-  private recordTimeToFirstToken(span: Span, spanName: string, ttft: number, model: string): void {
+  protected recordTimeToFirstToken(span: Span, spanName: string, ttft: number, model: string): void {
     span.setAttribute(SC.GEN_AI_SERVER_TIME_TO_FIRST_TOKEN, ttft);
     span.setAttribute(SC.GEN_AI_SERVER_TTFT, ttft);
     const attributes = { model, operation: spanName };
@@ -1178,7 +1192,7 @@ export abstract class BaseInstrumentor implements Instrumentor {
    * a real output-token count; without usage nothing is emitted, because a
    * zero is indistinguishable from an instant response once averaged.
    */
-  private recordTimePerOutputToken(
+  protected recordTimePerOutputToken(
     span: Span,
     spanName: string,
     ttft: number | null,

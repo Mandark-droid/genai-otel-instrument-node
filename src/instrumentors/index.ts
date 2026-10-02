@@ -19,10 +19,16 @@ import {
   OpenRouterInstrumentor,
   SambaNovaInstrumentor,
 } from './openai-compatible';
-import { registerInstrumentor } from './registry';
+import { loadModuleCopies } from './patch';
+import { setModuleLoader } from './patching';
+import { registerInstrumentor, type Instrumentor } from './registry';
 import { ReplicateInstrumentor } from './replicate';
 import { SarvamInstrumentor } from './sarvam';
 import { TogetherInstrumentor } from './together';
+import { TransformersInstrumentor } from './transformers';
+
+// Node can find a client library by name; the instrumentors ask through this.
+setModuleLoader(loadModuleCopies);
 
 registerInstrumentor('openai', () => new OpenAIInstrumentor());
 registerInstrumentor('anthropic', () => new AnthropicInstrumentor());
@@ -41,8 +47,15 @@ registerInstrumentor('vertexai', () => new VertexAIInstrumentor());
 registerInstrumentor('replicate', () => new ReplicateInstrumentor());
 registerInstrumentor('elevenlabs', () => new ElevenLabsInstrumentor());
 registerInstrumentor('sarvamai', () => new SarvamInstrumentor());
-// The reference name covers both halves of its HuggingFace instrumentor.
-registerInstrumentor('transformers', () => huggingFaceInferenceInstrumentor());
+// The reference name covers both halves of its HuggingFace instrumentor: the
+// inference client (traced by wrapping) and local models (transformers.js).
+registerInstrumentor('transformers', (): Instrumentor => {
+  const parts: Instrumentor[] = [huggingFaceInferenceInstrumentor(), new TransformersInstrumentor()];
+  return {
+    instrument: (config) => Promise.all(parts.map((part) => part.instrument(config))).then(() => undefined),
+    uninstrument: () => parts.forEach((part) => part.uninstrument()),
+  };
+});
 // The reference name: its Bedrock instrumentor patches boto3.
 registerInstrumentor('boto3', () => new BedrockInstrumentor());
 
@@ -69,6 +82,7 @@ export { MistralInstrumentor } from './mistral';
 export { OllamaInstrumentor } from './ollama';
 export { OpenAIInstrumentor } from './openai';
 export { TogetherInstrumentor } from './together';
+export { TransformersInstrumentor } from './transformers';
 export {
   AnyscaleInstrumentor,
   CometAPIInstrumentor,

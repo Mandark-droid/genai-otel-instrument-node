@@ -31,6 +31,7 @@ import {
   instrumentorsReady,
   uninstrument,
   VERSION,
+  withSession,
 } from '@traceverse/genai-otel-instrument';
 
 /** @param {string} name */
@@ -80,12 +81,15 @@ await instrumentorsReady();
 void CostEnrichmentSpanProcessor;
 
 const client = new OpenAI({ apiKey, baseURL, maxRetries: 0 });
+// The platform builds a session only from spans that carry a session id.
+const sessionId = process.env.E2E_SESSION_ID || `genai-sdk-e2e-node-${Date.now()}`;
 const prompt = process.env.E2E_PROMPT ?? 'Reply with the single word: pong';
 
 /** @type {import('openai').OpenAI.Chat.Completions.ChatCompletion} */
 let completion;
 try {
-  completion = await trace.getTracer('genai-sdk-e2e').startActiveSpan('e2e.smoke', async (root) => {
+  completion = await withSession(sessionId, () =>
+    trace.getTracer('genai-sdk-e2e').startActiveSpan('e2e.smoke', async (root) => {
     try {
       return await client.chat.completions.create({
         model,
@@ -96,7 +100,8 @@ try {
     } finally {
       root.end();
     }
-  });
+    }),
+  );
 } catch (error) {
   console.error(`The chat call failed: ${error instanceof Error ? error.message : String(error)}`);
   await flushTelemetry(10);
@@ -127,6 +132,7 @@ const summary = {
   // null means "no price known for this model": the span then carries no cost attribute.
   sdk_cost_usd: calculator.calculateCost(model, usage, 'chat'),
   pricing_source: calculator.pricingSource(model, 'chat'),
+  session_id: sessionId,
   trace_id: last.span?.spanContext().traceId ?? null,
   telemetry_flushed: flushed,
 };

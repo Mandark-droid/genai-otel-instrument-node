@@ -1,0 +1,16 @@
+{
+  "name": "genai-sdk-example-browser-transformers",
+  "private": true,
+  "type": "module",
+  "description": "A chat page running a small model in the browser with transformers.js, traced with @traceverse/genai-otel-instrument",
+  "scripts": {
+    "build": "node build.mjs",
+    "serve": "node serve.mjs"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^4.3.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

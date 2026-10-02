@@ -2,9 +2,16 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'coverage/**', 'node_modules/**', 'src/**/*.generated.ts'] },
+  { ignores: ['dist/**', 'coverage/**', '**/node_modules/**', 'examples/**/dist/**', 'src/**/*.generated.ts'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    // Pages that run in a browser.
+    files: ['examples/browser-transformers/src/**'],
+    languageOptions: {
+      globals: { document: 'readonly', location: 'readonly', performance: 'readonly', URLSearchParams: 'readonly' },
+    },
+  },
   {
     languageOptions: {
       globals: {

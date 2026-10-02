@@ -6,8 +6,17 @@
     "noEmit": true,
     "rootDir": "..",
     "paths": {
-      "@traceverse/genai-otel-instrument": ["../src/index.ts"]
+      "@traceverse/genai-otel-instrument": [
+        "../src/index.ts"
+      ]
     }
   },
-  "include": ["./**/*.mjs", "../src"]
+  "include": [
+    "./**/*.mjs",
+    "../src"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/dist"
+  ]
 }

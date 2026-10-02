@@ -29,6 +29,7 @@ node examples/e2e/smoke/smoke.mjs
 | `E2E_LLM_API_KEY` | no | Sent as the bearer token. Ollama needs none; a placeholder is sent |
 | `OTEL_SERVICE_NAME` | no | Defaults to `genai-sdk-e2e-node` |
 | `E2E_PROMPT` | no | The user message |
+| `E2E_SESSION_ID` | no | `session.id` for the run. Default `genai-sdk-e2e-node-<epoch ms>`; printed in the summary as `session_id` |
 
 It prints one JSON document - the SDK's own measurement of the call - and exits `0` (call
 made, telemetry accepted), `1` (the call failed) or `2` (call made, telemetry not

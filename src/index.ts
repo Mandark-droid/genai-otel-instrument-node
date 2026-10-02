@@ -85,6 +85,7 @@ export {
   StreamTiming,
   TogetherInstrumentor,
   traceHuggingFaceClient,
+  TransformersInstrumentor,
   VertexAIInstrumentor,
   type AttributeExtractor,
   type Instrumentor,
@@ -108,4 +109,12 @@ export {
   type SessionOptions,
   type SessionScope,
 } from './session';
+export {
+  clearWebGpuFacts,
+  collectWebGpuFacts,
+  enableWebGpuFacts,
+  watchWebGpuDevice,
+  webGpuFacts,
+  type WebGpuFacts,
+} from './webgpu';
 export { VERSION } from './version';

@@ -59,7 +59,7 @@ evaluation, media.
 | `anyscale` | `openai` | **shipped** as the no-op it is in the reference; calls are traced by the `openai` instrumentor |
 | `vllm`, `llamacpp` (server) | `openai` with a base URL | Traced by the `openai` instrumentor with the endpoint in `server.address`. Server-metrics pollers: phase 4 |
 | `transformers` (inference client half) | `@huggingface/inference` | **shipped, by wrapping** - `chatCompletion`, `chatCompletionStream`, `textGeneration` on a client passed through `traceHuggingFaceClient()`. The client cannot be patched from outside (per-instance non-configurable methods, read-only exports) |
-| `transformers` (local pipeline half) | `@huggingface/transformers` | planned, phase 2 (on-device unit) |
+| `transformers` (local pipeline half) | `@huggingface/transformers` (transformers.js) | **shipped** - `huggingface.pipeline`, `huggingface.model.generate`, and `transformers.model.load`. On Node found by name; in a browser handed over with `instrumentTransformers()` |
 | `litellm_latency`, `litellm` | - | not applicable: LiteLLM is a Python library. A LiteLLM *gateway* is reached through the `openai` client and is traced by the `openai` instrumentor |
 | `llamacpp` (in-process), `vllm` (in-process) | - | not applicable: Python in-process bindings |
 | `sentence_transformers` | - | not applicable: Python-only library |
@@ -99,8 +99,9 @@ with each other where the reference has nothing to agree with.
 | Addition | Definition |
 |---|---|
 | Counter `gen_ai.usage.cost.pricing_missing` | unit `""`, meter `genai_otel.instrumentors.base`, attributes `model` and `call_type`. Incremented once per span whose model has no price, including the 13 pricing-table entries on which the calculator raises |
-| `withSession(id, fn, { userId })`, `setSession(id, { userId })`, `currentSession()` | The reference has only the `session_id_extractor` / `user_id_extractor` callbacks (ported). These set `session.id` + `gen_ai.conversation.id` (+ `user.id`) on every span started in scope, from any instrumentation. Pending confirmation as a cross-SDK addition |
+| `withSession(id, fn, { userId })`, `setSession(id, { userId })`, `currentSession()` | The reference has only the `session_id_extractor` / `user_id_extractor` callbacks (ported). These set `session.id` + `gen_ai.conversation.id` (+ `user.id`) on every span started in scope, from any instrumentation. Confirmed as the cross-SDK shape (`contract/SDK_ADDITIONS.md` section 4) |
 | Cohere `chat` / `chatStream` spans (`cohere.chat`) | The reference Cohere instrumentor wraps only `generate` and `embed`. `generate` is Cohere's legacy endpoint; without `chat` a current Cohere application produces no span. Pending confirmation as a cross-SDK addition |
+| On-device spans: `transformers.model.load`, `cactus.download`, `cactus.init`, `cactus.complete`, `cactus.embed`, `cactus.stt.transcribe`; attributes `transformers.device`, `transformers.device.requested`, `transformers.dtype`, `transformers.load.*`, `transformers.tokens_per_second`, `webgpu.*`, `cactus.*`; counter `webgpu.device.lost` | JavaScript only: models that run in the page or on the phone. `gen_ai.*` attributes are used wherever one exists (tokens, time to first token, model, cost) |
 | `telemetry.distro.name = genai-otel-instrument-node` | The reference emits `genai-otel-instrument`, with no suffix |
 
 ### JavaScript only: three runtimes
@@ -117,7 +118,9 @@ Native (`docs/runtimes.md`), which the reference has no counterpart for.
 | Manual span helper `traceGenAiCall()` | no (phase 2) | yes | yes |
 | Resource host / process / OS attributes | yes | never collected | never collected |
 | Flush | on exit, on SIGTERM | on page hide | on app background (`appState`) |
-| On-device instrumentors (transformers.js, WebGPU, cactus) | n/a | not yet (phase 2/3) | not yet (phase 2/3) |
+| transformers.js (`instrumentTransformers`) | yes, also by name | yes | yes |
+| WebGPU adapter facts (`collectWebGpuFacts`, `enableWebGpuFacts`, `watchWebGpuDevice`) | n/a | yes | n/a |
+| cactus-react-native (`instrumentCactus`) | n/a | n/a | yes |
 
 ## Deliberate differences from the reference
 
@@ -137,6 +140,8 @@ These are choices, each with a reason. Everything else is meant to be identical.
 | Bedrock InvokeModel response body | Read as a string: boto3 returns a one-shot stream, so in practice the body, its usage and its text are not available to the instrumentor | The JavaScript client returns the body as bytes, which are parsed without disturbing the caller. Token counts are read under the spellings the model families use (`inputTokens`, `input_tokens`, `inputTextTokenCount`, `prompt_token_count`, invocation metrics) | A span with tokens and cost where the data is there to be read |
 | Bedrock InvokeModelWithResponseStream | The span ends when the call returns, before the stream is read | The span stays open until the stream ends and takes usage from the invocation metrics on the final chunk | Same rule as every other stream |
 | Text-to-speech audio streams (ElevenLabs, Sarvam) | The audio iterator is wrapped: the span covers the whole synthesis and records time to first byte | The span ends when the stream is handed to the application | The JavaScript clients return a web `ReadableStream`, usually read through a reader or piped; that cannot be observed in place without replacing the object the application receives |
+| `huggingface.pipeline` token counts | Estimated from text length and marked as estimated; the `generate` span nested in it carries counts too | The pipeline span carries no tokens and no cost; the nested `huggingface.model.generate` span carries the measured ones | Both carrying them counts every token twice |
+| Model load: cache or download | n/a | Not reported | transformers.js does not say which happened; a guess from timing would be a fabricated fact. Fetch time and session-create time are reported instead |
 | Instrumentation scope / tracer name | `genai_otel.instrumentors.base` | the same | A backend keys on it |
 | `OTEL_METRICS_EXEMPLAR_FILTER` defaulted to `always_off` | yes | not needed: the JS SDK records no exemplars | |
 

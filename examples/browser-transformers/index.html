@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>On-device chat, traced</title>
+    <style>
+      body { font: 15px/1.5 system-ui, sans-serif; max-width: 44rem; margin: 2rem auto; padding: 0 1rem; }
+      #log { border: 1px solid #ccc; border-radius: 6px; padding: 0.75rem; min-height: 12rem; white-space: pre-wrap; }
+      #status { color: #555; margin: 0.5rem 0; }
+      form { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+      input { flex: 1; padding: 0.5rem; }
+      button { padding: 0.5rem 1rem; }
+      dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.15rem 1rem; font-size: 13px; color: #333; }
+    </style>
+  </head>
+  <body>
+    <h1>On-device chat</h1>
+    <p id="status" data-testid="status">Starting...</p>
+    <div id="log" data-testid="log"></div>
+    <form id="form">
+      <input id="prompt" data-testid="prompt" autocomplete="off" value="What is the capital of France?" />
+      <button id="send" data-testid="send" disabled>Send</button>
+    </form>
+    <h2>What was measured</h2>
+    <dl id="facts" data-testid="facts"></dl>
+    <script type="module" src="./dist/main.js"></script>
+  </body>
+</html>

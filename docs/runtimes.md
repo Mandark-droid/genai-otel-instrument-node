@@ -114,6 +114,41 @@ accepted it. In React Native, with `appState` given, a flush runs whenever the a
 to `background` or `inactive`. In a browser the OpenTelemetry batch processor flushes on
 `visibilitychange` / `pagehide`.
 
+## On-device models
+
+Hand the library over once; it does not matter whether before or after `instrument()`.
+
+```js
+// Browser: transformers.js
+import * as transformers from '@huggingface/transformers';
+import { enableWebGpuFacts, instrumentTransformers } from '@traceverse/genai-otel-instrument';
+instrumentTransformers(transformers);
+await enableWebGpuFacts();        // optional: adapter facts on model-load spans
+
+// React Native: cactus
+import { CactusLM, CactusSTT } from 'cactus-react-native';
+import { instrumentCactus } from '@traceverse/genai-otel-instrument';
+instrumentCactus({ CactusLM, CactusSTT });
+```
+
+| Span | When | What it carries |
+|---|---|---|
+| `transformers.model.load` | `from_pretrained()` (also inside `pipeline()`) | model id; `transformers.device.requested` / `transformers.device`; `transformers.dtype`; `webgpu.fallback` when WebGPU was asked for; `transformers.load.files`, `.bytes`, `.fetch_ms`, `.session_create_ms`; the `webgpu.*` adapter facts once collected |
+| `huggingface.model.generate` | `model.generate()` | input and output tokens counted from the tensors; time to first token; time per output token; `transformers.tokens_per_second`; cost |
+| `huggingface.pipeline` | a pipeline call | task, model; for feature extraction the vector count and size. No tokens: they are on the generate span |
+| `cactus.download`, `cactus.init` | `CactusLM.download()` / `init()` | model, duration |
+| `cactus.complete` | `CactusLM.complete()` | the engine's token counts, time to first token, `cactus.decode_tps`, `cactus.prefill_tps`, `cactus.ram_usage_mb`, tool calls, `cactus.cloud_handoff`; a result with `success: false` is an error span |
+
+Cost of an on-device model: from the pricing table if it is there; else the size tier
+when the name carries a parameter count (`pricing_source = estimated`); else none.
+
+What a browser does not expose is not reported: GPU utilisation, temperature, power,
+energy and CO2 are absent for on-device spans, never zero. Whether model files came from
+the cache or the network is not reported either: the library does not say.
+
+Without a context manager in these runtimes, the load, pipeline and generate spans of
+one interaction are separate traces; `setSession()` is what ties them together.
+
 ## Not in the browser and React Native entries
 
 - Provider instrumentation by module patching (`OpenAIInstrumentor`,
@@ -122,8 +157,7 @@ to `background` or `inactive`. In a browser the OpenTelemetry batch processor fl
 - gRPC and http/protobuf export: Node only.
 - Trace context is not propagated across `await` (there is no `AsyncLocalStorage`):
   spans started inside a traced call are not automatically its children.
-- `sendBeacon` export on page unload, and the on-device instrumentors
-  (transformers.js, WebGPU, `cactus-react-native`): later phases.
+- `sendBeacon` export on page unload: not yet.
 
 ## How it is kept true
 
