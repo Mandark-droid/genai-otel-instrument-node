@@ -1,0 +1,39 @@
+{
+  "counts": {
+    "attributes": 592,
+    "cost_vectors": 2545,
+    "env_vars": 95,
+    "eval_vectors": 194,
+    "eval_vectors_bias": 32,
+    "eval_vectors_hallucination": 32,
+    "eval_vectors_pii": 34,
+    "eval_vectors_prompt_injection": 40,
+    "eval_vectors_restricted_topics": 32,
+    "eval_vectors_toxicity": 24,
+    "instrumentor_ids": 44,
+    "metrics": 79,
+    "span_names": 117
+  },
+  "generated_at": "2026-10-02T08:57:44+00:00",
+  "generator": {
+    "opentelemetry_sdk": "1.44.0",
+    "platform": "win32",
+    "python": "3.12.13"
+  },
+  "git_commit": "fe157f23c8054c8cd8a3b28a6c4d38be3f434476",
+  "git_describe": "v1.30.0-1-gfe157f2",
+  "library_identical_to_tag": true,
+  "pricing_sha256": "0cdd007a4f4b93a505be6a1a00cd151552ca9a1cccf7c41e8f52fd3c2cd71639",
+  "python_package_version": "1.27.1.dev1",
+  "python_tag": "v1.30.0",
+  "schema_version": 1,
+  "sha256": {
+    "SCHEMA.md": "a2b8407abaf594c83f25026575e9b00622de4afcc959cb2696d7b050df76de6e",
+    "config.json": "3f3ef5fbfecc885412f7b4893cd3774a187bd285f2e176a8b1c3eb28c5f87d75",
+    "cost_vectors.json": "cf8c870813233ee5e623e93cdd4433b28ba21e2434e43257431c3b66b10a703a",
+    "eval_rules.json": "720a534d5da784e81997a1d4d80ee60adab9368ad12db0f7fa445d7f2898673e",
+    "eval_vectors.json": "5c212f46d871a7419f226ea431a5d9b02946f6bb1eed31f9ec134720bd989cf7",
+    "metrics.json": "db52c9f372fb9965c8af01dafd6bc36cfa9149b7771c7a653e351bc06f4f97fa",
+    "semconv.json": "ca7a397404524834421ac591573bb049c42dae8f34cd19bf285ac5ac6aa6bf23"
+  }
+}

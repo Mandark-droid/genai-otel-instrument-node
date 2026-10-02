@@ -1,0 +1,8 @@
+# Source is LF everywhere, whatever core.autocrlf says on the checkout host.
+* text=auto eol=lf
+
+# Vendored files are verified by sha256 (scripts/sync-from-python.mjs --check).
+# Git must never rewrite their line endings.
+contract/** -text
+src/pricing/*.json -text
+tests/fixtures/** -text

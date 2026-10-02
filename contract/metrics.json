@@ -1,0 +1,1765 @@
+{
+  "bucket_constants": {
+    "_DB_CLIENT_OPERATION_DURATION_BUCKETS": [
+      0.001,
+      0.005,
+      0.01,
+      0.05,
+      0.1,
+      0.5,
+      1,
+      5,
+      10
+    ],
+    "_GEN_AI_CLIENT_OPERATION_DURATION_BUCKETS": [
+      0.01,
+      0.02,
+      0.04,
+      0.08,
+      0.16,
+      0.32,
+      0.64,
+      1.28,
+      2.56,
+      5.12,
+      10.24,
+      20.48,
+      40.96,
+      81.92
+    ],
+    "_GEN_AI_CLIENT_TOKEN_USAGE_BUCKETS": [
+      1,
+      4,
+      16,
+      64,
+      256,
+      1024,
+      4096,
+      16384,
+      65536,
+      262144,
+      1048576,
+      4194304,
+      16777216,
+      67108864
+    ],
+    "_GEN_AI_SERVER_TBT": [
+      0.01,
+      0.025,
+      0.05,
+      0.075,
+      0.1,
+      0.15,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.75,
+      1.0,
+      2.5
+    ],
+    "_GEN_AI_SERVER_TFTT": [
+      0.001,
+      0.005,
+      0.01,
+      0.02,
+      0.04,
+      0.06,
+      0.08,
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      1.0,
+      2.5,
+      5.0,
+      7.5,
+      10.0
+    ],
+    "_MCP_CLIENT_OPERATION_DURATION_BUCKETS": [
+      0.001,
+      0.005,
+      0.01,
+      0.05,
+      0.1,
+      0.5,
+      1.0,
+      2.0,
+      5.0,
+      10.0
+    ],
+    "_MCP_PAYLOAD_SIZE_BUCKETS": [
+      100,
+      500,
+      1024,
+      5120,
+      10240,
+      51200,
+      102400,
+      512000,
+      1048576,
+      5242880
+    ]
+  },
+  "extraction": "runtime. Every instrument was recorded while the library created it against the SDK MeterProvider returned by its own auto_instrument._setup_meter_provider(), read back through an InMemoryMetricReader. `bucket_boundaries` are what that reader reported after one probe value. `attribute_keys_observed` are the data point attribute keys seen while driving BaseInstrumentor and EvaluationSpanProcessor (null = that code path was not driven). `attribute_keys_static` is an ast scan of the .add()/.record()/Observation() call sites and is the only source for instruments that were not driven. NVML was simulated with one fake device so the per-GPU gauges register; see `requires_gpu_device`.",
+  "metrics": [
+    {
+      "attribute_keys_observed": [
+        "error_type",
+        "operation"
+      ],
+      "attribute_keys_static": [
+        "error.type",
+        "error_type",
+        "operation",
+        "provider"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "Number of GenAI client errors",
+      "kind": "counter",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.client.errors",
+      "requires_gpu_device": false,
+      "unit": ""
+    },
+    {
+      "attribute_keys_observed": [
+        "operation"
+      ],
+      "attribute_keys_static": [
+        "operation"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": [
+        0.01,
+        0.02,
+        0.04,
+        0.08,
+        0.16,
+        0.32,
+        0.64,
+        1.28,
+        2.56,
+        5.12,
+        10.24,
+        20.48,
+        40.96,
+        81.92
+      ],
+      "bucket_source": "view",
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "GenAI client operation duration",
+      "kind": "histogram",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.client.operation.duration",
+      "requires_gpu_device": false,
+      "unit": "s"
+    },
+    {
+      "attribute_keys_observed": [
+        "operation",
+        "token_type"
+      ],
+      "attribute_keys_static": [
+        "model",
+        "operation",
+        "provider",
+        "token_type"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "Token usage for GenAI operations",
+      "kind": "counter",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.client.token.usage",
+      "requires_gpu_device": false,
+      "unit": ""
+    },
+    {
+      "attribute_keys_observed": [
+        "model",
+        "operation"
+      ],
+      "attribute_keys_static": [
+        "model",
+        "operation"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": [
+        1,
+        4,
+        16,
+        64,
+        256,
+        1024,
+        4096,
+        16384,
+        65536,
+        262144,
+        1048576,
+        4194304,
+        16777216,
+        67108864
+      ],
+      "bucket_source": "view",
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "Distribution of completion tokens per request",
+      "kind": "histogram",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.client.token.usage.completion",
+      "requires_gpu_device": false,
+      "unit": "tokens"
+    },
+    {
+      "attribute_keys_observed": [
+        "model",
+        "operation"
+      ],
+      "attribute_keys_static": [
+        "model",
+        "operation"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": [
+        1,
+        4,
+        16,
+        64,
+        256,
+        1024,
+        4096,
+        16384,
+        65536,
+        262144,
+        1048576,
+        4194304,
+        16777216,
+        67108864
+      ],
+      "bucket_source": "view",
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "Distribution of prompt tokens per request",
+      "kind": "histogram",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.client.token.usage.prompt",
+      "requires_gpu_device": false,
+      "unit": "tokens"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "country",
+        "gpu_id",
+        "region",
+        "source"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "Cumulative CO2 equivalent emissions in grams",
+      "kind": "counter",
+      "meter": "genai.gpu",
+      "name": "gen_ai.co2.emissions",
+      "requires_gpu_device": false,
+      "unit": "gCO2e"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "country",
+        "source"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": [
+        0.0,
+        5.0,
+        10.0,
+        25.0,
+        50.0,
+        75.0,
+        100.0,
+        250.0,
+        500.0,
+        750.0,
+        1000.0,
+        2500.0,
+        5000.0,
+        7500.0,
+        10000.0
+      ],
+      "bucket_source": "sdk_default",
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "CO2 emissions rate (rate of emissions per second)",
+      "kind": "histogram",
+      "meter": "genai.gpu",
+      "name": "gen_ai.co2.emissions_rate",
+      "requires_gpu_device": false,
+      "unit": "gCO2e/s"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": false,
+      "bucket_boundaries": [
+        0.0,
+        5.0,
+        10.0,
+        25.0,
+        50.0,
+        75.0,
+        100.0,
+        250.0,
+        500.0,
+        750.0,
+        1000.0,
+        2500.0,
+        5000.0,
+        7500.0,
+        10000.0
+      ],
+      "bucket_source": "sdk_default",
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "Duration of codecarbon monitoring tasks",
+      "kind": "histogram",
+      "meter": "genai.gpu",
+      "name": "gen_ai.codecarbon.task.duration",
+      "requires_gpu_device": false,
+      "unit": "s"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": false,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "Cumulative energy consumed by component (CPU/GPU/RAM)",
+      "kind": "counter",
+      "meter": "genai.gpu",
+      "name": "gen_ai.energy.consumed",
+      "requires_gpu_device": false,
+      "unit": "kWh"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": false,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "Total cumulative energy consumed (sum of CPU+GPU+RAM)",
+      "kind": "counter",
+      "meter": "genai.gpu",
+      "name": "gen_ai.energy.total",
+      "requires_gpu_device": false,
+      "unit": "kWh"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_count"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "Maximum temperature across all GPUs in Celsius",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.aggregate.max_temperature",
+      "requires_gpu_device": true,
+      "unit": "Cel"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_count"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "Mean GPU utilization across all GPUs",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.aggregate.mean_utilization",
+      "requires_gpu_device": true,
+      "unit": "%"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_count"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "Total GPU memory used across all GPUs in GiB",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.aggregate.total_memory_used",
+      "requires_gpu_device": true,
+      "unit": "GiB"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_count"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "Total power consumption across all GPUs in Watts",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.aggregate.total_power",
+      "requires_gpu_device": true,
+      "unit": "W"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_id",
+        "gpu_name"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "GPU memory clock speed in MHz",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.clock.memory",
+      "requires_gpu_device": true,
+      "unit": "MHz"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_id",
+        "gpu_name"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "GPU SM (streaming multiprocessor) clock speed in MHz",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.clock.sm",
+      "requires_gpu_device": true,
+      "unit": "MHz"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_id",
+        "gpu_name"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "GPU ECC corrected memory errors count",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.ecc.errors.corrected",
+      "requires_gpu_device": true,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_id",
+        "gpu_name"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "GPU ECC uncorrected memory errors count",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.ecc.errors.uncorrected",
+      "requires_gpu_device": true,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_id",
+        "gpu_name"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "GPU fan speed percentage",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.fan.speed",
+      "requires_gpu_device": true,
+      "unit": "%"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_id",
+        "gpu_name",
+        "gpu_vendor"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "Total GPU memory capacity in MiB",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.memory.total",
+      "requires_gpu_device": true,
+      "unit": "MiB"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_id",
+        "gpu_name",
+        "gpu_vendor"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "GPU memory used in MiB",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.memory.used",
+      "requires_gpu_device": true,
+      "unit": "MiB"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_id",
+        "gpu_name"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "GPU memory controller utilization percentage",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.memory.utilization",
+      "requires_gpu_device": true,
+      "unit": "%"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_id",
+        "gpu_name"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "GPU PCIe receive throughput in KB/s",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.pcie.rx",
+      "requires_gpu_device": true,
+      "unit": "KB/s"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_id",
+        "gpu_name"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "GPU PCIe transmit throughput in KB/s",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.pcie.tx",
+      "requires_gpu_device": true,
+      "unit": "KB/s"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_id",
+        "gpu_name"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "GPU performance state (P-state: 0=P0 highest, 15=P15 lowest)",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.performance.state",
+      "requires_gpu_device": true,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_id",
+        "gpu_name",
+        "gpu_vendor"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "GPU power consumption in Watts",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.power",
+      "requires_gpu_device": true,
+      "unit": "W"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_id",
+        "gpu_name"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "GPU power limit in Watts",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.power.limit",
+      "requires_gpu_device": true,
+      "unit": "W"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_id",
+        "gpu_name",
+        "gpu_vendor"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "GPU temperature in Celsius",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.temperature",
+      "requires_gpu_device": true,
+      "unit": "Cel"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_id",
+        "gpu_name"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "GPU hardware slowdown active (1=slowdown, 0=normal)",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.throttle.hw_slowdown",
+      "requires_gpu_device": true,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_id",
+        "gpu_name"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "GPU power throttling active (1=throttling, 0=not throttling)",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.throttle.power",
+      "requires_gpu_device": true,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_id",
+        "gpu_name"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "GPU thermal throttling active (1=throttling, 0=not throttling)",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.throttle.thermal",
+      "requires_gpu_device": true,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_id",
+        "gpu_name",
+        "gpu_vendor"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "GPU utilization percentage",
+      "kind": "observable_gauge",
+      "meter": "genai.gpu",
+      "name": "gen_ai.gpu.utilization",
+      "requires_gpu_device": true,
+      "unit": "%"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gen_ai.agent.name",
+        "gen_ai.operation.name"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": [
+        0.0,
+        5.0,
+        10.0,
+        25.0,
+        50.0,
+        75.0,
+        100.0,
+        250.0,
+        500.0,
+        750.0,
+        1000.0,
+        2500.0,
+        5000.0,
+        7500.0,
+        10000.0
+      ],
+      "bucket_source": "sdk_default",
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "Fraction of an agent invocation's configured token budget that it consumed",
+      "kind": "histogram",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.invoke_agent.token_budget.utilization",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": false,
+      "bucket_boundaries": [
+        0.0,
+        5.0,
+        10.0,
+        25.0,
+        50.0,
+        75.0,
+        100.0,
+        250.0,
+        500.0,
+        750.0,
+        1000.0,
+        2500.0,
+        5000.0,
+        7500.0,
+        10000.0
+      ],
+      "bucket_source": "sdk_default",
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "Power consumption by component (CPU/GPU/RAM)",
+      "kind": "histogram",
+      "meter": "genai.gpu",
+      "name": "gen_ai.power.consumption",
+      "requires_gpu_device": false,
+      "unit": "W"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "gpu_id",
+        "gpu_name"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/gpu_metrics.py",
+      "description": "Cumulative electricity cost in USD based on power consumption",
+      "kind": "counter",
+      "meter": "genai.gpu",
+      "name": "gen_ai.power.cost",
+      "requires_gpu_device": false,
+      "unit": "USD"
+    },
+    {
+      "attribute_keys_observed": [
+        "operation"
+      ],
+      "attribute_keys_static": [
+        "model",
+        "operation",
+        "provider"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "Number of GenAI requests",
+      "kind": "counter",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.requests",
+      "requires_gpu_device": false,
+      "unit": ""
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "model"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/server_metrics.py",
+      "description": "GPU KV-cache usage percentage (0-100)",
+      "kind": "observable_gauge",
+      "meter": "genai.server",
+      "name": "gen_ai.server.kv_cache.usage",
+      "requires_gpu_device": false,
+      "unit": "%"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "finish_reason",
+        "model"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "Number of failed requests",
+      "kind": "counter",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.server.request.failure",
+      "requires_gpu_device": false,
+      "unit": ""
+    },
+    {
+      "attribute_keys_observed": [
+        "finish_reason",
+        "model"
+      ],
+      "attribute_keys_static": [
+        "finish_reason",
+        "model"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "Number of finished requests by finish reason",
+      "kind": "counter",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.server.request.finish",
+      "requires_gpu_device": false,
+      "unit": ""
+    },
+    {
+      "attribute_keys_observed": [
+        "model"
+      ],
+      "attribute_keys_static": [
+        "model"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "Number of successfully completed requests",
+      "kind": "counter",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.server.request.success",
+      "requires_gpu_device": false,
+      "unit": ""
+    },
+    {
+      "attribute_keys_observed": [],
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/server_metrics.py",
+      "description": "Maximum concurrent request capacity",
+      "kind": "observable_gauge",
+      "meter": "genai.server",
+      "name": "gen_ai.server.requests.max",
+      "requires_gpu_device": false,
+      "unit": ""
+    },
+    {
+      "attribute_keys_observed": [],
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/server_metrics.py",
+      "description": "Number of requests currently executing",
+      "kind": "observable_gauge",
+      "meter": "genai.server",
+      "name": "gen_ai.server.requests.running",
+      "requires_gpu_device": false,
+      "unit": ""
+    },
+    {
+      "attribute_keys_observed": [],
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/server_metrics.py",
+      "description": "Number of requests waiting in queue",
+      "kind": "observable_gauge",
+      "meter": "genai.server",
+      "name": "gen_ai.server.requests.waiting",
+      "requires_gpu_device": false,
+      "unit": ""
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "model",
+        "operation"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": [
+        0.01,
+        0.025,
+        0.05,
+        0.075,
+        0.1,
+        0.15,
+        0.2,
+        0.3,
+        0.4,
+        0.5,
+        0.75,
+        1.0,
+        2.5
+      ],
+      "bucket_source": "view",
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "Time between tokens in seconds",
+      "kind": "histogram",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.server.tbt",
+      "requires_gpu_device": false,
+      "unit": "s"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "model",
+        "operation"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": [
+        0.0,
+        5.0,
+        10.0,
+        25.0,
+        50.0,
+        75.0,
+        100.0,
+        250.0,
+        500.0,
+        750.0,
+        1000.0,
+        2500.0,
+        5000.0,
+        7500.0,
+        10000.0
+      ],
+      "bucket_source": "sdk_default",
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "Time per output token after the first, in seconds",
+      "kind": "histogram",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.server.time_per_output_token",
+      "requires_gpu_device": false,
+      "unit": "s"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": false,
+      "bucket_boundaries": [
+        0.0,
+        5.0,
+        10.0,
+        25.0,
+        50.0,
+        75.0,
+        100.0,
+        250.0,
+        500.0,
+        750.0,
+        1000.0,
+        2500.0,
+        5000.0,
+        7500.0,
+        10000.0
+      ],
+      "bucket_source": "sdk_default",
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "Time to first token in seconds",
+      "kind": "histogram",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.server.time_to_first_token",
+      "requires_gpu_device": false,
+      "unit": "s"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": false,
+      "bucket_boundaries": [
+        0.001,
+        0.005,
+        0.01,
+        0.02,
+        0.04,
+        0.06,
+        0.08,
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        1.0,
+        2.5,
+        5.0,
+        7.5,
+        10.0
+      ],
+      "bucket_source": "view",
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "Time to first token in seconds",
+      "kind": "histogram",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.server.ttft",
+      "requires_gpu_device": false,
+      "unit": "s"
+    },
+    {
+      "attribute_keys_observed": [
+        "model"
+      ],
+      "attribute_keys_static": [
+        "call_type",
+        "model",
+        "provider"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "Cost of GenAI operations",
+      "kind": "counter",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.usage.cost",
+      "requires_gpu_device": false,
+      "unit": "USD"
+    },
+    {
+      "attribute_keys_observed": [
+        "model"
+      ],
+      "attribute_keys_static": [
+        "model"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "Cache read cost (Anthropic)",
+      "kind": "counter",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.usage.cost.cache_read",
+      "requires_gpu_device": false,
+      "unit": "USD"
+    },
+    {
+      "attribute_keys_observed": [
+        "model"
+      ],
+      "attribute_keys_static": [
+        "model"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "Cache write cost (Anthropic)",
+      "kind": "counter",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.usage.cost.cache_write",
+      "requires_gpu_device": false,
+      "unit": "USD"
+    },
+    {
+      "attribute_keys_observed": [
+        "model"
+      ],
+      "attribute_keys_static": [
+        "model"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "Completion tokens cost",
+      "kind": "counter",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.usage.cost.completion",
+      "requires_gpu_device": false,
+      "unit": "USD"
+    },
+    {
+      "attribute_keys_observed": [
+        "model"
+      ],
+      "attribute_keys_static": [
+        "model"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "Prompt tokens cost",
+      "kind": "counter",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.usage.cost.prompt",
+      "requires_gpu_device": false,
+      "unit": "USD"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "model"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "Reasoning tokens cost (o1 models)",
+      "kind": "counter",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.usage.cost.reasoning",
+      "requires_gpu_device": false,
+      "unit": "USD"
+    },
+    {
+      "attribute_keys_observed": [
+        "location"
+      ],
+      "attribute_keys_static": [
+        "location"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Number of requests/responses blocked due to bias",
+      "kind": "counter",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.bias.blocked",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": [
+        "location"
+      ],
+      "attribute_keys_static": [
+        "location"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Number of bias detections in prompts and responses",
+      "kind": "counter",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.bias.detections",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": [
+        "location"
+      ],
+      "attribute_keys_static": [
+        "location"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": [
+        0.0,
+        5.0,
+        10.0,
+        25.0,
+        50.0,
+        75.0,
+        100.0,
+        250.0,
+        500.0,
+        750.0,
+        1000.0,
+        2500.0,
+        5000.0,
+        7500.0,
+        10000.0
+      ],
+      "bucket_source": "sdk_default",
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Bias score distribution",
+      "kind": "histogram",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.bias.score",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": [
+        "bias_type",
+        "location"
+      ],
+      "attribute_keys_static": [
+        "bias_type",
+        "location"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Bias detections by type",
+      "kind": "counter",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.bias.types",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": [
+        "location"
+      ],
+      "attribute_keys_static": [
+        "location"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Number of potential hallucinations detected",
+      "kind": "counter",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.hallucination.detections",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": [
+        "indicator"
+      ],
+      "attribute_keys_static": [
+        "indicator"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Hallucination detections by indicator type",
+      "kind": "counter",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.hallucination.indicators",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": [
+        "location"
+      ],
+      "attribute_keys_static": [
+        "location"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": [
+        0.0,
+        5.0,
+        10.0,
+        25.0,
+        50.0,
+        75.0,
+        100.0,
+        250.0,
+        500.0,
+        750.0,
+        1000.0,
+        2500.0,
+        5000.0,
+        7500.0,
+        10000.0
+      ],
+      "bucket_source": "sdk_default",
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Hallucination score distribution",
+      "kind": "histogram",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.hallucination.score",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": [
+        "location"
+      ],
+      "attribute_keys_static": [
+        "location"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Number of requests/responses blocked due to PII",
+      "kind": "counter",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.pii.blocked",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": [
+        "location",
+        "mode"
+      ],
+      "attribute_keys_static": [
+        "location",
+        "mode"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Number of PII detections in prompts and responses",
+      "kind": "counter",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.pii.detections",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": [
+        "entity_type",
+        "location"
+      ],
+      "attribute_keys_static": [
+        "entity_type",
+        "location"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Number of PII entities detected by type",
+      "kind": "counter",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.pii.entities",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": [],
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Number of requests blocked due to prompt injection",
+      "kind": "counter",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.prompt_injection.blocked",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": [
+        "location"
+      ],
+      "attribute_keys_static": [
+        "location"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Number of prompt injection attempts detected",
+      "kind": "counter",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.prompt_injection.detections",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": [
+        "location"
+      ],
+      "attribute_keys_static": [
+        "location"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": [
+        0.0,
+        5.0,
+        10.0,
+        25.0,
+        50.0,
+        75.0,
+        100.0,
+        250.0,
+        500.0,
+        750.0,
+        1000.0,
+        2500.0,
+        5000.0,
+        7500.0,
+        10000.0
+      ],
+      "bucket_source": "sdk_default",
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Prompt injection score distribution",
+      "kind": "histogram",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.prompt_injection.score",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": [
+        "injection_type"
+      ],
+      "attribute_keys_static": [
+        "injection_type"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Prompt injection detections by type",
+      "kind": "counter",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.prompt_injection.types",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": [
+        "location"
+      ],
+      "attribute_keys_static": [
+        "location"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Number of requests/responses blocked due to restricted topics",
+      "kind": "counter",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.restricted_topics.blocked",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": [
+        "location"
+      ],
+      "attribute_keys_static": [
+        "location"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Number of restricted topics detected",
+      "kind": "counter",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.restricted_topics.detections",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": [
+        "location"
+      ],
+      "attribute_keys_static": [
+        "location"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": [
+        0.0,
+        5.0,
+        10.0,
+        25.0,
+        50.0,
+        75.0,
+        100.0,
+        250.0,
+        500.0,
+        750.0,
+        1000.0,
+        2500.0,
+        5000.0,
+        7500.0,
+        10000.0
+      ],
+      "bucket_source": "sdk_default",
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Restricted topics score distribution",
+      "kind": "histogram",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.restricted_topics.score",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": [
+        "location",
+        "topic"
+      ],
+      "attribute_keys_static": [
+        "location",
+        "topic"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Restricted topics by type",
+      "kind": "counter",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.restricted_topics.types",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "location"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Number of requests/responses blocked due to toxicity",
+      "kind": "counter",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.toxicity.blocked",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "category",
+        "location"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Toxicity detections by category",
+      "kind": "counter",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.toxicity.categories",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "location"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Number of toxicity detections in prompts and responses",
+      "kind": "counter",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.toxicity.detections",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [
+        "location"
+      ],
+      "attribute_keys_static_complete": true,
+      "bucket_boundaries": [
+        0.0,
+        5.0,
+        10.0,
+        25.0,
+        50.0,
+        75.0,
+        100.0,
+        250.0,
+        500.0,
+        750.0,
+        1000.0,
+        2500.0,
+        5000.0,
+        7500.0,
+        10000.0
+      ],
+      "bucket_source": "sdk_default",
+      "defined_in": "genai_otel/evaluation/span_processor.py",
+      "description": "Toxicity score distribution",
+      "kind": "histogram",
+      "meter": "genai_otel.evaluation.span_processor",
+      "name": "genai.evaluation.toxicity.score",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": false,
+      "bucket_boundaries": [
+        0.001,
+        0.005,
+        0.01,
+        0.05,
+        0.1,
+        0.5,
+        1.0,
+        2.0,
+        5.0,
+        10.0
+      ],
+      "bucket_source": "view",
+      "defined_in": "genai_otel/mcp_instrumentors/base.py",
+      "description": "MCP operation duration",
+      "kind": "histogram",
+      "meter": "genai_otel.mcp_instrumentors.base",
+      "name": "mcp.client.operation.duration",
+      "requires_gpu_device": false,
+      "unit": "s"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": false,
+      "bucket_boundaries": [
+        100,
+        500,
+        1024,
+        5120,
+        10240,
+        51200,
+        102400,
+        512000,
+        1048576,
+        5242880
+      ],
+      "bucket_source": "view",
+      "defined_in": "genai_otel/mcp_instrumentors/base.py",
+      "description": "MCP request payload size",
+      "kind": "histogram",
+      "meter": "genai_otel.mcp_instrumentors.base",
+      "name": "mcp.request.size",
+      "requires_gpu_device": false,
+      "unit": "By"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": false,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/mcp_instrumentors/base.py",
+      "description": "Number of MCP requests",
+      "kind": "counter",
+      "meter": "genai_otel.mcp_instrumentors.base",
+      "name": "mcp.requests",
+      "requires_gpu_device": false,
+      "unit": "1"
+    },
+    {
+      "attribute_keys_observed": null,
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": false,
+      "bucket_boundaries": [
+        100,
+        500,
+        1024,
+        5120,
+        10240,
+        51200,
+        102400,
+        512000,
+        1048576,
+        5242880
+      ],
+      "bucket_source": "view",
+      "defined_in": "genai_otel/mcp_instrumentors/base.py",
+      "description": "MCP response payload size",
+      "kind": "histogram",
+      "meter": "genai_otel.mcp_instrumentors.base",
+      "name": "mcp.response.size",
+      "requires_gpu_device": false,
+      "unit": "By"
+    }
+  ],
+  "schema_version": 1,
+  "sdk_default_bucket_boundaries": [
+    0.0,
+    5.0,
+    10.0,
+    25.0,
+    50.0,
+    75.0,
+    100.0,
+    250.0,
+    500.0,
+    750.0,
+    1000.0,
+    2500.0,
+    5000.0,
+    7500.0,
+    10000.0
+  ]
+}
