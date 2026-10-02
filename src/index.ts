@@ -56,10 +56,20 @@ export {
   SDK_LANGUAGE,
 } from './resource';
 export {
+  AnthropicInstrumentor,
   availableInstrumentors,
+  BaseInstrumentor,
+  clearBaseUrlClaims,
+  findBaseUrlClaim,
+  OpenAIInstrumentor,
+  registerBaseUrlClaim,
   registerInstrumentor,
+  StreamTiming,
+  type AttributeExtractor,
   type Instrumentor,
-} from './instrumentors/registry';
+  type Params,
+  type UsageDict,
+} from './instrumentors';
 export {
   ATTR,
   genaiSemconvModes,

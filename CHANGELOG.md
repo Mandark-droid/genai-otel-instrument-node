@@ -47,6 +47,38 @@
   the explicit-bucket histogram views, matching `contract/metrics.json` in name, unit,
   kind, description, instrumentation scope and bucket boundaries.
 
+- `BaseInstrumentor`: the span wrapper of the Python base instrumentor - provider-name
+  aliasing, `server.address` / `server.port` from the client base URL, request-parameter
+  attributes, token / cache / reasoning / per-modality attributes, cost with
+  `gen_ai.usage.cost.pricing_source`, finish reasons, session and user extractors,
+  sampled-out fast path, and streaming measurement (time to first token, time between
+  tokens, time per output token). Reproduces all 16 spans in `contract/semconv.json`
+  (`span_emission`) attribute for attribute.
+- `openai` instrumentor (`openai` package, verified on 4.0.0 through 7.27.0): Chat
+  Completions buffered and streamed, tool calls, Embeddings, Responses API; any
+  OpenAI-compatible endpoint through the same client, with the endpoint recorded and
+  base URLs claimed by a dedicated instrumentor left to it.
+- `anthropic` instrumentor (`@anthropic-ai/sdk`, verified on 0.20.0 through 0.131.0):
+  `messages.create` buffered and streamed, and the `messages.stream()` helper, with usage
+  folded across stream events (cumulative `message_delta` counts merged, not summed).
+- Both builds of each client library are patched - the CommonJS and the ES-module one are
+  separate classes - on the resource prototype, so clients created before `instrument()`
+  are traced too. The SDK's own promise and stream objects are returned unchanged
+  (`withResponse()`, `asResponse()`, `controller`, `tee()` keep working).
+- A cancelled or failed stream ends its span with ERROR status and the tokens seen; a
+  stream or promise nobody consumes has its span ended when it is collected. No span is
+  left open.
+- Examples: `examples/openai`, `examples/anthropic`, and `examples/e2e/smoke` (one chat
+  call through an OpenAI-compatible endpoint, for the platform smoke test). Each README
+  says what it was and was not run against.
+- `scripts/dist-smoke.cjs` and `scripts/sdk-compat.cjs`: the built package, loaded and
+  driven through the zero-code hooks, on every supported Node and against each supported
+  major of the client libraries. Both run in CI.
+- `docs/parity-matrix.md`: every reference instrumentor id with its status here, the
+  deliberate differences, and the reference behaviours that were ported as they are.
+
 ### Notes
+- The reference instrumentors for OpenAI and Anthropic do not apply
+  `GENAI_CUSTOM_PRICING_JSON`; neither do these. See `docs/parity-matrix.md`.
 - `npm audit`: one low-severity finding in `esbuild` (development server on Windows),
   reached only through the build tool. It does not ship and is not exercised.

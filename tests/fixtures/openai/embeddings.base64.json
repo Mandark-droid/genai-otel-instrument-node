@@ -1,0 +1,20 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "object": "embedding",
+      "index": 0,
+      "embedding": "AACAPgAAAL8AAAA+AACAPw=="
+    },
+    {
+      "object": "embedding",
+      "index": 1,
+      "embedding": "AAAAPwAAAD8AAIC+AAAAAA=="
+    }
+  ],
+  "model": "text-embedding-3-small",
+  "usage": {
+    "prompt_tokens": 8,
+    "total_tokens": 8
+  }
+}

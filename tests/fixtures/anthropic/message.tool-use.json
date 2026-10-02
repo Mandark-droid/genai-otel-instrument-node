@@ -1,0 +1,26 @@
+{
+  "id": "msg_fixture_0002",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-sonnet-4-5-20250929",
+  "content": [
+    {
+      "type": "text",
+      "text": "I will look that up."
+    },
+    {
+      "type": "tool_use",
+      "id": "toolu_fixture_1",
+      "name": "get_weather",
+      "input": {
+        "city": "Mumbai"
+      }
+    }
+  ],
+  "stop_reason": "tool_use",
+  "stop_sequence": null,
+  "usage": {
+    "input_tokens": 410,
+    "output_tokens": 58
+  }
+}

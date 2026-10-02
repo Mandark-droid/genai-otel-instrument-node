@@ -10,11 +10,13 @@ permissions:
 
 jobs:
   test:
+    # The development toolchain and the SDK versions this repository develops
+    # against need Node 22 or later.
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        node: [20, 22, 24]
+        node: [22, 24]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,20 +28,28 @@ jobs:
       - run: npm run sync:check
       - run: npm run typecheck
       - run: npm run lint
-      # Unit, contract and instrumentor tests, with the coverage floors enforced.
+      # Unit, contract, instrumentor and local end-to-end tests, with the coverage floors enforced.
       - run: npm test
       - run: npm run build
 
-  node18:
-    # The minimum supported runtime. The test toolchain needs Node 20, so here
-    # the built package is loaded and exercised on Node 18 instead.
+  runtime:
+    # The BUILT package on every supported runtime, the minimum included: it
+    # loads in both module formats, and an application that never mentions it is
+    # traced through the zero-code hooks, against each supported major of the
+    # client libraries. An SDK version that does not support the running Node is
+    # reported as skipped.
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20, 22, 24]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
       - run: npm run build
       - run: node scripts/dist-smoke.cjs
+      - run: node scripts/sdk-compat.cjs

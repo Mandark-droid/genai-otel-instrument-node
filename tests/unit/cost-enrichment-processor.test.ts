@@ -175,6 +175,16 @@ describe('CostEnrichmentSpanProcessor', () => {
     expect(await missing()).toEqual([]);
   });
 
+  it("leaves this library's own spans alone: its instrumentors decide their own cost, including none", () => {
+    // A cancelled stream carries the tokens it saw and deliberately no cost.
+    const span = provider.getTracer('genai_otel.instrumentors.base').startSpan('openai.chat.completion', {
+      attributes: { 'gen_ai.request.model': 'gpt-4o', 'gen_ai.usage.input_tokens': 1000, 'gen_ai.usage.output_tokens': 500 },
+    });
+    span.end();
+    const attributes = exporter.getFinishedSpans()[0]?.attributes ?? {};
+    expect('gen_ai.usage.cost.total' in attributes).toBe(false);
+  });
+
   it('a calculator failure never reaches the span or the host', () => {
     const broken = new CostCalculator({ pricingData: { chat: { 'bad-entry': 'not-an-object' } } });
     vi.spyOn(broken, 'calculateGranularCost').mockImplementation(() => {

@@ -1,0 +1,49 @@
+{
+  "id": "chatcmpl-fixture-0002",
+  "object": "chat.completion",
+  "created": 1759400001,
+  "model": "gpt-4o-2024-08-06",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_fixture_abc",
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "arguments": "{\"city\":\"Mumbai\"}"
+            }
+          },
+          {
+            "id": "call_fixture_def",
+            "type": "function",
+            "function": {
+              "name": "get_time",
+              "arguments": "{\"tz\":\"Asia/Kolkata\"}"
+            }
+          }
+        ],
+        "refusal": null
+      },
+      "logprobs": null,
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 82,
+    "completion_tokens": 34,
+    "total_tokens": 116,
+    "prompt_tokens_details": {
+      "cached_tokens": 64,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

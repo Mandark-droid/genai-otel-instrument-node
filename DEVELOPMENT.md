@@ -13,10 +13,16 @@ Read `CLAUDE.md` first: the rules there are not negotiable.
 | `npm run build` | CommonJS + ES-module bundles and type declarations into `dist/` |
 | `npm run sync` / `npm run sync:check` | Vendor / verify the contract and pricing table |
 | `npm run generate` | Regenerate `src/semconv.generated.ts` from `contract/semconv.json` (runs automatically before test, typecheck, lint and build) |
-| `node scripts/dist-smoke.cjs` | Load the built package in both module formats and through both register hooks |
+| `npm run smoke` | The built package: loads in both module formats; an application that never mentions it is traced through both zero-code hooks |
+| `npm run compat` | The built package against each supported major of `openai` and `@anthropic-ai/sdk` (installs them into a temporary directory) |
 
-The test toolchain needs Node 20 or later. The package itself supports Node 18.19; CI
-builds it and runs `scripts/dist-smoke.cjs` on Node 18.
+The test toolchain and the SDK versions this repository develops against need Node 22 or
+later. The package itself supports Node 18.19: CI builds it and runs `npm run smoke` and
+`npm run compat` on Node 18, 20, 22 and 24.
+
+`npm test` builds `dist/` first (`tests/global-setup.ts`), because `tests/e2e` runs the
+example programs against the built package. Test workers run with `--expose-gc`:
+`tests/instrumentors/no-leaked-spans.test.ts` forces garbage collections.
 
 ## Test first
 
@@ -59,6 +65,23 @@ tests/                 unit, contract, instrumentors, fixtures, helpers
 examples/              one runnable example per instrumentor, plus e2e/
 docs/                  configuration, parity matrix
 ```
+
+## Instrumentors
+
+An instrumentor ships with: a test file driving the real client library against the mock
+provider (`tests/helpers/mock-llm.ts`, fixtures in `tests/fixtures/`), an example under
+`examples/<name>/` that `tests/e2e/examples.test.ts` runs, a row in
+`docs/parity-matrix.md`, an entry in `scripts/sdk-compat.cjs`, and a changelog line.
+
+Three things the existing ones do, which a new one must too:
+
+1. **Return what the SDK returned.** The same promise object, the same stream object,
+   observed in place. Callers use `withResponse()`, `controller`, `tee()`.
+2. **End every span.** Completed, failed, cancelled, or never consumed.
+3. **Never let a finalizer reach its target.** A `FinalizationRegistry` held value that can
+   reach the object it is registered for keeps that object alive, and the span it should
+   close stays open for ever. The held value is created where nothing of the SDK's is in
+   scope - see `hookApiPromise` and `cancelWhenAbandoned` in `src/instrumentors/base.ts`.
 
 ## Module copies
 

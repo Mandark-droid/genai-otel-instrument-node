@@ -38,6 +38,10 @@ node --require @traceverse/genai-otel-instrument/register app.js
 node --import @traceverse/genai-otel-instrument/register app.mjs
 ```
 
+Use the hook that matches the application's module format: the ES-module build of a client
+library can only be patched asynchronously, and `--import` waits for that before the
+application starts.
+
 Configuration then comes from the environment - the same variables, defaults and parsing
 as the Python library (`OTEL_SERVICE_NAME`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `GENAI_*`).
 See [docs/configuration.md](docs/configuration.md).
@@ -58,8 +62,28 @@ await uninstrument();
 
 ## What is instrumented
 
+| Library | Versions verified | Covered |
+|---|---|---|
+| `openai` | 4.0.0 - 7.27.0 | Chat Completions (buffered, streamed, tool calls), Embeddings, Responses API. Any OpenAI-compatible endpoint (vLLM, llama.cpp server, LiteLLM, Ollama) through the same client |
+| `@anthropic-ai/sdk` | 0.20.0 - 0.131.0 | `messages.create` (buffered, streamed), `messages.stream()` |
+
+Each call is one span with the request model, token counts, cost, and for streamed calls
+time to first token. A model with no price in the shipped table gets **no** cost attribute
+and `gen_ai.usage.cost.pricing_source = unpriced` - never a cost of 0.
+
 See [docs/parity-matrix.md](docs/parity-matrix.md) for the state of every instrumentor
-against the Python reference, including what is not applicable to Node and why.
+against the Python reference, what is not applicable to Node and why, and the reference
+behaviours that were ported as they are.
+
+An application bundled so that the client library cannot be resolved at run time can hand
+it over explicitly:
+
+```ts
+import OpenAI from 'openai';
+import { loadConfig, OpenAIInstrumentor } from '@traceverse/genai-otel-instrument';
+
+new OpenAIInstrumentor().instrumentModule({ OpenAI }, loadConfig());
+```
 
 ## The contract
 

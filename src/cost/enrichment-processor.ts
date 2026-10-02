@@ -19,7 +19,7 @@ import type { ReadableSpan, Span, SpanProcessor } from '@opentelemetry/sdk-trace
 import { logger } from '../logger';
 import type { CostCalculator } from './calculator';
 import { getDefaultCostCalculator } from './default';
-import { recordPricingMissing } from './pricing-missing';
+import { METER_NAME as BASE_TRACER_NAME, recordPricingMissing } from './pricing-missing';
 
 const COST_TOTAL = 'gen_ai.usage.cost.total';
 const COST_PROMPT = 'gen_ai.usage.cost.prompt';
@@ -77,6 +77,11 @@ export class CostEnrichmentSpanProcessor implements SpanProcessor {
   private enrich(span: Span): void {
     const attributes = span.attributes;
     if (!attributes) return;
+
+    // This library's own instrumentors make their own cost decision, including
+    // the decision to record none (a cancelled stream, cost tracking of a model
+    // with no price). Second-guessing them here would put a cost back.
+    if (span.instrumentationScope?.name === BASE_TRACER_NAME) return;
 
     const model =
       attributes['gen_ai.request.model'] || attributes['llm.model_name'] || attributes['embedding.model_name'];

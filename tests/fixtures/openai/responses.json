@@ -1,0 +1,41 @@
+{
+  "id": "resp_fixture_0001",
+  "object": "response",
+  "created_at": 1759400010,
+  "status": "completed",
+  "model": "gpt-4o-mini-2024-07-18",
+  "output": [
+    {
+      "type": "message",
+      "id": "msg_fixture_1",
+      "status": "completed",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "Paris.",
+          "annotations": []
+        }
+      ]
+    },
+    {
+      "type": "function_call",
+      "id": "fc_fixture_1",
+      "call_id": "call_fixture_xyz",
+      "name": "get_weather",
+      "arguments": "{\"city\":\"Paris\"}",
+      "status": "completed"
+    }
+  ],
+  "usage": {
+    "input_tokens": 40,
+    "input_tokens_details": {
+      "cached_tokens": 16
+    },
+    "output_tokens": 22,
+    "output_tokens_details": {
+      "reasoning_tokens": 8
+    },
+    "total_tokens": 62
+  }
+}

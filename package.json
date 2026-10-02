@@ -48,12 +48,14 @@
     "prebuild": "npm run generate",
     "build": "tsup",
     "pretypecheck": "npm run generate",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p examples/tsconfig.json",
     "prelint": "npm run generate",
     "lint": "eslint .",
     "pretest": "npm run generate",
     "test": "vitest run --coverage",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "smoke": "node scripts/dist-smoke.cjs",
+    "compat": "node scripts/sdk-compat.cjs"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
@@ -68,7 +70,7 @@
     "@opentelemetry/sdk-trace-base": "^2.0.0"
   },
   "peerDependencies": {
-    "@anthropic-ai/sdk": ">=0.30.0",
+    "@anthropic-ai/sdk": ">=0.20.0",
     "openai": ">=4.0.0"
   },
   "peerDependenciesMeta": {

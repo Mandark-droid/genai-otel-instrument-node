@@ -34,6 +34,8 @@ import { ConfigError, loadConfig, type Env, type OTelConfig } from './config';
 import { getDefaultCostCalculator } from './cost/default';
 import { CostEnrichmentSpanProcessor } from './cost/enrichment-processor';
 import { resetPricingMissingCounter } from './cost/pricing-missing';
+// Registers the shipped instrumentors.
+import './instrumentors';
 import {
   instrumentorFactory,
   isReferenceOnlyInstrumentor,
