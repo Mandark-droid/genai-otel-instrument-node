@@ -1,0 +1,10 @@
+{
+  "id": "embd-mistral-fixture-0001",
+  "object": "list",
+  "model": "mistral-embed",
+  "data": [
+    { "object": "embedding", "index": 0, "embedding": [0.1, 0.2, 0.3, 0.4] },
+    { "object": "embedding", "index": 1, "embedding": [0.5, 0.6, 0.7, 0.8] }
+  ],
+  "usage": { "prompt_tokens": 6, "completion_tokens": 0, "total_tokens": 6 }
+}

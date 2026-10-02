@@ -4,7 +4,7 @@
  */
 import type { OTelConfig } from '../config';
 import { logger } from '../logger';
-import { BaseInstrumentor, type AttributeExtractor } from './base';
+import { BaseInstrumentor, type AttributeExtractor, type SpanWrapperOptions } from './base';
 import { loadModuleCopies, unwrapMethod, wrapMethod } from './patch';
 
 type AnyFunction = (...args: never[]) => unknown;
@@ -16,6 +16,8 @@ export interface PatchTarget {
   /** Span name for the common wrapper. */
   spanName?: string;
   attributes?: AttributeExtractor;
+  /** Options for the common wrapper. */
+  options?: SpanWrapperOptions;
   /** A wrapper of the instrumentor's own, instead of the common one. */
   wrap?: (original: AnyFunction) => AnyFunction;
 }
@@ -84,7 +86,8 @@ export abstract class PatchingInstrumentor extends BaseInstrumentor {
       for (const target of this.targets(module, packageName)) {
         if (!target.holder || typeof (target.holder as Record<string, unknown>)[target.method] !== 'function') continue;
         found = true;
-        const wrap = target.wrap ?? this.createSpanWrapper(target.spanName ?? `${this.owner}.${target.method}`, target.attributes);
+        const wrap =
+          target.wrap ?? this.createSpanWrapper(target.spanName ?? `${this.owner}.${target.method}`, target.attributes, target.options);
         if (wrapMethod(target.holder, target.method, wrap, this.owner)) this.patched.push([target.holder, target.method]);
       }
       if (!found) return;

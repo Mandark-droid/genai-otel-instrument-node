@@ -1,0 +1,12 @@
+{
+  "response_id": "chat-cohere-fixture-0001",
+  "text": "The capital of France is Paris.",
+  "generation_id": "gen-1",
+  "chat_history": [],
+  "finish_reason": "COMPLETE",
+  "meta": {
+    "api_version": { "version": "1" },
+    "billed_units": { "input_tokens": 9, "output_tokens": 8 },
+    "tokens": { "input_tokens": 71, "output_tokens": 8 }
+  }
+}

@@ -40,6 +40,33 @@ export const EXAMPLES = [
     spans: '`together.chat.completion`, `together.embeddings`',
     run: 'TOGETHER_API_KEY=... OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node examples/together/chat.mjs',
   },
+  {
+    dir: 'mistral',
+    title: 'Mistral',
+    file: 'chat.mjs',
+    does: 'A buffered chat call, a streamed chat call and an embeddings call through `@mistralai/mistralai`.',
+    spans: '`mistralai.chat.complete <model>`, `mistralai.chat.stream <model>`, `mistralai.embeddings.create <model>` (the span name carries the model, as in the Python library)',
+    run: 'MISTRAL_API_KEY=... OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node examples/mistral/chat.mjs',
+    notes: '`@mistralai/mistralai` is an ES-module package and is patched asynchronously: `await instrumentorsReady()` before the first call.',
+  },
+  {
+    dir: 'cohere',
+    title: 'Cohere',
+    file: 'chat.mjs',
+    does: 'A chat call on the v2 client and an embeddings call through `cohere-ai`.',
+    spans: '`cohere.chat`, `cohere.embeddings`',
+    run: 'CO_API_KEY=... OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node examples/cohere/chat.mjs',
+    notes: 'Call `instrument()` before creating a `CohereClientV2`: that client binds its methods when it is constructed, so one created earlier is not traced.',
+  },
+  {
+    dir: 'ollama',
+    title: 'Ollama',
+    file: 'chat.mjs',
+    does: 'A buffered chat call, a streamed chat call and an embeddings call through the `ollama` package, against a local Ollama.',
+    spans: '`ollama.chat` (twice), `ollama.embeddings`',
+    run: 'ollama pull qwen3.5:4b && ollama pull embeddinggemma:300m\nOTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node examples/ollama/chat.mjs',
+    live: '**No.** No Ollama server was started where this was written; it needs no key, only `ollama serve` and the two models',
+  },
 ];
 
 function readme(example) {

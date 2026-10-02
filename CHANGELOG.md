@@ -88,6 +88,10 @@
   Anyscale no-op. Each claims its domain, so a call is traced once, under the provider's
   span name. Azure OpenAI (`AzureOpenAI`) is covered by the OpenAI instrumentor.
 - Instrumentors for Groq (`groq-sdk`) and Together AI (`together-ai`).
+- Instrumentors for Mistral (`@mistralai/mistralai`), Cohere (`cohere-ai`, including `chat`,
+  which the Python library does not trace) and Ollama (`ollama`), with examples.
+- ES-module-only client packages are found and patched (`@mistralai/mistralai` ships no
+  CommonJS build).
 - `PatchingInstrumentor`: the shared base for module-patching instrumentors, with
   `instrumentModule(module, config)` for bundled applications. Two instrumentors can now
   wrap the same method; `uninstrument()` removes them last in, first out.

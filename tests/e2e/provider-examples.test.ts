@@ -71,6 +71,33 @@ const CASES: ExampleCase[] = [
     spans: ['together.chat.completion', 'together.embeddings'],
     system: 'together',
   },
+  {
+    script: 'examples/mistral/chat.mjs',
+    env: { MISTRAL_API_KEY: 'mistral-example-not-a-real-key', EXAMPLE_BASE_URL: '{llm}' },
+    replies: [{ fixture: 'mistral/chat.completion.json' }, { fixture: 'mistral/chat.stream.sse' }, { fixture: 'mistral/embeddings.json' }],
+    spans: [
+      'mistralai.chat.complete mistral-small-latest',
+      'mistralai.chat.stream mistral-small-latest',
+      'mistralai.embeddings.create mistral-embed',
+    ],
+    system: 'mistralai',
+  },
+  {
+    script: 'examples/cohere/chat.mjs',
+    env: { CO_API_KEY: 'cohere-example-not-a-real-key', EXAMPLE_BASE_URL: '{llm}' },
+    replies: [{ fixture: 'cohere/chat.v2.json' }, { fixture: 'cohere/embed.json' }],
+    spans: ['cohere.chat', 'cohere.embeddings'],
+    system: 'cohere',
+  },
+  {
+    script: 'examples/ollama/chat.mjs',
+    env: { OLLAMA_HOST: '{llm}' },
+    replies: [{ fixture: 'ollama/chat.json' }, { fixture: 'ollama/chat.stream.ndjson' }, { fixture: 'ollama/embed.json' }],
+    spans: ['ollama.chat', 'ollama.chat', 'ollama.embeddings'],
+    system: 'ollama',
+    // A local embedding model has no price: no cost attribute, by design.
+    costed: ['ollama.chat'],
+  },
 ];
 
 describe('provider examples, against a mock provider', () => {

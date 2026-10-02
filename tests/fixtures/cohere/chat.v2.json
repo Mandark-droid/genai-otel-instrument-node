@@ -1,0 +1,6 @@
+{
+  "id": "chat-cohere-fixture-0002",
+  "finish_reason": "COMPLETE",
+  "message": { "role": "assistant", "content": [{ "type": "text", "text": "The capital of France is Paris." }] },
+  "usage": { "billed_units": { "input_tokens": 9, "output_tokens": 8 }, "tokens": { "input_tokens": 204, "output_tokens": 8 } }
+}

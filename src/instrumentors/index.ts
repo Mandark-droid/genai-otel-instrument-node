@@ -3,7 +3,10 @@
  * library uses in `GENAI_ENABLED_INSTRUMENTORS`.
  */
 import { AnthropicInstrumentor } from './anthropic';
+import { CohereInstrumentor } from './cohere';
 import { GroqInstrumentor } from './groq';
+import { MistralInstrumentor } from './mistral';
+import { OllamaInstrumentor } from './ollama';
 import { OpenAIInstrumentor } from './openai';
 import {
   AnyscaleInstrumentor,
@@ -24,6 +27,9 @@ registerInstrumentor('sambanova', () => new SambaNovaInstrumentor());
 registerInstrumentor('anyscale', () => new AnyscaleInstrumentor());
 registerInstrumentor('groq', () => new GroqInstrumentor());
 registerInstrumentor('together', () => new TogetherInstrumentor());
+registerInstrumentor('mistralai', () => new MistralInstrumentor());
+registerInstrumentor('cohere', () => new CohereInstrumentor());
+registerInstrumentor('ollama', () => new OllamaInstrumentor());
 
 export {
   BaseInstrumentor,
@@ -36,7 +42,10 @@ export {
   type UsageDict,
 } from './base';
 export { AnthropicInstrumentor } from './anthropic';
+export { CohereInstrumentor } from './cohere';
 export { GroqInstrumentor } from './groq';
+export { MistralInstrumentor } from './mistral';
+export { OllamaInstrumentor } from './ollama';
 export { OpenAIInstrumentor } from './openai';
 export { TogetherInstrumentor } from './together';
 export {

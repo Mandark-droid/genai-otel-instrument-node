@@ -44,11 +44,11 @@ evaluation, media.
 | `vertexai` | `@google/genai` (Vertex mode) / `@google-cloud/vertexai` | planned, phase 2 |
 | `boto3` | `@aws-sdk/client-bedrock-runtime` | planned, phase 2 |
 | `bedrock_agents` | `@aws-sdk/client-bedrock-agent-runtime` | planned, phase 2 |
-| `cohere` | `cohere-ai` | planned, phase 2 |
-| `mistralai` | `@mistralai/mistralai` | planned, phase 2 |
+| `cohere` | `cohere-ai` | **shipped** - `generate`, `embed` (as the reference), plus `chat` / `chatStream` on the v1 and v2 clients (**not present in Python**, which traces only the legacy `generate`) |
+| `mistralai` | `@mistralai/mistralai` | **shipped** - `chat.complete`, `chat.stream`, `embeddings.create`. Span names carry the model, as in the reference |
 | `groq` | `groq-sdk` | **shipped** - chat completions (buffered, streamed) |
 | `together` | `together-ai` | **shipped** - chat completions, embeddings |
-| `ollama` | `ollama` | planned, phase 2 |
+| `ollama` | `ollama` | **shipped** - `chat`, `generate` (buffered, streamed), `embed`, `embeddings`; token estimate when the server reports no counts. Server-metrics poller: phase 4 |
 | `replicate` | `replicate` | planned, phase 2 |
 | `elevenlabs` | `@elevenlabs/elevenlabs-js` | planned, phase 2 |
 | `sarvamai` | `sarvamai` | planned, phase 2 - library to be confirmed |
@@ -99,6 +99,7 @@ with each other where the reference has nothing to agree with.
 |---|---|
 | Counter `gen_ai.usage.cost.pricing_missing` | unit `""`, meter `genai_otel.instrumentors.base`, attributes `model` and `call_type`. Incremented once per span whose model has no price, including the 13 pricing-table entries on which the calculator raises |
 | `withSession(id, fn, { userId })`, `setSession(id, { userId })`, `currentSession()` | The reference has only the `session_id_extractor` / `user_id_extractor` callbacks (ported). These set `session.id` + `gen_ai.conversation.id` (+ `user.id`) on every span started in scope, from any instrumentation. Pending confirmation as a cross-SDK addition |
+| Cohere `chat` / `chatStream` spans (`cohere.chat`) | The reference Cohere instrumentor wraps only `generate` and `embed`. `generate` is Cohere's legacy endpoint; without `chat` a current Cohere application produces no span. Pending confirmation as a cross-SDK addition |
 | `telemetry.distro.name = genai-otel-instrument-node` | The reference emits `genai-otel-instrument`, with no suffix |
 
 ### JavaScript only: three runtimes

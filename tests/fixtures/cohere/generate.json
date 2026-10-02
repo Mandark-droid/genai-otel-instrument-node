@@ -1,0 +1,6 @@
+{
+  "id": "gen-cohere-fixture-0001",
+  "prompt": "What is the capital of France?",
+  "generations": [{ "id": "g-1", "text": " The capital of France is Paris.", "finish_reason": "COMPLETE" }],
+  "meta": { "api_version": { "version": "1" }, "billed_units": { "input_tokens": 9, "output_tokens": 8 } }
+}

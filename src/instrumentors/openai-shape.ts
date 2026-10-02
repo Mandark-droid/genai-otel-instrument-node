@@ -284,3 +284,13 @@ export abstract class OpenAIShapeInstrumentor extends PatchingInstrumentor {
     }
   }
 }
+
+/** The first of several spellings of one field that is present: SDKs differ on snake_case and camelCase. */
+export function pick(object: unknown, ...keys: string[]): unknown {
+  if (!isObject(object)) return undefined;
+  for (const key of keys) {
+    const value = object[key];
+    if (value !== undefined && value !== null) return value;
+  }
+  return undefined;
+}

@@ -1,0 +1,14 @@
+{
+  "id": "cmpl-mistral-fixture-0001",
+  "object": "chat.completion",
+  "created": 1759400100,
+  "model": "mistral-small-latest",
+  "choices": [
+    {
+      "index": 0,
+      "message": { "role": "assistant", "content": "The capital of France is Paris.", "tool_calls": null },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": { "prompt_tokens": 14, "completion_tokens": 8, "total_tokens": 22 }
+}

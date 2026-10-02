@@ -289,12 +289,12 @@ describe('instrument()', () => {
   it('an instrumentor name it does not know is reported', async () => {
     const log = quietLogger();
     const port = await closedPort();
-    instrument({ endpoint: `http://127.0.0.1:${port}`, enabledInstrumentors: ['no-such-library', 'cohere'] });
+    instrument({ endpoint: `http://127.0.0.1:${port}`, enabledInstrumentors: ['no-such-library', 'crewai'] });
     const warned = log.warn.mock.calls.map(([message]) => String(message)).join('\n');
     expect(warned).toContain("Unknown instrumentor 'no-such-library'");
     // Known to the reference implementation, not ported yet: named, not called unknown.
-    expect(warned).toContain("'cohere'");
-    expect(warned).not.toContain("Unknown instrumentor 'cohere'");
+    expect(warned).toContain("'crewai'");
+    expect(warned).not.toContain("Unknown instrumentor 'crewai'");
   });
 
   it('the default instrumentor list does not warn about names that are not ported yet', async () => {
@@ -302,7 +302,7 @@ describe('instrument()', () => {
     const port = await closedPort();
     instrument({ endpoint: `http://127.0.0.1:${port}` });
     const warned = log.warn.mock.calls.map(([message]) => String(message)).join('\n');
-    expect(warned).not.toContain('cohere');
+    expect(warned).not.toContain('crewai');
     expect(warned).not.toContain('Unknown instrumentor');
   });
 

@@ -87,6 +87,13 @@ const BASE_URL_PATHS: readonly (readonly string[])[] = [
   ['baseURL'],
   ['_client', 'baseURL'],
   ['_client', '_client', 'baseURL'],
+  // Speakeasy-generated clients (Mistral).
+  ['_baseURL'],
+  // ollama.
+  ['config', 'host'],
+  // Fern-generated clients (Cohere, ElevenLabs, Sarvam).
+  ['_options', 'baseUrl'],
+  ['_options', 'environment'],
 ];
 
 const DEFAULT_PORTS: Readonly<Record<string, number>> = { 'https:': 443, 'http:': 80 };
@@ -99,7 +106,8 @@ export function clientBaseUrl(instance: unknown): unknown {
       target = typeof target === 'object' && target !== null ? (target as Record<string, unknown>)[step] : undefined;
       if (target === undefined || target === null) break;
     }
-    if (target !== undefined && target !== null) return target;
+    // A Fern client may hold a supplier function here; only a value is a URL.
+    if (target !== undefined && target !== null && typeof target !== 'function') return target;
   }
   return undefined;
 }
@@ -276,6 +284,13 @@ function isApiPromise(value: unknown): value is ApiPromiseLike {
     typeof candidate.parseResponse === 'function' &&
     isThenable(candidate.responsePromise)
   );
+}
+
+export interface SpanWrapperOptions {
+  /** The method always returns a stream (`chat.stream()`), whatever its parameters say. */
+  streaming?: boolean;
+  /** A span name that depends on the request, where the reference builds one. */
+  spanName?: (params: Params) => string;
 }
 
 interface Call {
@@ -515,8 +530,9 @@ export abstract class BaseInstrumentor implements Instrumentor {
    * method is never invoked twice.
    */
   protected createSpanWrapper(
-    spanName: string,
+    baseSpanName: string,
     extractAttributes?: AttributeExtractor,
+    options: SpanWrapperOptions = {},
   ): <F extends (...args: never[]) => unknown>(original: F) => F {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentor = this;
@@ -530,8 +546,10 @@ export abstract class BaseInstrumentor implements Instrumentor {
 
         let call: Call | undefined;
         let ctx = context.active();
+        let spanName = baseSpanName;
         try {
           const params = paramsOf(args);
+          if (options.spanName) spanName = options.spanName(params);
           if (instrumentor.shouldBypass(this, args, params)) return invoke(this, args);
 
           const initial = instrumentor.initialAttributes(spanName, extractAttributes, this, args, params);
@@ -542,7 +560,7 @@ export abstract class BaseInstrumentor implements Instrumentor {
             spanName,
             startTime: now(),
             params,
-            isStreaming: Boolean(params.stream),
+            isStreaming: options.streaming ?? Boolean(params.stream),
             model: String(params.model ?? initial[ATTR.GEN_AI_REQUEST_MODEL] ?? 'unknown'),
             done: false,
           };

@@ -18,7 +18,7 @@ export interface MockReply {
   headers?: Record<string, string>;
   /** A JSON body. */
   json?: unknown;
-  /** A fixture file; `.sse` files are streamed event by event. */
+  /** A fixture file; `.sse` files are streamed event by event, `.ndjson` files line by line. */
   fixture?: string;
   /** Milliseconds between streamed events. */
   eventDelayMs?: number;
@@ -47,14 +47,15 @@ export interface MockLlm {
 
 const sleep = (ms: number): Promise<void> => new Promise((done) => setTimeout(done, ms));
 
-async function streamEvents(response: ServerResponse, text: string, reply: MockReply): Promise<void> {
+async function streamEvents(response: ServerResponse, text: string, reply: MockReply, ndjson = false): Promise<void> {
   response.writeHead(reply.status ?? 200, {
-    'content-type': 'text/event-stream',
+    'content-type': ndjson ? 'application/x-ndjson' : 'text/event-stream',
     'cache-control': 'no-cache',
     connection: 'keep-alive',
     ...reply.headers,
   });
-  const events = text.split('\n\n').filter((event) => event.trim() !== '');
+  const separator = ndjson ? '\n' : '\n\n';
+  const events = text.split(separator).filter((event) => event.trim() !== '');
   for (let index = 0; index < events.length; index += 1) {
     if (reply.dropAfterEvents !== undefined && index >= reply.dropAfterEvents) {
       response.destroy();
@@ -62,7 +63,7 @@ async function streamEvents(response: ServerResponse, text: string, reply: MockR
     }
     if (reply.stallAfterEvents !== undefined && index >= reply.stallAfterEvents) return; // hold open
     if (response.destroyed) return;
-    response.write(`${events[index]}\n\n`);
+    response.write(`${events[index]}${separator}`);
     await sleep(reply.eventDelayMs ?? 2);
   }
   response.end();
@@ -98,8 +99,8 @@ export async function startMockLlm(): Promise<MockLlm> {
         response.end(JSON.stringify({ error: { message: `mock: no reply queued for ${request.url}` } }));
         return;
       }
-      if (reply.fixture?.endsWith('.sse')) {
-        void streamEvents(response, fixtureText(reply.fixture), reply);
+      if (reply.fixture?.endsWith('.sse') || reply.fixture?.endsWith('.ndjson')) {
+        void streamEvents(response, fixtureText(reply.fixture), reply, reply.fixture.endsWith('.ndjson'));
         return;
       }
       const payload = reply.fixture ? fixtureText(reply.fixture) : JSON.stringify(reply.json ?? {});

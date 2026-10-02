@@ -1,0 +1,8 @@
+data: {"id":"cmpl-mistral-fixture-0002","object":"chat.completion.chunk","created":1759400101,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}
+
+data: {"id":"cmpl-mistral-fixture-0002","object":"chat.completion.chunk","created":1759400101,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":"Paris"},"finish_reason":null}]}
+
+data: {"id":"cmpl-mistral-fixture-0002","object":"chat.completion.chunk","created":1759400101,"model":"mistral-small-latest","choices":[{"index":0,"delta":{"content":"."},"finish_reason":"stop"}],"usage":{"prompt_tokens":14,"completion_tokens":3,"total_tokens":17}}
+
+data: [DONE]
+
