@@ -3,7 +3,7 @@
  * provider replaying fixtures. No API key, no network beyond localhost.
  */
 import { createRequire } from 'node:module';
-import { SpanKind, SpanStatusCode } from '@opentelemetry/api';
+import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import OpenAI from 'openai';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { getDefaultCostCalculator } from '../../src/cost';
@@ -590,16 +590,39 @@ describe('OpenAI instrumentor', () => {
   });
 
   describe('configuration', () => {
-    it('GENAI_CUSTOM_PRICING_JSON is not applied here - as in the reference, whose OpenAI instrumentor ignores it', async () => {
-      // genai_otel v1.30.0: OpenAIInstrumentor.instrument() never calls _setup_config(), so it keeps
-      // the default-priced calculator. Verified by running the reference. Ported as it behaves; see
-      // docs/parity-matrix.md ("Reference behaviours ported as they are").
-      await start({ customPricingJson: '{"chat": {"acme-internal-llm": {"promptPrice": 0.001, "completionPrice": 0.002}}}' });
+    const CUSTOM_PRICING = '{"chat": {"acme-internal-llm": {"promptPrice": 0.001, "completionPrice": 0.002}}}';
+
+    it('GENAI_CUSTOM_PRICING_JSON prices a model the shipped table does not have', async () => {
+      // A deliberate difference from genai_otel v1.30.0, whose OpenAI instrumentor ignores
+      // custom pricing (contract/SDK_ADDITIONS.md section 3).
+      await start({ customPricingJson: CUSTOM_PRICING });
       llm.reply({ fixture: 'openai/chat.completion.local.json' });
       await client.chat.completions.create({ model: 'acme-internal-llm', messages: MESSAGES });
       const attributes = harness.span('openai.chat.completion').attributes;
-      expect('gen_ai.usage.cost.total' in attributes).toBe(false);
-      expect(attributes['gen_ai.usage.cost.pricing_source']).toBe('unpriced');
+      // 100 prompt and 20 completion tokens at the custom per-1K prices.
+      expect(attributes['gen_ai.usage.cost.total']).toBeCloseTo(0.00014, 12);
+      expect(attributes['gen_ai.usage.cost.prompt']).toBeCloseTo(0.0001, 12);
+      expect(attributes['gen_ai.usage.cost.completion']).toBeCloseTo(0.00004, 12);
+      expect(attributes['gen_ai.usage.cost.pricing_source']).toBe('table');
+      expect(await harness.metric('gen_ai.usage.cost.pricing_missing')).toBeUndefined();
+    });
+
+    it('custom pricing overrides a shipped price', async () => {
+      await start({ customPricingJson: '{"chat": {"gpt-4o-mini": {"promptPrice": 1, "completionPrice": 1}}}' });
+      llm.reply({ fixture: 'openai/chat.completion.json' });
+      await client.chat.completions.create({ model: 'gpt-4o-mini', messages: MESSAGES });
+      expect(harness.span('openai.chat.completion').attributes['gen_ai.usage.cost.total']).toBeCloseTo(0.028, 12);
+    });
+
+    it('custom pricing also prices spans from other instrumentation, through the cost-enrichment processor', async () => {
+      await start({ customPricingJson: CUSTOM_PRICING });
+      trace
+        .getTracer('some.other.instrumentation')
+        .startSpan('other.chat', {
+          attributes: { 'gen_ai.request.model': 'acme-internal-llm', 'gen_ai.usage.input_tokens': 100, 'gen_ai.usage.output_tokens': 20 },
+        })
+        .end();
+      expect(harness.span('other.chat').attributes['gen_ai.usage.cost.total']).toBeCloseTo(0.00014, 12);
     });
 
     it('cost tracking off: tokens are recorded, cost is not', async () => {

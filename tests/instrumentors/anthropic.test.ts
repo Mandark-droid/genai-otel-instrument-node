@@ -95,6 +95,16 @@ describe('Anthropic instrumentor', () => {
       expect((await harness.metric('gen_ai.usage.cost'))?.points[0]).toMatchObject({ value: cost?.total, attributes: { model: MODEL } });
     });
 
+    it('GENAI_CUSTOM_PRICING_JSON prices a model the shipped table does not have', async () => {
+      await harness.stop();
+      await start({ customPricingJson: '{"chat": {"acme-internal-llm": {"promptPrice": 0.001, "completionPrice": 0.002}}}' });
+      llm.reply({ fixture: 'anthropic/message.json' });
+      await client.messages.create({ model: 'acme-internal-llm', max_tokens: 64, messages: MESSAGES });
+      const attributes = harness.span('anthropic.messages.create').attributes;
+      expect(attributes['gen_ai.usage.cost.total']).toBeGreaterThan(0);
+      expect(attributes['gen_ai.usage.cost.pricing_source']).toBe('table');
+    });
+
     it('a tool-use response is accounted like any other; tokens and cost are recorded', async () => {
       llm.reply({ fixture: 'anthropic/message.tool-use.json' });
       const message = await client.messages.create({

@@ -9,6 +9,6 @@ export {
   type PricingSource,
   type Usage,
 } from './calculator';
-export { getDefaultCostCalculator } from './default';
+export { costCalculatorFor, getDefaultCostCalculator } from './default';
 export { CostEnrichmentSpanProcessor } from './enrichment-processor';
 export { PRICING_MISSING_METRIC, recordPricingMissing, resetPricingMissingCounter } from './pricing-missing';

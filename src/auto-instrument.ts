@@ -32,7 +32,7 @@ import {
   type SpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
 import { ConfigError, loadConfig, type Env, type OTelConfig } from './config';
-import { getDefaultCostCalculator } from './cost/default';
+import { costCalculatorFor } from './cost/default';
 import { CostEnrichmentSpanProcessor } from './cost/enrichment-processor';
 import { resetPricingMissingCounter } from './cost/pricing-missing';
 // Registers the shipped instrumentors.
@@ -350,9 +350,9 @@ function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumen
   const spanProcessors: SpanProcessor[] = [];
   if (config.enableCostTracking) {
     try {
-      // The shared default-priced calculator, as in the reference implementation:
-      // spans from other instrumentation are priced from the shipped table.
-      spanProcessors.push(new CostEnrichmentSpanProcessor(getDefaultCostCalculator()));
+      // Spans from other instrumentation are priced from the same table as our
+      // own, custom pricing included.
+      spanProcessors.push(new CostEnrichmentSpanProcessor(costCalculatorFor(config.customPricingJson)));
       logger.info('Cost enrichment processor added');
     } catch (error) {
       logger.warn(`Failed to add cost enrichment processor: ${String(error)}`);

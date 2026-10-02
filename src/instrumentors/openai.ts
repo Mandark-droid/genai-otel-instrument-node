@@ -65,9 +65,9 @@ export class OpenAIInstrumentor extends BaseInstrumentor {
    * ES-module build is patched as well.
    */
   instrument(config: OTelConfig): Promise<void> {
-    // As the reference instrumentor does: the configuration is attached, the
-    // shared default cost calculator is kept.
-    this.config = config;
+    // Unlike the reference instrumentor (v1.30.0), which never sets its
+    // configuration up and so ignores custom pricing.
+    this.setupConfig(config);
     const copies = loadModuleCopies('openai');
     for (const module of copies.commonjs) this.patchModule(module);
     return copies.esm.then((modules) => {
@@ -81,7 +81,7 @@ export class OpenAIInstrumentor extends BaseInstrumentor {
    * run time.
    */
   instrumentModule(module: unknown, config: OTelConfig): void {
-    this.config = config;
+    this.setupConfig(config);
     this.patchModule(module);
   }
 

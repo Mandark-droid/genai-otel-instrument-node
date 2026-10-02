@@ -67,9 +67,9 @@ export class AnthropicInstrumentor extends BaseInstrumentor {
    * built on it is covered, the Bedrock and Vertex clients included.
    */
   instrument(config: OTelConfig): Promise<void> {
-    // As the reference instrumentor does: the configuration is attached, the
-    // shared default cost calculator is kept.
-    this.config = config;
+    // Unlike the reference instrumentor (v1.30.0), which never sets its
+    // configuration up and so ignores custom pricing.
+    this.setupConfig(config);
     const copies = loadModuleCopies('@anthropic-ai/sdk');
     for (const module of copies.commonjs) this.patchModule(module);
     return copies.esm.then((modules) => {
@@ -79,7 +79,7 @@ export class AnthropicInstrumentor extends BaseInstrumentor {
 
   /** Instrument a given `@anthropic-ai/sdk` module (or anything exposing the `Anthropic` class). */
   instrumentModule(module: unknown, config: OTelConfig): void {
-    this.config = config;
+    this.setupConfig(config);
     this.patchModule(module);
   }
 

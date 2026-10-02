@@ -124,6 +124,7 @@ These are choices, each with a reason. Everything else is meant to be identical.
 | A result nobody consumes (stream never iterated, promise never awaited) | Span is never ended | Span ended when the object is garbage collected | No leaked open spans |
 | `host.id`, `process.owner` on the resource | Not emitted | Not emitted (the Node detectors would add them; they are removed) | Same attribute set; no machine identifier or OS user name leaves the host |
 | `null` / `undefined` request parameters | `None` is written as the string `"None"` | The attribute is left out | An explicit `undefined` is routine in JavaScript and would put `"undefined"` on every span |
+| `GENAI_CUSTOM_PRICING_JSON` (deliberate difference from Python v1.30.0, to be fixed upstream; `contract/SDK_ADDITIONS.md` section 3) | Ignored by 39 of the 42 instrumentor modules, OpenAI and Anthropic included: their `instrument()` never calls `_setup_config()`, so a custom-priced model is reported `unpriced` (`openai_instrumentor.py:80`, `anthropic_instrumentor.py:244`, `base.py:563`). Cost enrichment of other instrumentation's spans always uses the default table (`auto_instrument.py:381`) | Applied by **every** instrumentor and by the cost-enrichment processor, with the calculator's own merge and validation rules. A custom-priced model gets the `gen_ai.usage.cost.*` attributes and `pricing_source = table`, as the reference calculator reports for it | Founder decision, 2026-10-02: a setting that is accepted and then ignored is a wrong bill |
 | Instrumentation scope / tracer name | `genai_otel.instrumentors.base` | the same | A backend keys on it |
 | `OTEL_METRICS_EXEMPLAR_FILTER` defaulted to `always_off` | yes | not needed: the JS SDK records no exemplars | |
 
@@ -136,7 +137,7 @@ regenerate the contract, adjust the port).
 
 | # | Behaviour | Where |
 |---|---|---|
-| 1 | **`GENAI_CUSTOM_PRICING_JSON` is ignored by the OpenAI and Anthropic instrumentors** (and by 39 of the 42 reference instrumentor modules): their `instrument()` assigns `self.config` and never calls `_setup_config()`, so they keep the default-priced calculator. A custom-priced model is reported `unpriced`. Verified by running the reference | `instrumentors/openai_instrumentor.py:80`, `anthropic_instrumentor.py:244`, `base.py:563` |
+| 1 | *(moved to "Deliberate differences": custom pricing is now honoured by every instrumentor)* | |
 | 2 | **Anthropic spans have no `gen_ai.operation.name`**, no response id / model, no finish reason and no tool-call attributes. A backend that selects single model calls by `gen_ai.operation.name` does not see them | `anthropic_instrumentor.py:395` |
 | 3 | `anthropic.messages.stream` is not counted in `gen_ai.requests`, and gets no `server.address` or request-parameter attributes; `anthropic.messages.create` gets all of them | `anthropic_instrumentor.py:353` |
 | 4 | A list-valued request attribute is written as the Python `str()` of the list: `gen_ai.request.encoding_formats = "['float']"` (a string), not an array | `base.py:813-816`; confirmed by `contract/semconv.json` `span_emission` |
@@ -148,6 +149,6 @@ regenerate the contract, adjust the port).
 | 10 | A usage detail that is present but null (`completion_tokens_details.reasoning_tokens: null`) makes the cost calculation raise; the span then has tokens and no cost | `cost_calculator.py:495`, `openai_instrumentor.py:565` |
 | 11 | `OTEL_EXPORTER_OTLP_TIMEOUT` is read as seconds; the OpenTelemetry specification defines milliseconds | `config.py:141` |
 | 12 | Floating-point seconds are recorded into `gen_ai.server.time_to_first_token` and `gen_ai.server.time_per_output_token` histograms that keep the SDK default bucket boundaries (0, 5, 10, ... 10000), so almost every value lands in the first bucket. `gen_ai.server.ttft` / `.tbt` have proper boundaries | `auto_instrument.py:263`, `contract/metrics.json` |
-| 13 | Cost enrichment of spans from other instrumentation always uses the default-priced calculator, never custom pricing | `auto_instrument.py:381` |
+| 13 | *(moved to "Deliberate differences": cost enrichment now uses custom pricing)* | |
 | 15 | A **streamed Responses API** call records no tokens and no cost: the usage arrives on the final `response.completed` event as `event.response.usage`, and usage is read only from `event.usage`. Read from the code of both implementations; not exercised by a test here | `openai_instrumentor.py:519`, `base.py:2447` |
 | 14 | Under a hardened profile, an explicit `enable_content_capture=False` passed in code is overridden to true unless one of the two environment variables is also set | `config.py:534` |

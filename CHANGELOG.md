@@ -95,6 +95,10 @@
   semantic-convention and metric contract tests and the new entries' tests.
 
 ### Changed
+- `GENAI_CUSTOM_PRICING_JSON` (option `customPricingJson`) is now applied by every
+  instrumentor, OpenAI and Anthropic included, and by the cost-enrichment processor. This
+  is a deliberate difference from Python v1.30.0, where most instrumentors ignore it; see
+  `docs/parity-matrix.md` and `contract/SDK_ADDITIONS.md`.
 - The core (config, cost, semconv, metrics, logger, base instrumentor) no longer reads
   `process.env` or uses a Node-only global. `loadConfig(overrides, env)` called without
   `env` now reads the environment its entry point supplied: `process.env` when loaded
@@ -105,7 +109,5 @@
   (`http://localhost:11434/v1`, no API key); `E2E_LLM_BASE_URL` still overrides it.
 
 ### Notes
-- The reference instrumentors for OpenAI and Anthropic do not apply
-  `GENAI_CUSTOM_PRICING_JSON`; neither do these. See `docs/parity-matrix.md`.
 - `npm audit`: one low-severity finding in `esbuild` (development server on Windows),
   reached only through the build tool. It does not ship and is not exercised.

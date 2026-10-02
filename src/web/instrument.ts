@@ -21,7 +21,7 @@ import {
   type SpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
 import { loadConfig, type OTelConfig } from '../config';
-import { getDefaultCostCalculator } from '../cost/default';
+import { costCalculatorFor } from '../cost/default';
 import { CostEnrichmentSpanProcessor } from '../cost/enrichment-processor';
 import { resetPricingMissingCounter } from '../cost/pricing-missing';
 import { setAmbientEnv, type Env } from '../env';
@@ -156,7 +156,7 @@ function setup(
   });
 
   const spanProcessors: SpanProcessor[] = [];
-  if (config.enableCostTracking) spanProcessors.push(new CostEnrichmentSpanProcessor(getDefaultCostCalculator()));
+  if (config.enableCostTracking) spanProcessors.push(new CostEnrichmentSpanProcessor(costCalculatorFor(config.customPricingJson)));
   spanProcessors.push(...(options.spanProcessors ?? []));
   // Batched: ending a span only enqueues it. Nothing is sent on the caller's path.
   spanProcessors.push(new BatchSpanProcessor(spanExporter));

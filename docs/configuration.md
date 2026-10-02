@@ -46,7 +46,7 @@ both languages:
 | `GENAI_SERVICE_INSTANCE_ID_MODE` | `random` | `derived`: a v5 UUID stable across restarts |
 | `GENAI_ENABLED_INSTRUMENTORS` | reference list | See `docs/parity-matrix.md` |
 | `GENAI_ENABLE_COST_TRACKING` | `true` | |
-| `GENAI_CUSTOM_PRICING_JSON` | | Same shape as the pricing table; merged over it |
+| `GENAI_CUSTOM_PRICING_JSON` | | Same shape as the pricing table; merged over it. Applied by every instrumentor and by the cost-enrichment processor (the Python library v1.30.0 ignores it in most instrumentors) |
 | `GENAI_ENABLE_CONTENT_CAPTURE` | `false` | |
 | `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` | | `NO_CONTENT`, `SPAN_ONLY`, `EVENT_ONLY`, `SPAN_AND_EVENT`; wins over the line above |
 | `GENAI_CONTENT_MAX_LENGTH` | `200` | `0`: no limit |

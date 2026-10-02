@@ -30,7 +30,7 @@ import {
   type Tracer,
 } from '@opentelemetry/api';
 import type { OTelConfig } from '../config';
-import { CostCalculator, getDefaultCostCalculator, recordPricingMissing, type Usage } from '../cost';
+import { costCalculatorFor, getDefaultCostCalculator, recordPricingMissing, type CostCalculator, type Usage } from '../cost';
 import { logger } from '../logger';
 import { getSharedMetrics, type SharedMetrics } from '../metrics';
 import { pyJsonDumps, pyStr, pyTruncate } from '../pycompat';
@@ -295,7 +295,7 @@ interface Call {
 
 export abstract class BaseInstrumentor implements Instrumentor {
   protected config: OTelConfig | undefined;
-  /** Shared by default; replaced with a private one only when custom pricing is configured. */
+  /** The shared default until `setupConfig()`; then the configuration's, custom pricing included. */
   protected costCalculator: CostCalculator = getDefaultCostCalculator();
   protected instrumented = false;
 
@@ -342,13 +342,15 @@ export abstract class BaseInstrumentor implements Instrumentor {
     return getSharedMetrics();
   }
 
-  /** Attach the configuration; a private cost calculator when custom pricing is supplied. */
+  /**
+   * Attach the configuration, and with it the cost calculator: the shared
+   * default one, or the configuration's custom-priced one. Every instrumentor
+   * calls this from `instrument()`.
+   */
   protected setupConfig(config: OTelConfig): void {
     this.config = config;
-    if (config.customPricingJson) {
-      this.costCalculator = new CostCalculator({ customPricingJson: config.customPricingJson });
-      logger.info('Cost calculator reinitialized with custom pricing');
-    }
+    this.costCalculator = costCalculatorFor(config.customPricingJson);
+    if (config.customPricingJson) logger.info('Cost calculator uses custom pricing');
   }
 
   private get emitSuperseded(): boolean {
