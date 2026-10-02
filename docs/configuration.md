@@ -71,6 +71,13 @@ and switch datastore instrumentation off if it is not wanted
 | `GENAI_FLUSH_ON_SIGTERM` | `false` | With `GENAI_SIGTERM_FLUSH_TIMEOUT` (default `5.0` seconds) |
 | `GENAI_SKIP_COLLECTOR_CHECK` | `false` | Silences the "no collector on the default endpoint" warning |
 | `GENAI_OTEL_LOG_LEVEL` | | `DEBUG`, `INFO`, `WARNING`, `ERROR`. Unset: warnings and errors. `OTEL_LOG_LEVEL` is the fallback |
+| `GENAI_ENABLE_PII_DETECTION` | `false` | With `GENAI_PII_MODE` (`detect`, `redact`, `block`), `GENAI_PII_THRESHOLD` (not used by the pattern detector), `GENAI_PII_GDPR_MODE`, `GENAI_PII_HIPAA_MODE`, `GENAI_PII_PCI_DSS_MODE`. See [evaluation.md](evaluation.md) |
+| `GENAI_ENABLE_PROMPT_INJECTION_DETECTION` | `false` | `GENAI_PROMPT_INJECTION_THRESHOLD` `0.5`, `GENAI_PROMPT_INJECTION_BLOCK_ON_DETECTION` |
+| `GENAI_ENABLE_BIAS_DETECTION` | `false` | `GENAI_BIAS_THRESHOLD` `0.4`, `GENAI_BIAS_BLOCK_ON_DETECTION` |
+| `GENAI_ENABLE_RESTRICTED_TOPICS` | `false` | `GENAI_RESTRICTED_TOPICS_THRESHOLD` `0.7`, `GENAI_RESTRICTED_TOPICS_BLOCK_ON_DETECTION` |
+| `GENAI_ENABLE_HALLUCINATION_DETECTION` | `false` | `GENAI_HALLUCINATION_THRESHOLD` `0.6` |
+| `GENAI_ENABLE_TOXICITY_DETECTION` | `false` | `GENAI_TOXICITY_THRESHOLD` `0.7`, `GENAI_TOXICITY_BLOCK_ON_DETECTION`. In effect only once the application supplies a scorer (`setToxicityScorer`); until then nothing about toxicity is written. `GENAI_TOXICITY_USE_PERSPECTIVE_API` is read and has no effect: no Perspective client ships |
+| `GENAI_ENABLE_OLLAMA_SERVER_METRICS` | `true` | With the Ollama instrumentor active: polls `OLLAMA_BASE_URL` (default `http://localhost:11434`) `/api/ps` every `GENAI_OLLAMA_METRICS_INTERVAL` seconds (default `5.0`) for the loaded models. `GENAI_OLLAMA_MAX_VRAM_GB`: the GPU's VRAM, needed for the per-model share; detected with `nvidia-smi` when unset, and not reported when neither is available. These four are read from the environment only, as in the Python library |
 
 ## Read and parsed, not in effect yet
 
@@ -82,9 +89,8 @@ reported in the log at start-up; it is never silently ignored.
 |---|---|---|
 | `GENAI_ENABLE_GPU_METRICS`, `GENAI_GPU_COLLECTION_INTERVAL`, `GENAI_POWER_COST_PER_KWH` | GPU metrics | 4 |
 | `GENAI_ENABLE_CO2_TRACKING`, `GENAI_CARBON_INTENSITY`, `GENAI_CO2_*`, `GENAI_CODECARBON_LOG_LEVEL` | Energy and CO2 | 4 |
-| `GENAI_ENABLE_PII_DETECTION`, `GENAI_PII_*`, `GENAI_ENABLE_TOXICITY_DETECTION`, `GENAI_TOXICITY_*`, `GENAI_ENABLE_BIAS_DETECTION`, `GENAI_BIAS_*`, `GENAI_ENABLE_PROMPT_INJECTION_DETECTION`, `GENAI_PROMPT_INJECTION_*`, `GENAI_ENABLE_RESTRICTED_TOPICS`, `GENAI_RESTRICTED_TOPICS_*`, `GENAI_ENABLE_HALLUCINATION_DETECTION`, `GENAI_HALLUCINATION_THRESHOLD` | Evaluation | 4 |
 | `GENAI_OTEL_MEDIA_*` | Multimodal capture | 4 |
-| `GENAI_ENABLE_CONCURRENCY_METRICS` | Server concurrency gauge | 4 |
+| `GENAI_ENABLE_CONCURRENCY_METRICS` | Read by the Python library's configuration and used by nothing there either | - |
 
 Variables the Python library reads that this SDK does not, and why, are listed in
 `tests/contract/config.contract.test.ts` (`NOT_READ`). The test fails if a future

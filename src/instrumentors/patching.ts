@@ -59,13 +59,13 @@ export abstract class PatchingInstrumentor extends BaseInstrumentor {
   /** instrument() has run (and uninstrument() has not): wrappers act. */
   private enabled = false;
 
-  /** What to patch in one loaded copy of `packageName`. */
   /**
    * The library refuses to be loaded as CommonJS and as an ES module in one
    * process: only the copy the application uses is loaded and patched.
    */
   protected readonly loadOnce: boolean = false;
 
+  /** What to patch in one loaded copy of `packageName`. */
   protected abstract targets(module: unknown, packageName: string): PatchTarget[];
 
   /** Called once something was patched, e.g. to claim a base URL. */

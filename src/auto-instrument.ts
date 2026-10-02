@@ -38,6 +38,7 @@ import { costCalculatorFor } from './cost/default';
 import { CostEnrichmentSpanProcessor } from './cost/enrichment-processor';
 import { activeEvaluation, EvaluationEngine, EvaluationSpanProcessor, evaluationConfigsFrom, setActiveEvaluation } from './evaluation/engine';
 import { AiSdkSpanProcessor, isAiSdkAggregate } from './frameworks/ai-sdk';
+import { initializeServerMetrics, resetServerMetrics } from './server-metrics';
 import { resetPricingMissingCounter } from './cost/pricing-missing';
 // Registers the shipped instrumentors.
 import './instrumentors';
@@ -94,6 +95,7 @@ function resetMeterBoundState(): void {
   resetPricingMissingCounter();
   resetSharedMetrics();
   resetMcpMetrics();
+  resetServerMetrics();
 }
 
 function activeState(): ActiveState | undefined {
@@ -191,12 +193,6 @@ function metricIntervals(): { exportIntervalMillis: number; exportTimeoutMillis:
 /** Settings whose feature lands in a later phase of this SDK. Reported, not ignored. */
 function reportUnhonouredSettings(config: OTelConfig, env: Env): void {
   const pending: [boolean, string][] = [
-    [config.enablePiiDetection, 'GENAI_ENABLE_PII_DETECTION'],
-    [config.enableToxicityDetection, 'GENAI_ENABLE_TOXICITY_DETECTION'],
-    [config.enableBiasDetection, 'GENAI_ENABLE_BIAS_DETECTION'],
-    [config.enablePromptInjectionDetection, 'GENAI_ENABLE_PROMPT_INJECTION_DETECTION'],
-    [config.enableRestrictedTopics, 'GENAI_ENABLE_RESTRICTED_TOPICS'],
-    [config.enableHallucinationDetection, 'GENAI_ENABLE_HALLUCINATION_DETECTION'],
     [config.enableCo2Tracking, 'GENAI_ENABLE_CO2_TRACKING'],
     [config.mediaCaptureMode !== 'off', 'GENAI_OTEL_MEDIA_CAPTURE_MODE'],
   ];
@@ -464,6 +460,13 @@ function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumen
   // Instruments are bound to the provider that created them; forget the ones
   // made against whatever provider was global before.
   resetMeterBoundState();
+  try {
+    // KV cache, request queue: values arrive from the instrumented calls and the pollers.
+    initializeServerMetrics();
+  } catch (error) {
+    logger.error(`Failed to initialize server metrics: ${String(error)}`);
+    if (config.failOnError) throw error;
+  }
 
   reportUnhonouredSettings(config, process.env);
   const { started, ready } = startInstrumentors(config, explicitInstrumentors);

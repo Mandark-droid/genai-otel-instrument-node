@@ -10,3 +10,7 @@ for (const name of Object.keys(process.env)) {
     delete process.env[name];
   }
 }
+
+// The Ollama instrumentor polls an Ollama server for its loaded models. This
+// machine may well run one; tests that want the poller turn it on themselves.
+process.env.GENAI_ENABLE_OLLAMA_SERVER_METRICS = 'false';

@@ -190,6 +190,9 @@ These are choices, each with a reason. Everything else is meant to be identical.
 | `evaluation.completed` | Set on every span the processor sees | Set only on a span that had a prompt or a response to evaluate | A database or HTTP span is not "evaluated" |
 | Evaluation metric instruments | All 22 created at start-up | Created on first use | A detector that never fires leaves no empty series |
 | Response text on streamed calls | Not evaluated (the result is a stream) | The same: prompt evaluated, response not | |
+| Server gauges before anything was measured | `gen_ai.server.requests.running` / `.waiting` / `.max` report 0 from start-up | Each reports nothing until its value was set once | A zero nobody measured is not reported |
+| Ollama model share when the host's VRAM is unknown | Computed against an assumed 8 GB | Not reported; one log line says to set `GENAI_OLLAMA_MAX_VRAM_GB` | A percentage of an assumed denominator is not a measurement |
+| `gen_ai.latency.*` from llama.cpp `timings` | Set by the in-process `llama_cpp` instrumentor only | Set on any instrumented call whose response carries a `timings` object (a llama.cpp server behind an OpenAI-compatible client) | There is no in-process llama.cpp in Node; the server reports the same timings over HTTP |
 | Instrumentation scope / tracer name | `genai_otel.instrumentors.base` | the same | A backend keys on it |
 | `OTEL_METRICS_EXEMPLAR_FILTER` defaulted to `always_off` | yes | not needed: the JS SDK records no exemplars | |
 
@@ -226,3 +229,5 @@ regenerate the contract, adjust the port).
 | 22 | PII `threshold` and `allow_list` are ignored by the pattern path; 12 of 22 entity types (names, locations, IBAN, ...) have no pattern, in GDPR / HIPAA / PCI mode too | `pii_detector.py` (`_fallback_detection`) |
 | 23 | Prompt-injection `patterns`, `check_patterns`, `use_ml_model` and `log_attempts` are accepted and ignored | `prompt_injection_detector.py` |
 | 24 | On a response, a blocking detector only annotates: the response has already been returned to the application | `evaluation/span_processor.py` |
+| 25 | What the Ollama poller reports as `gen_ai.server.kv_cache.usage` is each loaded model's VRAM as a share of the GPU's, not KV-cache usage; `gen_ai.server.requests.max` is the number of loaded models, not a request capacity | `ollama_server_metrics_poller.py` (`_collect_metrics`) |
+| 26 | `gen_ai.server.requests.running` counts client calls in flight in this process, not requests running on a server | `instrumentors/base.py` (`increment_requests_running`) |

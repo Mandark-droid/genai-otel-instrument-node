@@ -288,9 +288,11 @@ describe('instrument()', () => {
   it('says so when a setting cannot be honoured yet, instead of ignoring it', async () => {
     const log = quietLogger();
     const port = await closedPort();
-    instrument({ endpoint: `http://127.0.0.1:${port}`, enabledInstrumentors: [], enablePiiDetection: true });
+    instrument({ endpoint: `http://127.0.0.1:${port}`, enabledInstrumentors: [], enableCo2Tracking: true, enablePiiDetection: true });
     const warned = log.warn.mock.calls.map(([message]) => String(message)).join('\n');
-    expect(warned).toContain('GENAI_ENABLE_PII_DETECTION');
+    expect(warned).toContain('GENAI_ENABLE_CO2_TRACKING');
+    // Evaluation is in effect: it is not reported as missing.
+    expect(warned).not.toContain('GENAI_ENABLE_PII_DETECTION');
   });
 
   it('an instrumentor name it does not know is reported', async () => {

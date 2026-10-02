@@ -37,6 +37,8 @@ import { getSharedMetrics, type SharedMetrics } from '../metrics';
 import { pyJsonDumps, pyStr, pyTruncate } from '../pycompat';
 import { AGENT_OPERATION_MARKERS, ATTR, genaiSemconvModes, SemanticConvention as SC, TOKEN_MODALITIES } from '../semconv';
 import { activeEvaluation, PolicyViolationError, promptForEvaluation, rememberTexts, responseForEvaluation } from '../evaluation/engine';
+import { llamacppLatencyAttributes } from '../engine-latency';
+import { getServerMetrics } from '../server-metrics';
 import { contextWithSessionId } from '../session';
 import { stateSlot } from '../state';
 import type { Instrumentor } from './registry';
@@ -326,6 +328,8 @@ interface Call {
   /** The prompt was handed to the evaluation. */
   evaluated?: boolean;
   failed?: boolean;
+  /** Counted among the requests in flight. */
+  counted?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -602,6 +606,12 @@ export abstract class BaseInstrumentor implements Instrumentor {
             model: String(params.model ?? initial[ATTR.GEN_AI_REQUEST_MODEL] ?? 'unknown'),
             done: false,
           };
+          // One more request in flight, until the span ends.
+          const server = getServerMetrics();
+          if (server) {
+            server.incrementRequestsRunning();
+            call.counted = true;
+          }
           if (span.isRecording()) instrumentor.applySessionAndUser(span, this, args, params);
           // A span that carries a session id of its own scopes the calls made inside it.
           ctx = contextWithSessionId(ctx, spanAttributes(span)[ATTR.SESSION_ID] ?? initial[ATTR.SESSION_ID]);
@@ -696,8 +706,20 @@ export abstract class BaseInstrumentor implements Instrumentor {
     if (call.done) return false;
     call.done = true;
     this.finishAgentBudget(call);
+    this.requestFinished(call);
     this.endSpan(call.span, call.evaluated === true && !call.failed);
     return true;
+  }
+
+  /** The request is no longer in flight. Once per call, whichever path ends it. */
+  private requestFinished(call: { counted?: boolean }): void {
+    if (!call.counted) return;
+    call.counted = false;
+    try {
+      getServerMetrics()?.decrementRequestsRunning();
+    } catch {
+      // metrics must never break the call
+    }
   }
 
   /**
@@ -954,6 +976,14 @@ export abstract class BaseInstrumentor implements Instrumentor {
       metrics.histograms.latency.record(now() - startTime, { operation: spanName });
     } catch (error) {
       logger.warn(`Failed to record latency for span '${spanName}': ${String(error)}`);
+    }
+
+    try {
+      // A llama.cpp server reports how long prefill and decode took; that is the engine's own measurement.
+      const timings = typeof result === 'object' && result !== null ? (result as { timings?: unknown }).timings : undefined;
+      if (timings !== undefined) for (const [key, value] of Object.entries(llamacppLatencyAttributes(timings))) span.setAttribute(key, value);
+    } catch (error) {
+      logger.debug(`Could not read engine timings for span '${spanName}': ${String(error)}`);
     }
 
     if (activeEvaluation()) {
@@ -1388,6 +1418,7 @@ export abstract class BaseInstrumentor implements Instrumentor {
       logger.warn(`Failed to finalize stream for span '${spanName}': ${String(error)}`);
     } finally {
       this.finishAgentBudget(call);
+      this.requestFinished(call as { counted?: boolean });
       this.endSpan(span, outcome.kind === 'completed' && (call as { evaluated?: boolean }).evaluated === true);
     }
   }

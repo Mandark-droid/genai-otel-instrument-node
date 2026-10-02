@@ -5,10 +5,16 @@
  *
  * The methods live on the client class, so the default export
  * (`import ollama from 'ollama'`) and every `new Ollama()` are covered.
- * The server-metrics poller the reference starts alongside is phase 4.
+ *
+ * As in the reference, a poller of the Ollama server's `/api/ps` starts with
+ * the instrumentor (`GENAI_ENABLE_OLLAMA_SERVER_METRICS`, on by default;
+ * `OLLAMA_BASE_URL`, `GENAI_OLLAMA_METRICS_INTERVAL`, `GENAI_OLLAMA_MAX_VRAM_GB`).
  */
 import type { Span } from '@opentelemetry/api';
+import { ambientEnv } from '../env';
+import { logger } from '../logger';
 import { ATTR } from '../semconv';
+import { OllamaServerMetricsPoller, vramDetector } from '../server-metrics';
 import type { Params, UsageDict } from './base';
 import { countEmbeddingInputs, defined, isObject, OpenAIShapeInstrumentor, type Obj } from './openai-shape';
 import { exportedClass, prototypeDefining } from './patch';
@@ -20,6 +26,32 @@ const IMAGE_TOKEN_ESTIMATE = 256;
 export class OllamaInstrumentor extends OpenAIShapeInstrumentor {
   protected readonly label = 'Ollama';
   protected readonly packages = ['ollama'];
+  private poller: OllamaServerMetricsPoller | undefined;
+
+  protected override onEnabled(): void {
+    if (this.poller) return;
+    try {
+      const env = ambientEnv();
+      if ((env.GENAI_ENABLE_OLLAMA_SERVER_METRICS ?? 'true').toLowerCase() !== 'true') return;
+      const interval = Number.parseFloat(env.GENAI_OLLAMA_METRICS_INTERVAL ?? '5.0');
+      const maxVram = Number.parseFloat(env.GENAI_OLLAMA_MAX_VRAM_GB ?? '');
+      this.poller = new OllamaServerMetricsPoller({
+        baseUrl: env.OLLAMA_BASE_URL ?? 'http://localhost:11434',
+        intervalSeconds: Number.isFinite(interval) && interval > 0 ? interval : 5.0,
+        maxVramGb: Number.isFinite(maxVram) && maxVram > 0 ? maxVram : undefined,
+        detectVram: vramDetector(),
+      });
+      this.poller.start();
+    } catch (error) {
+      logger.warn(`Failed to start Ollama server metrics poller: ${String(error)}`);
+    }
+  }
+
+  override uninstrument(): void {
+    this.poller?.stop();
+    this.poller = undefined;
+    super.uninstrument();
+  }
 
   protected targets(module: unknown): PatchTarget[] {
     const Client = exportedClass(module, 'Ollama');

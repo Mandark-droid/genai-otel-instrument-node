@@ -186,6 +186,14 @@
   `*_BLOCK_ON_DETECTION` switches. Toxicity is measured only by a scorer the application
   supplies (`setToxicityScorer`, synchronous or asynchronous); without one nothing about
   toxicity is written. See `docs/evaluation.md`.
+- Server metrics: `gen_ai.server.requests.running` counts the calls in flight through the
+  instrumented clients; `getServerMetrics()` lets an application report KV-cache usage,
+  queue depth and capacity for an engine it runs. With the Ollama instrumentor a poller of
+  the Ollama server's `/api/ps` reports the loaded models
+  (`GENAI_ENABLE_OLLAMA_SERVER_METRICS`, `OLLAMA_BASE_URL`,
+  `GENAI_OLLAMA_METRICS_INTERVAL`, `GENAI_OLLAMA_MAX_VRAM_GB`).
+- `gen_ai.latency.*` on a span whose response carries llama.cpp `timings` (prefill, decode,
+  end to end), as the engine measured them.
 
 ### Fixed
 - On Node 18, `instrument()` in an ES-module application could end the process with an

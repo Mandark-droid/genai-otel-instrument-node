@@ -22,6 +22,8 @@ export interface MockReply {
   raw?: Buffer;
   /** A fixture file; `.sse` files are streamed event by event, `.ndjson` files line by line. */
   fixture?: string;
+  /** Milliseconds before a JSON or raw reply is sent. */
+  delayMs?: number;
   /** Milliseconds between streamed events. */
   eventDelayMs?: number;
   /** Stop after this many events and hold the connection open (until the client aborts or the server closes). */
@@ -105,14 +107,18 @@ export async function startMockLlm(): Promise<MockLlm> {
         void streamEvents(response, fixtureText(reply.fixture), reply, reply.fixture.endsWith('.ndjson'));
         return;
       }
-      if (reply.raw) {
-        response.writeHead(reply.status ?? 200, { 'content-type': 'application/octet-stream', ...reply.headers });
-        response.end(reply.raw);
-        return;
-      }
-      const payload = reply.fixture ? fixtureText(reply.fixture) : JSON.stringify(reply.json ?? {});
-      response.writeHead(reply.status ?? 200, { 'content-type': 'application/json', 'x-request-id': 'req_fixture', ...reply.headers });
-      response.end(payload);
+      const send = (): void => {
+        if (reply.raw) {
+          response.writeHead(reply.status ?? 200, { 'content-type': 'application/octet-stream', ...reply.headers });
+          response.end(reply.raw);
+          return;
+        }
+        const payload = reply.fixture ? fixtureText(reply.fixture) : JSON.stringify(reply.json ?? {});
+        response.writeHead(reply.status ?? 200, { 'content-type': 'application/json', 'x-request-id': 'req_fixture', ...reply.headers });
+        response.end(payload);
+      };
+      if (reply.delayMs) setTimeout(send, reply.delayMs);
+      else send();
     });
   });
 
