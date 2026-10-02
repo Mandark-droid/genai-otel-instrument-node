@@ -74,7 +74,8 @@ function esmEntries(name: string, resolved: string): string[] {
             // The same file as the CommonJS entry is not a second copy.
             if (file !== resolved && existsSync(file)) entries.add(file);
           }
-          if (manifest.type === 'module' || resolved.endsWith('.mjs')) entries.add(resolved);
+          // An ES-module-only package's single entry is the ES module; a `.cjs` file never is.
+          if ((manifest.type === 'module' && !resolved.endsWith('.cjs')) || resolved.endsWith('.mjs')) entries.add(resolved);
           break;
         }
       } catch {
@@ -120,13 +121,45 @@ export interface ModuleCopies {
 }
 
 /**
+ * Whether the application's entry point is an ES module: by its extension,
+ * else by the `type` of the nearest package.json; `--input-type=module` for
+ * code given on the command line.
+ */
+export function applicationIsEsModule(): boolean {
+  const entry = process.argv[1];
+  if (!entry) return process.execArgv.some((arg) => arg === '--input-type=module');
+  if (/\.mjs$|\.mts$/i.test(entry)) return true;
+  if (/\.cjs$|\.cts$/i.test(entry)) return false;
+  let dir = dirname(entry);
+  for (;;) {
+    const manifest = join(dir, 'package.json');
+    if (existsSync(manifest)) {
+      try {
+        return (JSON.parse(readFileSync(manifest, 'utf8')) as { type?: unknown }).type === 'module';
+      } catch {
+        return false;
+      }
+    }
+    const parent = dirname(dir);
+    if (parent === dir) return false;
+    dir = parent;
+  }
+}
+
+/** `require()` refused because the package, or the entry asked for, is an ES module. */
+const REQUIRE_OF_ESM: ReadonlySet<string> = new Set(['ERR_REQUIRE_ESM', 'ERR_REQUIRE_ASYNC_MODULE', 'ERR_PACKAGE_PATH_NOT_EXPORTED']);
+
+/**
  * Every loadable copy of a package: the CommonJS build synchronously, the
  * ES-module build asynchronously (a dynamic `import()` is the only way to reach
  * it). A package that is not installed yields nothing and logs at debug level.
  */
-export function loadModuleCopies(name: string): ModuleCopies {
+export function loadModuleCopies(name: string, options: { single?: boolean } = {}): ModuleCopies {
   const commonjs: unknown[] = [];
   const esmUrls = new Set<string>();
+  // `single`: the library refuses to be loaded both ways in one process, so
+  // only the copy the application itself uses is loaded.
+  const esmOnly = options.single === true && applicationIsEsModule();
 
   for (const resolver of resolvers()) {
     let resolved: string;
@@ -135,13 +168,25 @@ export function loadModuleCopies(name: string): ModuleCopies {
     } catch {
       continue;
     }
+    if (esmOnly) {
+      const entries = esmEntries(name, resolved);
+      for (const entry of entries) esmUrls.add(pathToFileURL(entry).href);
+      // A package with no ES-module build is the CommonJS one to an ES-module application too.
+      if (entries.length > 0) continue;
+    }
     try {
       const loaded: unknown = resolver(name);
       if (!commonjs.includes(loaded)) commonjs.push(loaded);
     } catch (error) {
-      // An ES-module-only package on a Node that cannot require() one: reached through import() below.
       logger.debug(`Could not load the CommonJS build of ${name}: ${String(error)}`);
+      // An ES-module-only package on a Node that cannot require() one is reached
+      // through import() below. Anything else is the library failing to run on
+      // this runtime (built for a newer Node, say): its ES-module build would
+      // fail the same way, and on Node 18 that failure can surface as an
+      // unhandled rejection in the application. It is left alone.
+      if (!REQUIRE_OF_ESM.has(String((error as { code?: unknown } | null)?.code))) continue;
     }
+    if (options.single && commonjs.length > 0) continue;
     for (const entry of esmEntries(name, resolved)) esmUrls.add(pathToFileURL(entry).href);
   }
   if (commonjs.length === 0 && esmUrls.size === 0) logger.debug(`${name} is not installed, instrumentation will be skipped`);

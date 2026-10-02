@@ -315,6 +315,8 @@ export class LangGraphInstrumentor extends FrameworkInstrumentor {
 export class LlamaIndexInstrumentor extends FrameworkInstrumentor {
   protected readonly label = 'LlamaIndex';
   protected readonly packages = ['llamaindex'];
+  // It warns, and its class checks break, when both of its builds are loaded.
+  protected override readonly loadOnce = true;
   protected override get owner(): string {
     return 'llamaindex';
   }

@@ -22,9 +22,10 @@ export interface LoadedCopies {
  * or React Native there is none, and the application hands the library over
  * (`instrumentModule`).
  */
-let moduleLoader: ((packageName: string) => LoadedCopies) | undefined;
+type ModuleLoader = (packageName: string, options?: { single?: boolean }) => LoadedCopies;
+let moduleLoader: ModuleLoader | undefined;
 
-export function setModuleLoader(loader: ((packageName: string) => LoadedCopies) | undefined): void {
+export function setModuleLoader(loader: ModuleLoader | undefined): void {
   moduleLoader = loader;
 }
 
@@ -59,6 +60,12 @@ export abstract class PatchingInstrumentor extends BaseInstrumentor {
   private enabled = false;
 
   /** What to patch in one loaded copy of `packageName`. */
+  /**
+   * The library refuses to be loaded as CommonJS and as an ES module in one
+   * process: only the copy the application uses is loaded and patched.
+   */
+  protected readonly loadOnce: boolean = false;
+
   protected abstract targets(module: unknown, packageName: string): PatchTarget[];
 
   /** Called once something was patched, e.g. to claim a base URL. */
@@ -79,7 +86,7 @@ export abstract class PatchingInstrumentor extends BaseInstrumentor {
     const pending: Promise<void>[] = [];
     const load = moduleLoader;
     for (const packageName of load ? this.packages : []) {
-      const copies = (load as NonNullable<typeof load>)(packageName);
+      const copies = (load as NonNullable<typeof load>)(packageName, { single: this.loadOnce });
       for (const module of copies.commonjs) this.patchModule(module, packageName);
       pending.push(
         copies.esm.then((modules) => {

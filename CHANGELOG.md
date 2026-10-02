@@ -180,6 +180,16 @@
   put in the session, and stripped of prompts and responses unless content capture is on.
 - Examples: `examples/langgraph`, `examples/vercel-ai-sdk`.
 
+### Fixed
+- On Node 18, `instrument()` in an ES-module application could end the process with an
+  unhandled `ReferenceError: File is not defined` when an installed client library needs a
+  newer Node (anything on `undici` 7). A library whose CommonJS build fails to run is now
+  left alone instead of being imported a second time as an ES module.
+- A package of `type: module` with a `.cjs` CommonJS build had that file imported a second
+  time as if it were the ES-module build.
+- `llamaindex` printed "llamaindex was already imported" because both of its builds were
+  loaded. Only the build the application uses is loaded now.
+
 ### Notes
 - `npm audit`: one low-severity finding in `esbuild` (development server on Windows),
   reached only through the build tool. It does not ship and is not exercised.

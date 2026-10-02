@@ -150,3 +150,124 @@ describe('two owners on one method', () => {
     expect(holder.method).toBe(wrapped);
   });
 });
+
+describe('loadModuleCopies: a library that cannot run on this runtime', () => {
+  it('does not import the ES-module build when the CommonJS build threw while loading', async () => {
+    const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const root = mkdtempSync(join(tmpdir(), 'genai-otel-broken-'));
+    const dir = join(root, 'node_modules', 'broken-on-this-runtime');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'package.json'), JSON.stringify({ name: 'broken-on-this-runtime', version: '1.0.0', main: 'index.js' }));
+    // What a library built for a newer runtime does: fail on a global that is not there.
+    writeFileSync(join(dir, 'index.js'), 'module.exports = NotDefinedOnThisRuntime;');
+    writeFileSync(join(dir, 'index.mjs'), 'globalThis.__brokenEsmEvaluated = true; export default NotDefinedOnThisRuntime;');
+    const before = process.cwd();
+    process.chdir(root);
+    try {
+      const copies = loadModuleCopies('broken-on-this-runtime');
+      expect(copies.commonjs).toEqual([]);
+      expect(await copies.esm).toEqual([]);
+      expect((globalThis as { __brokenEsmEvaluated?: boolean }).__brokenEsmEvaluated).toBeUndefined();
+    } finally {
+      process.chdir(before);
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('loadModuleCopies: a library that must be loaded once', () => {
+  // Some libraries (llamaindex) refuse to be loaded as CommonJS and as an ES
+  // module in one process. For those, only the copy the application uses is loaded.
+  async function withPackage(run: (root: string) => Promise<void>): Promise<void> {
+    const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const root = mkdtempSync(join(tmpdir(), 'genai-otel-single-'));
+    const dir = join(root, 'node_modules', 'load-me-once');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'package.json'), JSON.stringify({ name: 'load-me-once', version: '1.0.0', main: 'index.js' }));
+    writeFileSync(join(dir, 'index.js'), 'globalThis.__onceLoads = (globalThis.__onceLoads || []).concat("cjs"); module.exports = { kind: "cjs" };');
+    writeFileSync(join(dir, 'index.mjs'), 'globalThis.__onceLoads = (globalThis.__onceLoads || []).concat("esm"); export const kind = "esm";');
+    writeFileSync(join(root, 'app.cjs'), '');
+    writeFileSync(join(root, 'app.mjs'), '');
+    const before = process.cwd();
+    const argv1 = process.argv[1];
+    process.chdir(root);
+    try {
+      delete (globalThis as { __onceLoads?: string[] }).__onceLoads;
+      await run(root);
+    } finally {
+      process.argv[1] = argv1 as string;
+      process.chdir(before);
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+  const loads = (): string[] | undefined => (globalThis as { __onceLoads?: string[] }).__onceLoads;
+
+  it('a CommonJS application: the CommonJS copy only', async () => {
+    await withPackage(async (root) => {
+      const { join } = await import('node:path');
+      process.argv[1] = join(root, 'app.cjs');
+      const copies = loadModuleCopies('load-me-once', { single: true });
+      expect(copies.commonjs).toHaveLength(1);
+      expect(await copies.esm).toEqual([]);
+      expect(loads()).toEqual(['cjs']);
+    });
+  });
+
+  it('an ES-module application: the ES-module copy only', async () => {
+    await withPackage(async (root) => {
+      const { join } = await import('node:path');
+      process.argv[1] = join(root, 'app.mjs');
+      const copies = loadModuleCopies('load-me-once', { single: true });
+      expect(copies.commonjs).toEqual([]);
+      expect(await copies.esm).toHaveLength(1);
+      expect(loads()).toEqual(['esm']);
+    });
+  });
+
+  it('without the option both copies are loaded, as for every other library', async () => {
+    await withPackage(async (root) => {
+      const { join } = await import('node:path');
+      process.argv[1] = join(root, 'app.cjs');
+      const copies = loadModuleCopies('load-me-once');
+      await copies.esm;
+      expect(loads()?.sort()).toEqual(['cjs', 'esm']);
+    });
+  });
+});
+
+describe('loadModuleCopies: a type-module package with a .cjs CommonJS build', () => {
+  it('imports the ES-module build once and does not import the .cjs file as a second ES-module copy', async () => {
+    const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const root = mkdtempSync(join(tmpdir(), 'genai-otel-dual-'));
+    const dir = join(root, 'node_modules', 'dual-type-module');
+    mkdirSync(join(dir, 'dist', 'cjs'), { recursive: true });
+    writeFileSync(
+      join(dir, 'package.json'),
+      JSON.stringify({
+        name: 'dual-type-module',
+        version: '1.0.0',
+        type: 'module',
+        exports: { '.': { import: { default: './dist/index.js' }, require: { default: './dist/cjs/index.cjs' } } },
+      }),
+    );
+    writeFileSync(join(dir, 'dist', 'cjs', 'index.cjs'), 'globalThis.__dualLoads = (globalThis.__dualLoads || 0) + 1; module.exports = { kind: "cjs" };');
+    writeFileSync(join(dir, 'dist', 'index.js'), 'export const kind = "esm";');
+    const before = process.cwd();
+    process.chdir(root);
+    try {
+      const copies = loadModuleCopies('dual-type-module');
+      expect(copies.commonjs).toHaveLength(1);
+      const esm = (await copies.esm) as { kind?: string }[];
+      expect(esm.map((module) => module.kind)).toEqual(['esm']);
+    } finally {
+      process.chdir(before);
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
