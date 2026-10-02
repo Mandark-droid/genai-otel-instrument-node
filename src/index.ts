@@ -160,3 +160,4 @@ export {
   type WebGpuFacts,
 } from './webgpu';
 export { VERSION } from './version';
+export { NvidiaSmiSource, parseNvidiaSmi } from './gpu/nvidia-smi';

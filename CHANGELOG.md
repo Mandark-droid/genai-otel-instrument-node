@@ -194,6 +194,11 @@
   `GENAI_OLLAMA_METRICS_INTERVAL`, `GENAI_OLLAMA_MAX_VRAM_GB`).
 - `gen_ai.latency.*` on a span whose response carries llama.cpp `timings` (prefill, decode,
   end to end), as the engine measured them.
+- GPU metrics on Node, from `nvidia-smi`: utilisation, memory, temperature, power, clocks,
+  fan, performance state, throttling and ECC per device, and four aggregates; energy
+  (`gen_ai.energy.consumed`, `gen_ai.energy.total`), electricity cost (`gen_ai.power.cost`)
+  and, with `GENAI_ENABLE_CO2_TRACKING`, CO2 (`gen_ai.co2.emissions`) from measured GPU
+  power. A host with no GPU gets no GPU instrument at all. See `docs/gpu-energy.md`.
 
 ### Fixed
 - On Node 18, `instrument()` in an ES-module application could end the process with an

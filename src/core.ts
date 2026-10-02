@@ -92,3 +92,4 @@ export {
 } from './evaluation';
 export { llamacppLatencyAttributes, vllmLatencyAttributes } from './engine-latency';
 export { getServerMetrics, OllamaServerMetricsPoller, ServerMetricsCollector, type OllamaPollerOptions } from './server-metrics';
+export { GpuMetricsCollector, setGpuSource, type GpuCollectorOptions, type GpuSample, type GpuSource } from './gpu/collector';

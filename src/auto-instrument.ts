@@ -38,7 +38,9 @@ import { costCalculatorFor } from './cost/default';
 import { CostEnrichmentSpanProcessor } from './cost/enrichment-processor';
 import { activeEvaluation, EvaluationEngine, EvaluationSpanProcessor, evaluationConfigsFrom, setActiveEvaluation } from './evaluation/engine';
 import { AiSdkSpanProcessor, isAiSdkAggregate } from './frameworks/ai-sdk';
-import { initializeServerMetrics, resetServerMetrics } from './server-metrics';
+import { GpuMetricsCollector, gpuSourceFactory } from './gpu/collector';
+import { NvidiaSmiSource } from './gpu/nvidia-smi';
+import { initializeServerMetrics, resetServerMetrics, setVramDetector } from './server-metrics';
 import { resetPricingMissingCounter } from './cost/pricing-missing';
 // Registers the shipped instrumentors.
 import './instrumentors';
@@ -85,6 +87,7 @@ interface ActiveState {
   registeredPropagator: boolean;
   onBeforeExit: (() => void) | undefined;
   onSigterm: (() => void) | undefined;
+  gpu?: GpuMetricsCollector | undefined;
 }
 
 /**
@@ -193,7 +196,6 @@ function metricIntervals(): { exportIntervalMillis: number; exportTimeoutMillis:
 /** Settings whose feature lands in a later phase of this SDK. Reported, not ignored. */
 function reportUnhonouredSettings(config: OTelConfig, env: Env): void {
   const pending: [boolean, string][] = [
-    [config.enableCo2Tracking, 'GENAI_ENABLE_CO2_TRACKING'],
     [config.mediaCaptureMode !== 'off', 'GENAI_OTEL_MEDIA_CAPTURE_MODE'],
   ];
   const asked = pending.filter(([enabled]) => enabled).map(([, name]) => name);
@@ -203,13 +205,46 @@ function reportUnhonouredSettings(config: OTelConfig, env: Env): void {
         `${asked.join(', ')}. See docs/parity-matrix.md.`,
     );
   }
-  // On by default in the reference implementation, so only say it loudly when
-  // the operator asked for it by name.
-  for (const [enabled, name] of [[config.enableGpuMetrics, 'GENAI_ENABLE_GPU_METRICS']] as const) {
-    if (!enabled) continue;
-    const message = `${name} is enabled but not available in @traceverse/genai-otel-instrument ${VERSION}; nothing is collected for it.`;
-    if (env[name] !== undefined) logger.warn(message);
-    else logger.debug(message);
+  // CO2 is computed from GPU energy: without GPU metrics there is nothing to compute it from.
+  if (config.enableCo2Tracking && !config.enableGpuMetrics) {
+    logger.warn('GENAI_ENABLE_CO2_TRACKING is on but GENAI_ENABLE_GPU_METRICS is off: CO2 is computed from measured GPU energy, so nothing is collected for it.');
+  }
+  void env;
+}
+
+/**
+ * GPU, energy and CO2 metrics, when this runtime has a way to read a GPU and
+ * the host has one. Started without waiting: the first sample runs a process.
+ */
+function startGpuMetrics(config: OTelConfig): GpuMetricsCollector | undefined {
+  try {
+    const factory = gpuSourceFactory();
+    const source = factory ? factory() : new NvidiaSmiSource();
+    // The Ollama poller needs the GPU's VRAM for a model's share of it.
+    setVramDetector(
+      source
+        ? async (): Promise<number | undefined> => {
+            try {
+              const total = (await source.sample())?.[0]?.memoryTotalMiB;
+              return typeof total === 'number' && total > 0 ? total / 1024 : undefined;
+            } catch {
+              return undefined;
+            }
+          }
+        : undefined,
+    );
+    if (!config.enableGpuMetrics) return undefined;
+    if (!source) {
+      logger.debug('GPU metrics: no source of GPU readings');
+      return undefined;
+    }
+    const collector = new GpuMetricsCollector(config, source);
+    void collector.start();
+    return collector;
+  } catch (error) {
+    logger.error(`Failed to start GPU metrics collection: ${String(error)}`);
+    if (config.failOnError) throw error;
+    return undefined;
   }
 }
 
@@ -469,6 +504,7 @@ function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumen
   }
 
   reportUnhonouredSettings(config, process.env);
+  state.gpu = startGpuMetrics(config);
   const { started, ready } = startInstrumentors(config, explicitInstrumentors);
   state.instrumentors = started;
   state.ready = ready;
@@ -550,6 +586,7 @@ export async function uninstrument(timeoutSeconds = 5.0): Promise<void> {
 
   if (state.onBeforeExit) process.removeListener('beforeExit', state.onBeforeExit);
   if (state.onSigterm) process.removeListener('SIGTERM', state.onSigterm);
+  state.gpu?.stop();
 
   // Last in, first out: an instrumentor that wrapped a method on top of another's comes off first.
   for (const instrumentor of [...state.instrumentors].reverse()) {

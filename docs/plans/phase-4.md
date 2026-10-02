@@ -83,19 +83,24 @@ Browser and React Native: no GPU, energy or CO2 metrics at all (the design says 
 The reference delegates to codecarbon, which carries its own regional data and measures
 CPU and RAM as well. Here:
 
-- **Energy** is integrated from measured GPU power between samples. CPU power is added
-  only where the host exposes it (Linux RAPL, readable). No estimate from TDP.
-- **CO2** is energy times carbon intensity. The intensity comes from
-  `GENAI_CARBON_INTENSITY`. The design also names a vendored country and region table;
-  **the staged contract (v1.30.0) does not contain one**, and contract data is never
-  typed in by hand. Until the lead adds it to the staging directory, a run without
-  `GENAI_CARBON_INTENSITY` records energy and no CO2, and says so once in the log.
-  Reported to the lead.
+- **Energy** is integrated from measured GPU power between samples. No estimate from TDP.
+  As built: GPU only. CPU power through Linux RAPL was planned and not built; CPU and RAM
+  energy are not reported.
+- **CO2** is energy times carbon intensity, from `GENAI_CARBON_INTENSITY`. The design also
+  names a vendored country and region table; **the staged contract (v1.30.0) does not
+  contain one**, and contract data is never typed in by hand. As built: the variable's
+  contract default (475 gCO2e/kWh, a world average) is used when it is not set, as the
+  reference's manual path does, and the documentation says it is a configured factor and
+  not a reading of the grid. (The first draft of this plan said "no CO2 without the
+  variable"; the contract default made that a departure from the reference with no
+  measurement argument behind it.) Reported to the lead.
+- The reference's energy formula is 3.6 times too high; the correct one is used here.
+  Reported to the lead as a cross-SDK decision.
 
 ## Not in this phase
 
 - Presidio-grade PII (names, locations): only the reference's regex fallback is ported;
   12 of its 22 entity types have no pattern there either.
 - The Perspective API client.
-- Anything in a real browser or on a device; any run against a GPU host. Those are the
+- Anything in a real browser or on a device; a multi-GPU or data-centre host. Those are the
   lead's runs.
