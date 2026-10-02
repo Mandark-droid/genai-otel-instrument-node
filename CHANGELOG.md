@@ -167,6 +167,18 @@
 - Coverage floor on `config`, `cost` and `metrics` raised from 90% to 95%.
 - `examples/e2e/smoke` defaults its model endpoint to a local Ollama
   (`http://localhost:11434/v1`, no API key); `E2E_LLM_BASE_URL` still overrides it.
+- Framework instrumentors, on by default as in the reference: LangChain
+  (`@langchain/core`: chat model invoke / batch / stream, runnable sequences), LangGraph
+  (`@langchain/langgraph`: one span per graph run, with the run's budget consumption),
+  LlamaIndex (`llamaindex`: query engine), OpenAI Agents (`@openai/agents`), Google ADK
+  (`@google/adk`) and Bedrock Agents (`@aws-sdk/client-bedrock-agent-runtime`).
+  Prompts, instructions, state and outputs on these spans are recorded only with content
+  capture on.
+- A span that carries a session id of its own (a graph's thread id, an agent session)
+  now puts that session in force for the calls made inside it.
+- Vercel AI SDK (`ai` 7 with `@ai-sdk/otel`): its own spans are normalised, priced once,
+  put in the session, and stripped of prompts and responses unless content capture is on.
+- Examples: `examples/langgraph`, `examples/vercel-ai-sdk`.
 
 ### Notes
 - `npm audit`: one low-severity finding in `esbuild` (development server on Windows),

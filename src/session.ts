@@ -48,6 +48,18 @@ export function withSession<T>(sessionId: string, fn: () => T, options?: Session
   return context.with(context.active().setValue(SESSION_KEY, scopeOf(sessionId, options)), fn);
 }
 
+/**
+ * A context in which `sessionId` is in force - unless one already is. Used by
+ * the instrumentors: a span that was started with a session id of its own (a
+ * graph run on a thread, an agent call with a session) carries it to the calls
+ * made inside it. An explicit `withSession` scope is never replaced.
+ */
+export function contextWithSessionId(ctx: Context, sessionId: unknown): Context {
+  if (typeof sessionId !== 'string' || !sessionId) return ctx;
+  if (ctx.getValue(SESSION_KEY) !== undefined) return ctx;
+  return ctx.setValue(SESSION_KEY, { sessionId });
+}
+
 /** The session for every span outside a `withSession` scope. `undefined` clears it. */
 export function setSession(sessionId: string | undefined, options?: SessionOptions): void {
   if (sessionId === undefined) delete globalState()[DEFAULT_SLOT];

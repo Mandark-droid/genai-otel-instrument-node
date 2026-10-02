@@ -36,6 +36,7 @@ import { logger } from '../logger';
 import { getSharedMetrics, type SharedMetrics } from '../metrics';
 import { pyJsonDumps, pyStr, pyTruncate } from '../pycompat';
 import { AGENT_OPERATION_MARKERS, ATTR, genaiSemconvModes, SemanticConvention as SC, TOKEN_MODALITIES } from '../semconv';
+import { contextWithSessionId } from '../session';
 import { stateSlot } from '../state';
 import type { Instrumentor } from './registry';
 
@@ -591,6 +592,8 @@ export abstract class BaseInstrumentor implements Instrumentor {
             done: false,
           };
           if (span.isRecording()) instrumentor.applySessionAndUser(span, this, args, params);
+          // A span that carries a session id of its own scopes the calls made inside it.
+          ctx = contextWithSessionId(ctx, spanAttributes(span)[ATTR.SESSION_ID] ?? initial[ATTR.SESSION_ID]);
           // An agent invocation: the model calls made inside it are accounted to it.
           if (isAgentInvocation(initial)) {
             call.budget = new BudgetFrame();
@@ -1162,7 +1165,21 @@ export abstract class BaseInstrumentor implements Instrumentor {
       return measured;
     };
 
-    if (typeof stream.iterator === 'function') {
+    if (typeof stream.next === 'function') {
+      // The stream is itself the iterator (an async generator, a reader-backed
+      // stream): its consumers may call `next()` directly, so the methods are
+      // replaced on the object, not only what `[Symbol.asyncIterator]()` returns.
+      const inner: AsyncIterator<unknown> = {
+        next: (stream.next as AsyncIterator<unknown>['next']).bind(stream),
+        return: typeof stream.return === 'function' ? (stream.return as NonNullable<AsyncIterator<unknown>['return']>).bind(stream) : undefined,
+        throw: typeof stream.throw === 'function' ? (stream.throw as NonNullable<AsyncIterator<unknown>['throw']>).bind(stream) : undefined,
+      };
+      const measured = measure(inner);
+      for (const method of ['next', 'return', 'throw'] as const) {
+        if (method !== 'next' && typeof stream[method] !== 'function') continue;
+        Object.defineProperty(stream, method, { configurable: true, writable: true, value: measured[method] });
+      }
+    } else if (typeof stream.iterator === 'function') {
       // The SDK stream classes keep their iterator factory in this field, and
       // both `[Symbol.asyncIterator]()` and `tee()` go through it.
       const original = stream.iterator as () => AsyncIterator<unknown>;

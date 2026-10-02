@@ -98,19 +98,25 @@
   },
   "peerDependencies": {
     "@anthropic-ai/sdk": ">=0.20.0",
+    "@aws-sdk/client-bedrock-agent-runtime": "*",
     "@aws-sdk/client-bedrock-runtime": "*",
     "@aws-sdk/client-s3": "*",
     "@elastic/elasticsearch": "*",
     "@elevenlabs/elevenlabs-js": "*",
     "@google-cloud/vertexai": "*",
+    "@google/adk": "*",
     "@google/genai": "*",
     "@huggingface/inference": "*",
+    "@langchain/core": "*",
+    "@langchain/langgraph": "*",
     "@mistralai/mistralai": "*",
     "@modelcontextprotocol/sdk": "*",
+    "@openai/agents": "*",
     "@opensearch-project/opensearch": "*",
     "@pinecone-database/pinecone": "*",
     "@qdrant/js-client-rest": "*",
     "@zilliz/milvus2-sdk-node": "*",
+    "ai": "*",
     "amqplib": "*",
     "chromadb": "*",
     "cohere-ai": "*",
@@ -118,6 +124,7 @@
     "groq-sdk": "*",
     "ioredis": "*",
     "kafkajs": "*",
+    "llamaindex": "*",
     "minio": "*",
     "mysql2": "*",
     "ollama": "*",
@@ -130,6 +137,9 @@
   },
   "peerDependenciesMeta": {
     "@anthropic-ai/sdk": {
+      "optional": true
+    },
+    "@aws-sdk/client-bedrock-agent-runtime": {
       "optional": true
     },
     "@aws-sdk/client-bedrock-runtime": {
@@ -147,16 +157,28 @@
     "@google-cloud/vertexai": {
       "optional": true
     },
+    "@google/adk": {
+      "optional": true
+    },
     "@google/genai": {
       "optional": true
     },
     "@huggingface/inference": {
       "optional": true
     },
+    "@langchain/core": {
+      "optional": true
+    },
+    "@langchain/langgraph": {
+      "optional": true
+    },
     "@mistralai/mistralai": {
       "optional": true
     },
     "@modelcontextprotocol/sdk": {
+      "optional": true
+    },
+    "@openai/agents": {
       "optional": true
     },
     "@opensearch-project/opensearch": {
@@ -169,6 +191,9 @@
       "optional": true
     },
     "@zilliz/milvus2-sdk-node": {
+      "optional": true
+    },
+    "ai": {
       "optional": true
     },
     "amqplib": {
@@ -190,6 +215,9 @@
       "optional": true
     },
     "kafkajs": {
+      "optional": true
+    },
+    "llamaindex": {
       "optional": true
     },
     "minio": {
@@ -221,17 +249,24 @@
     }
   },
   "devDependencies": {
+    "@ai-sdk/openai-compatible": "^3.0.62",
+    "@ai-sdk/otel": "^1.0.127",
     "@anthropic-ai/sdk": "^0.131.0",
+    "@aws-sdk/client-bedrock-agent-runtime": "^3.1145.0",
     "@aws-sdk/client-bedrock-runtime": "^3.1145.0",
     "@aws-sdk/client-s3": "^3.1145.0",
     "@elastic/elasticsearch": "^9.5.1",
     "@elevenlabs/elevenlabs-js": "^2.70.0",
     "@eslint/js": "^9.39.5",
     "@google-cloud/vertexai": "^1.12.0",
+    "@google/adk": "^2.2.0",
     "@google/genai": "^2.26.0",
     "@huggingface/inference": "^4.13.30",
+    "@langchain/core": "^1.2.14",
+    "@langchain/langgraph": "^1.4.18",
     "@mistralai/mistralai": "^2.7.0",
     "@modelcontextprotocol/sdk": "^1.31.0",
+    "@openai/agents": "^0.18.0",
     "@opensearch-project/opensearch": "^3.9.0",
     "@pinecone-database/pinecone": "^9.0.0",
     "@qdrant/js-client-rest": "^1.19.0",
@@ -241,6 +276,7 @@
     "@types/pg": "^8.23.1",
     "@vitest/coverage-v8": "^4.1.11",
     "@zilliz/milvus2-sdk-node": "^3.0.6",
+    "ai": "^7.0.127",
     "amqplib": "^2.2.0",
     "chromadb": "^3.5.0",
     "cohere-ai": "^8.1.0",
@@ -251,6 +287,7 @@
     "happy-dom": "^20.14.5",
     "ioredis": "^6.0.0",
     "kafkajs": "^2.2.4",
+    "llamaindex": "^0.12.1",
     "minio": "^8.0.7",
     "mysql2": "^3.24.5",
     "ollama": "^0.6.4",

@@ -81,6 +81,9 @@ function attributes(list: Uint8Array[]): Record<string, AttributeValue> {
 
 export interface DecodedSpan {
   name: string;
+  /** Hex. `parentSpanId` is empty for a root span. */
+  spanId: string;
+  parentSpanId: string;
   /** 1 internal, 2 server, 3 client, 4 producer, 5 consumer. */
   kind: number;
   attributes: Record<string, AttributeValue>;
@@ -109,6 +112,8 @@ export function decodeTraceRequest(body: Uint8Array): DecodedSpan[] {
         const message = status.find((field) => field.number === 2);
         spans.push({
           name: name ? text(name.value) : '',
+          spanId: Buffer.from(sub(fields, 2)[0] ?? new Uint8Array()).toString('hex'),
+          parentSpanId: Buffer.from(sub(fields, 4)[0] ?? new Uint8Array()).toString('hex'),
           kind: kind ? Number(kind.value) : 0,
           attributes: attributes(sub(fields, 9)),
           statusCode: code ? Number(code.value) : 0,

@@ -2,9 +2,10 @@
  * The part every module-patching instrumentor shares: find both copies of the
  * client library, patch methods on its class prototypes, undo it.
  */
-import { SpanStatusCode, type Attributes, type AttributeValue, type Span } from '@opentelemetry/api';
+import { context, SpanStatusCode, trace, type Attributes, type AttributeValue, type Span } from '@opentelemetry/api';
 import type { OTelConfig } from '../config';
 import { logger } from '../logger';
+import { contextWithSessionId } from '../session';
 import { BaseInstrumentor, type AttributeExtractor, type SpanWrapperOptions } from './base';
 import { unwrapMethod, wrapMethod } from './wrap';
 
@@ -188,7 +189,11 @@ export abstract class PatchingInstrumentor extends BaseInstrumentor {
         };
         let result: unknown;
         try {
-          result = invoke(this, args);
+          // The active span while it runs, so what it calls is its child; and
+          // if it carries a session id, that session is in force inside it.
+          const active = span;
+          const ctx = contextWithSessionId(trace.setSpan(context.active(), active), (active as unknown as { attributes?: Attributes }).attributes?.['session.id']);
+          result = context.with(ctx, () => invoke(this, args));
         } catch (error) {
           fail(error);
           throw error;

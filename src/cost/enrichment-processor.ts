@@ -57,7 +57,14 @@ function firstTruthy(attributes: Attributes, keys: readonly string[]): unknown {
 export class CostEnrichmentSpanProcessor implements SpanProcessor {
   readonly costCalculator: CostCalculator;
 
-  constructor(costCalculator?: CostCalculator) {
+  /**
+   * `skip` names spans that must not be priced although they carry a model and
+   * tokens - a span that sums the model calls beneath it.
+   */
+  constructor(
+    costCalculator?: CostCalculator,
+    private readonly skip?: (span: ReadableSpan) => boolean,
+  ) {
     this.costCalculator = costCalculator ?? getDefaultCostCalculator();
     logger.info('CostEnrichmentSpanProcessor initialized');
   }
@@ -82,6 +89,7 @@ export class CostEnrichmentSpanProcessor implements SpanProcessor {
     // the decision to record none (a cancelled stream, cost tracking of a model
     // with no price). Second-guessing them here would put a cost back.
     if (span.instrumentationScope?.name === BASE_TRACER_NAME) return;
+    if (this.skip?.(span)) return;
 
     const model =
       attributes['gen_ai.request.model'] || attributes['llm.model_name'] || attributes['embedding.model_name'];

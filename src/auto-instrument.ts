@@ -36,6 +36,7 @@ import { datastoreInstrumentors } from './datastores';
 import { resetMcpMetrics } from './datastores/mcp-metrics';
 import { costCalculatorFor } from './cost/default';
 import { CostEnrichmentSpanProcessor } from './cost/enrichment-processor';
+import { AiSdkSpanProcessor, isAiSdkAggregate } from './frameworks/ai-sdk';
 import { resetPricingMissingCounter } from './cost/pricing-missing';
 // Registers the shipped instrumentors.
 import './instrumentors';
@@ -366,11 +367,13 @@ function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumen
 
   // First, so the session is on the span before any other processor reads it.
   const spanProcessors: SpanProcessor[] = [new SessionSpanProcessor()];
+  // Before the cost processor: it fills in what that one prices from.
+  spanProcessors.push(new AiSdkSpanProcessor({ contentCapture: config.enableContentCapture }));
   if (config.enableCostTracking) {
     try {
       // Spans from other instrumentation are priced from the same table as our
       // own, custom pricing included.
-      spanProcessors.push(new CostEnrichmentSpanProcessor(costCalculatorFor(config.customPricingJson)));
+      spanProcessors.push(new CostEnrichmentSpanProcessor(costCalculatorFor(config.customPricingJson), isAiSdkAggregate));
       logger.info('Cost enrichment processor added');
     } catch (error) {
       logger.warn(`Failed to add cost enrichment processor: ${String(error)}`);
