@@ -96,6 +96,22 @@ with each other where the reference has nothing to agree with.
 | Counter `gen_ai.usage.cost.pricing_missing` | unit `""`, meter `genai_otel.instrumentors.base`, attributes `model` and `call_type`. Incremented once per span whose model has no price, including the 13 pricing-table entries on which the calculator raises |
 | `telemetry.distro.name = genai-otel-instrument-node` | The reference emits `genai-otel-instrument`, with no suffix |
 
+### JavaScript only: three runtimes
+
+The reference is a server-side library. This package also loads in browsers and in React
+Native (`docs/runtimes.md`), which the reference has no counterpart for.
+
+| Item | Node | Browser | React Native |
+|---|---|---|---|
+| Core: config, cost, semconv, metric registry, base instrumentor | yes | yes | yes |
+| `instrument()` | from the environment | explicit options, no default endpoint | explicit options, no default endpoint |
+| Export | OTLP http/protobuf, gRPC | OTLP/HTTP JSON over `fetch` | OTLP/HTTP JSON over `fetch` |
+| Provider instrumentation by module patching | yes | no | no |
+| Manual span helper `traceGenAiCall()` | no (phase 2) | yes | yes |
+| Resource host / process / OS attributes | yes | never collected | never collected |
+| Flush | on exit, on SIGTERM | on page hide | on app background (`appState`) |
+| On-device instrumentors (transformers.js, WebGPU, cactus) | n/a | not yet (phase 2/3) | not yet (phase 2/3) |
+
 ## Deliberate differences from the reference
 
 These are choices, each with a reason. Everything else is meant to be identical.

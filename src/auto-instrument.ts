@@ -6,6 +6,7 @@
  * evaluation) are not wired here yet; a setting that asks for one of them is
  * reported, never silently ignored.
  */
+import './node-env';
 import { connect } from 'node:net';
 import { context, diag, DiagLogLevel, metrics, propagation, trace, type DiagLogger } from '@opentelemetry/api';
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';

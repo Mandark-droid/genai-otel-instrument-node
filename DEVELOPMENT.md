@@ -24,6 +24,21 @@ later. The package itself supports Node 18.19: CI builds it and runs `npm run sm
 example programs against the built package. Test workers run with `--expose-gc`:
 `tests/instrumentors/no-leaked-spans.test.ts` forces garbage collections.
 
+## Three runtimes
+
+`src/core.ts` is the runtime-agnostic core; `src/index.ts` (Node), `src/index.browser.ts`
+and `src/index.react-native.ts` are the entries built on it. Rules for anything reachable
+from `src/core.ts` or `src/web/`:
+
+- no Node built-in, no `process`, no `__dirname`; no DOM API;
+- settings are read from `ambientEnv()` (`src/env.ts`), never from `process.env`. Only
+  `src/node-env.ts`, imported by the Node-only modules, hands it the process environment;
+- a global that not every runtime has (`setImmediate`, `FinalizationRegistry`,
+  `performance.timeOrigin`, `crypto.randomUUID`) is feature-tested, with a fallback.
+
+`npm run build && npm run check:bundles` enforces the first rule on the built bundles;
+`npm test` runs the contract tests in a browser-like project as well as in Node.
+
 ## Test first
 
 Write the failing test, run it and see it fail, implement, see it pass. A commit never

@@ -1,7 +1,7 @@
 {
   "name": "@traceverse/genai-otel-instrument",
   "version": "0.1.0-dev.0",
-  "description": "OpenTelemetry auto-instrumentation for GenAI applications on Node.js (port of genai_otel_instrument)",
+  "description": "OpenTelemetry instrumentation for GenAI applications on Node.js, in browsers and in React Native (port of genai_otel_instrument)",
   "private": true,
   "license": "UNLICENSED",
   "engines": {
@@ -11,8 +11,25 @@
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "browser": "./dist/index.browser.mjs",
+  "react-native": "./dist/index.react-native.js",
+  "sideEffects": [
+    "./src/**/*.ts",
+    "./dist/index.js",
+    "./dist/index.mjs",
+    "./dist/register.js",
+    "./dist/register.mjs"
+  ],
   "exports": {
     ".": {
+      "react-native": {
+        "types": "./dist/index.react-native.d.ts",
+        "default": "./dist/index.react-native.js"
+      },
+      "browser": {
+        "types": "./dist/index.browser.d.mts",
+        "default": "./dist/index.browser.mjs"
+      },
       "import": {
         "types": "./dist/index.d.mts",
         "default": "./dist/index.mjs"
@@ -21,6 +38,14 @@
         "types": "./dist/index.d.ts",
         "default": "./dist/index.js"
       }
+    },
+    "./browser": {
+      "types": "./dist/index.browser.d.mts",
+      "default": "./dist/index.browser.mjs"
+    },
+    "./react-native": {
+      "types": "./dist/index.react-native.d.ts",
+      "default": "./dist/index.react-native.js"
     },
     "./register": {
       "import": {
@@ -55,7 +80,8 @@
     "test": "vitest run --coverage",
     "test:watch": "vitest",
     "smoke": "node scripts/dist-smoke.cjs",
-    "compat": "node scripts/sdk-compat.cjs"
+    "compat": "node scripts/sdk-compat.cjs",
+    "check:bundles": "node scripts/check-browser-bundle.mjs"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
@@ -65,6 +91,7 @@
     "@opentelemetry/exporter-metrics-otlp-proto": ">=0.200.0 <1",
     "@opentelemetry/exporter-trace-otlp-grpc": ">=0.200.0 <1",
     "@opentelemetry/exporter-trace-otlp-proto": ">=0.200.0 <1",
+    "@opentelemetry/otlp-transformer": "^0.222.0",
     "@opentelemetry/resources": "^2.0.0",
     "@opentelemetry/sdk-metrics": "^2.0.0",
     "@opentelemetry/sdk-trace-base": "^2.0.0"
@@ -86,7 +113,9 @@
     "@eslint/js": "^9.39.5",
     "@types/node": "^20.19.43",
     "@vitest/coverage-v8": "^4.1.11",
+    "esbuild": "^0.28.2",
     "eslint": "^9.39.5",
+    "happy-dom": "^20.14.5",
     "openai": "^7.27.0",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",

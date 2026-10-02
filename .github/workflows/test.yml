@@ -31,6 +31,8 @@ jobs:
       # Unit, contract, instrumentor and local end-to-end tests, with the coverage floors enforced.
       - run: npm test
       - run: npm run build
+      # The browser and React Native bundles reach no Node built-in, no `process`, no DOM (RN).
+      - run: npm run check:bundles
 
   runtime:
     # The BUILT package on every supported runtime, the minimum included: it

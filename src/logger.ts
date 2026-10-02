@@ -7,6 +7,8 @@
  * a host application can also route everything into its own logger with
  * `setLogger()`.
  */
+import { ambientEnv, type Env } from './env';
+
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export interface Logger {
@@ -24,7 +26,7 @@ const PREFIX = '[genai-otel-instrument]';
  * an unrecognised name meaning INFO as it does there), else the standard
  * `OTEL_LOG_LEVEL`, else warnings and errors only.
  */
-export function logThreshold(env: Record<string, string | undefined> = process.env): number {
+export function logThreshold(env: Env = ambientEnv()): number {
   const own = env.GENAI_OTEL_LOG_LEVEL;
   if (own) {
     const level = own.toUpperCase();

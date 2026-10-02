@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { logger, logThreshold, setLogger } from '../../src/logger';
+// The Node entry is what hands the logger the process environment.
+import '../../src/node-env';
 
 afterEach(() => {
   setLogger(undefined);

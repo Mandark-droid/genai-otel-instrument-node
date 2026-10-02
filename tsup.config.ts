@@ -27,4 +27,26 @@ export default defineConfig([
     format: ['esm'],
     clean: false,
   },
+  {
+    // Browser: ES modules only, so a bundler can tree-shake it.
+    entry: { 'index.browser': 'src/index.browser.ts' },
+    format: ['esm'],
+    platform: 'browser',
+    target: 'es2020',
+    dts: true,
+    sourcemap: true,
+    splitting: false,
+    clean: false,
+  },
+  {
+    // React Native: CommonJS, which Metro resolves without configuration.
+    entry: { 'index.react-native': 'src/index.react-native.ts' },
+    format: ['cjs'],
+    platform: 'neutral',
+    target: 'es2020',
+    dts: true,
+    sourcemap: true,
+    splitting: false,
+    clean: false,
+  },
 ]);

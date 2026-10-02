@@ -7,6 +7,7 @@ import {
   pyFloat,
   pyInt,
 } from '../../src/config';
+import { setAmbientEnv } from '../../src/env';
 import { setLogger } from '../../src/logger';
 
 const load = (env: Record<string, string> = {}, overrides = {}) => loadConfig(overrides, env);
@@ -283,11 +284,29 @@ describe('overrides', () => {
     expect(load({ OTEL_SERVICE_NAME: 'svc' }, { serviceName: undefined }).serviceName).toBe('svc');
   });
 
-  it('reads process.env by default', () => {
+  it('reads no environment of its own: with none supplied, every setting is its default', () => {
     const before = process.env.OTEL_SERVICE_NAME;
     process.env.OTEL_SERVICE_NAME = 'from-process-env';
     try {
-      expect(loadConfig().serviceName).toBe('from-process-env');
+      setAmbientEnv({});
+      expect(loadConfig().serviceName).toBe(loadConfig({}, {}).serviceName);
+      setAmbientEnv({ OTEL_SERVICE_NAME: 'supplied' });
+      expect(loadConfig().serviceName).toBe('supplied');
+    } finally {
+      setAmbientEnv({});
+      if (before === undefined) delete process.env.OTEL_SERVICE_NAME;
+      else process.env.OTEL_SERVICE_NAME = before;
+    }
+  });
+
+  it('the Node entry supplies process.env', async () => {
+    const before = process.env.OTEL_SERVICE_NAME;
+    process.env.OTEL_SERVICE_NAME = 'from-process-env';
+    try {
+      setAmbientEnv({});
+      vi.resetModules();
+      const node = await import('../../src/index');
+      expect(node.loadConfig().serviceName).toBe('from-process-env');
     } finally {
       if (before === undefined) delete process.env.OTEL_SERVICE_NAME;
       else process.env.OTEL_SERVICE_NAME = before;

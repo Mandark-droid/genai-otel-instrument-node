@@ -9,6 +9,7 @@
  * leading space defeats a boolean, a garbage float raises. Each field below
  * names the expression it ports, and `contract/config.json` checks the result.
  */
+import { ambientEnv, type Env } from './env';
 import { logger } from './logger';
 
 /** Raised where the Python library raises `ValueError` while building `OTelConfig`. */
@@ -297,7 +298,7 @@ export const CONFIG_FIELDS: readonly ConfigField[] = Object.freeze([
   f('mediaRedactor', 'GENAI_OTEL_MEDIA_REDACTOR', 'opt_str'),
 ]);
 
-export type Env = Record<string, string | undefined>;
+export type { Env };
 
 /** `_content_capture_from_env()`: the cross-library variable first, then our own. */
 function contentCaptureFromEnv(env: Env): boolean {
@@ -370,7 +371,7 @@ export function parseConfigField(field: ConfigField, env: Env): OTelConfig[keyof
  * An option that is given explicitly spares its environment variable from being
  * parsed at all, as passing a keyword to the Python dataclass does.
  */
-export function loadConfig(overrides: Partial<OTelConfig> = {}, env: Env = process.env): OTelConfig {
+export function loadConfig(overrides: Partial<OTelConfig> = {}, env: Env = ambientEnv()): OTelConfig {
   const values: Record<string, unknown> = {
     headers: undefined,
     piiCustomPatterns: {},

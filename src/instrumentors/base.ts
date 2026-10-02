@@ -206,7 +206,9 @@ function recordException(span: Span, error: unknown): void {
 
 /** Seconds since the epoch, with sub-millisecond resolution. */
 export function epochSeconds(): number {
-  return (performance.timeOrigin + performance.now()) / 1000;
+  // React Native's `performance` has no timeOrigin; a browser's and Node's do.
+  const origin = typeof performance === 'object' ? performance.timeOrigin : undefined;
+  return typeof origin === 'number' && origin > 0 ? (origin + performance.now()) / 1000 : Date.now() / 1000;
 }
 const now = epochSeconds;
 
@@ -244,13 +246,21 @@ type StreamOutcome = { kind: 'completed' } | { kind: 'cancelled' } | { kind: 'er
  * response that was never iterated, a promise that was dropped. Without this
  * such a span would stay open for the life of the process.
  */
-const abandoned = new FinalizationRegistry<() => void>((finish) => {
-  try {
-    finish();
-  } catch {
-    // nothing to report to
-  }
-});
+const abandoned: Pick<FinalizationRegistry<() => void>, 'register'> =
+  typeof FinalizationRegistry === 'function'
+    ? new FinalizationRegistry<() => void>((finish) => {
+        try {
+          finish();
+        } catch {
+          // nothing to report to
+        }
+      })
+    : // An engine without it (older Hermes): such a span is simply never closed.
+      { register: () => {} };
+
+/** After the current task and its microtasks. `setImmediate` is Node's; elsewhere a zero timer. */
+const defer: (task: () => void) => void =
+  typeof setImmediate === 'function' ? (task) => void setImmediate(task) : (task) => void setTimeout(task, 0);
 
 interface ApiPromiseLike {
   responsePromise: PromiseLike<unknown>;
@@ -729,7 +739,7 @@ export abstract class BaseInstrumentor implements Instrumentor {
     Promise.resolve(promise.responsePromise).then(
       () => {
         // `withResponse()` asks for both; let the parse step register first.
-        setImmediate(() => {
+        defer(() => {
           if (!state.parseStarted && state.rawRequested) handlers.onUnparsed();
         });
       },

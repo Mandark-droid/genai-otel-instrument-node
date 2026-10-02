@@ -60,6 +60,15 @@ await flushTelemetry(5); // seconds; resolves false if the collector did not tak
 await uninstrument();
 ```
 
+## Browser and React Native
+
+The same package loads in a browser bundle and in a React Native app, through the
+`browser` and `react-native` export conditions. Those entries contain the core
+(configuration, cost, semantic conventions, metrics), an explicit `instrument({...})`
+that exports OTLP over `fetch`, and `traceGenAiCall()` for calls the app makes itself.
+There is no default endpoint there: telemetry leaves the device only for a collector you
+name. See [docs/runtimes.md](docs/runtimes.md), including what is and is not sent.
+
 ## What is instrumented
 
 | Library | Versions verified | Covered |

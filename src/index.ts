@@ -5,6 +5,8 @@
  * the Python library `genai_otel_instrument`: same span attributes, same
  * metrics, same environment variables, same cost figures.
  */
+import './node-env';
+
 export {
   DEFAULT_OTLP_ENDPOINT,
   exporterTimeoutMillis,
@@ -38,6 +40,7 @@ export {
   type PricingSource,
   type Usage,
 } from './cost';
+export { type Env } from './env';
 export { setLogger, type Logger } from './logger';
 export {
   BASE_METER_NAME,

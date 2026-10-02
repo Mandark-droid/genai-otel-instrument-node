@@ -12,6 +12,7 @@
  * and `telemetry.distro.name` is `genai-otel-instrument-node`, so a backend can
  * tell which SDK produced a span - and by nothing else.
  */
+import './node-env';
 import { createHash, randomUUID } from 'node:crypto';
 import { hostname, networkInterfaces } from 'node:os';
 import {

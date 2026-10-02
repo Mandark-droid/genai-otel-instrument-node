@@ -83,7 +83,23 @@
 - `contract/PORTING_NOTES.md` and `contract/SDK_ADDITIONS.md` are vendored with the
   contract.
 
+- Browser and React Native entry points, selected by the `browser` and `react-native`
+  export conditions (also `./browser` and `./react-native` subpaths): the runtime-agnostic
+  core, an explicit `instrument({...})` exporting OTLP/HTTP JSON over `fetch` with no
+  default endpoint, `flushTelemetry()`, `uninstrument()`, and `traceGenAiCall()` for
+  calls the app makes itself. React Native flushes when the app leaves the foreground.
+  See `docs/runtimes.md`.
+- `npm run check:bundles`: fails if the browser or React Native bundle reaches a Node
+  built-in, reads `process`, or (React Native) uses a DOM global. Run in CI.
+- A second, browser-like (happy-dom) test project runs the config, cost,
+  semantic-convention and metric contract tests and the new entries' tests.
+
 ### Changed
+- The core (config, cost, semconv, metrics, logger, base instrumentor) no longer reads
+  `process.env` or uses a Node-only global. `loadConfig(overrides, env)` called without
+  `env` now reads the environment its entry point supplied: `process.env` when loaded
+  through the Node entry (unchanged behaviour), nothing when a core module is imported
+  on its own.
 - Coverage floor on `config`, `cost` and `metrics` raised from 90% to 95%.
 - `examples/e2e/smoke` defaults its model endpoint to a local Ollama
   (`http://localhost:11434/v1`, no API key); `E2E_LLM_BASE_URL` still overrides it.
