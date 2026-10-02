@@ -42,11 +42,16 @@
     "LICENSE"
   ],
   "scripts": {
+    "generate": "node scripts/generate-contract-code.mjs",
     "sync": "node scripts/sync-from-python.mjs",
     "sync:check": "node scripts/sync-from-python.mjs --check",
+    "prebuild": "npm run generate",
     "build": "tsup",
+    "pretypecheck": "npm run generate",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "prelint": "npm run generate",
     "lint": "eslint .",
+    "pretest": "npm run generate",
     "test": "vitest run --coverage",
     "test:watch": "vitest"
   },

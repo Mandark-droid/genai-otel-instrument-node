@@ -21,7 +21,6 @@ import {
   PeriodicExportingMetricReader,
   type IMetricReader,
   type PushMetricExporter,
-  type ViewOptions,
 } from '@opentelemetry/sdk-metrics';
 import {
   BasicTracerProvider,
@@ -41,6 +40,7 @@ import {
   type Instrumentor,
 } from './instrumentors/registry';
 import { logger } from './logger';
+import { metricViews, resetSharedMetrics } from './metrics';
 import { buildResource } from './resource';
 import { clearStateSlot, globalState } from './state';
 import { VERSION } from './version';
@@ -79,32 +79,12 @@ interface ActiveState {
 }
 
 /**
- * Hooks later modules attach to the setup: metric views and extra span
- * processors. Kept as registration points so this file does not import a
- * module that an earlier build of the package does not have.
+ * Drop instruments created against a meter provider that is going away. An
+ * instrument stays bound to the provider that created it.
  */
-type ViewProvider = () => ViewOptions[];
-type ProcessorProvider = (config: OTelConfig) => SpanProcessor[];
-const viewProviders: ViewProvider[] = [];
-const processorProviders: ProcessorProvider[] = [];
-
-export function registerViewProvider(provider: ViewProvider): void {
-  viewProviders.push(provider);
-}
-
-export function registerSpanProcessorProvider(provider: ProcessorProvider): void {
-  processorProviders.push(provider);
-}
-
-/** Hooks that drop instruments created against a meter provider that is going away. */
-const meterResetHooks: (() => void)[] = [resetPricingMissingCounter];
-
-export function registerMeterResetHook(hook: () => void): void {
-  meterResetHooks.push(hook);
-}
-
 function resetMeterBoundState(): void {
-  for (const hook of meterResetHooks) hook();
+  resetPricingMissingCounter();
+  resetSharedMetrics();
 }
 
 function activeState(): ActiveState | undefined {
@@ -375,7 +355,6 @@ function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumen
       logger.warn(`Failed to add cost enrichment processor: ${String(error)}`);
     }
   }
-  for (const provider of processorProviders) spanProcessors.push(...provider(config));
   spanProcessors.push(...(options.spanProcessors ?? []));
 
   let spanExporter: SpanExporter;
@@ -413,8 +392,8 @@ function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumen
   if (sampler) logger.info(`Trace sampling rate set to ${config.samplingRate}`);
   const tracerProvider = new BasicTracerProvider({ resource, sampler, spanProcessors });
 
-  const views: ViewOptions[] = [];
-  for (const provider of viewProviders) views.push(...provider());
+  // Histogram bucket boundaries are set by Views, as in the reference implementation.
+  const views = metricViews();
   const readers: IMetricReader[] = [
     new PeriodicExportingMetricReader({ exporter: metricExporter, ...metricIntervals() }),
     ...(options.metricReaders ?? []),

@@ -37,6 +37,16 @@
 - `CostEnrichmentSpanProcessor`: prices GenAI and OpenInference spans produced by other
   instrumentation, at span end.
 
+- `scripts/generate-contract-code.mjs`: generates `src/semconv.generated.ts` and
+  `src/metrics.generated.ts` from the vendored contract before build, test, typecheck and
+  lint. Attribute names, metric names, units, kinds and bucket boundaries are not typed by
+  hand anywhere.
+- `genaiSemconvModes()` / `genaiTierOptedIn()`: the `OTEL_SEMCONV_STABILITY_OPT_IN`
+  policy, passing every opt-in case in `contract/semconv.json`.
+- Shared GenAI client metric instruments (the 20 of the Python base instrumentor) and
+  the explicit-bucket histogram views, matching `contract/metrics.json` in name, unit,
+  kind, description, instrumentation scope and bucket boundaries.
+
 ### Notes
 - `npm audit`: one low-severity finding in `esbuild` (development server on Windows),
   reached only through the build tool. It does not ship and is not exercised.

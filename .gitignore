@@ -8,3 +8,6 @@ coverage/
 *.log
 .DS_Store
 
+
+# generated from contract/*.json by scripts/generate-contract-code.mjs
+src/*.generated.ts

@@ -40,6 +40,15 @@ export {
 } from './cost';
 export { setLogger, type Logger } from './logger';
 export {
+  BASE_METER_NAME,
+  getSharedMetrics,
+  METRIC_DEFINITIONS,
+  metricViews,
+  type MetricDefinition,
+  type MetricName,
+  type SharedMetrics,
+} from './metrics';
+export {
   buildResource,
   DISTRO_NAME,
   hostIpAddresses,
@@ -51,4 +60,12 @@ export {
   registerInstrumentor,
   type Instrumentor,
 } from './instrumentors/registry';
+export {
+  ATTR,
+  genaiSemconvModes,
+  genaiTierOptedIn,
+  SemanticConvention,
+  SUPERSEDED_ATTRIBUTES,
+  type SemconvModes,
+} from './semconv';
 export { VERSION } from './version';
