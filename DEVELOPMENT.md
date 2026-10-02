@@ -20,6 +20,13 @@ The test toolchain and the SDK versions this repository develops against need No
 later. The package itself supports Node 18.19: CI builds it and runs `npm run smoke` and
 `npm run compat` on Node 18, 20, 22 and 24.
 
+**The lock file is written by npm 10.** CI runs `npm ci` with the npm each Node ships:
+npm 10 on Node 18 to 22, npm 11 on Node 24. A lock written by npm 11 is refused by npm 10
+("Missing: ... from lock file"); one written by npm 10 is accepted by both. After adding
+or updating a dependency, regenerate it with
+`npx npm@10 install --package-lock-only --ignore-scripts`, and check
+`npx npm@10 ci --dry-run` before pushing.
+
 `npm test` builds `dist/` first (`tests/global-setup.ts`), because `tests/e2e` runs the
 example programs against the built package. Test workers run with `--expose-gc`:
 `tests/instrumentors/no-leaked-spans.test.ts` forces garbage collections.
