@@ -511,7 +511,8 @@ export async function uninstrument(timeoutSeconds = 5.0): Promise<void> {
   if (state.onBeforeExit) process.removeListener('beforeExit', state.onBeforeExit);
   if (state.onSigterm) process.removeListener('SIGTERM', state.onSigterm);
 
-  for (const instrumentor of state.instrumentors) {
+  // Last in, first out: an instrumentor that wrapped a method on top of another's comes off first.
+  for (const instrumentor of [...state.instrumentors].reverse()) {
     try {
       instrumentor.uninstrument();
     } catch (error) {

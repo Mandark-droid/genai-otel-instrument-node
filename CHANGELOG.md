@@ -83,6 +83,15 @@
 - `contract/PORTING_NOTES.md` and `contract/SDK_ADDITIONS.md` are vendored with the
   contract.
 
+- Instrumentors for providers reached through the `openai` client at their own base URL:
+  OpenRouter, CometAPI (also through `@anthropic-ai/sdk`), Hyperbolic, SambaNova, and the
+  Anyscale no-op. Each claims its domain, so a call is traced once, under the provider's
+  span name. Azure OpenAI (`AzureOpenAI`) is covered by the OpenAI instrumentor.
+- Instrumentors for Groq (`groq-sdk`) and Together AI (`together-ai`).
+- `PatchingInstrumentor`: the shared base for module-patching instrumentors, with
+  `instrumentModule(module, config)` for bundled applications. Two instrumentors can now
+  wrap the same method; `uninstrument()` removes them last in, first out.
+- Examples: `examples/openai-compatible`, `examples/groq`, `examples/together`.
 - Session scope: `withSession(id, fn, { userId })`, `setSession(id, { userId })` and
   `currentSession()`. Every span started in scope - from any instrumentation - carries
   `session.id` and `gen_ai.conversation.id` (and `user.id`), which is what the platform

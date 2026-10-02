@@ -18,33 +18,70 @@ import { logger } from '../logger';
 
 /** On a wrapper function: the original it replaced. Shared across copies of this package. */
 const ORIGINAL = Symbol.for('traceverse.genai-otel-instrument.original');
+/** On a wrapper function: which instrumentor put it there. */
+const OWNER = Symbol.for('traceverse.genai-otel-instrument.owner');
 
 type AnyFunction = (...args: never[]) => unknown;
-type Wrapped = AnyFunction & { [ORIGINAL]?: AnyFunction };
+/** On a wrapper that could not be removed: its instrumentor is gone and it only passes through. */
+const RETIRED = Symbol.for('traceverse.genai-otel-instrument.retired');
+
+type Wrapped = AnyFunction & { [ORIGINAL]?: AnyFunction; [OWNER]?: string; [RETIRED]?: boolean };
+
+function ownerOf(wrapper: Wrapped): string {
+  return wrapper[OWNER] ?? 'default';
+}
 
 /**
- * Replace `target[name]` with `makeWrapper(original)`. Idempotent: a method
- * that is already wrapped (by this or another copy of the package) is left
- * alone and false is returned, so wrappers never stack.
+ * Replace `target[name]` with `makeWrapper(original)`. Idempotent per owner: a
+ * method already wrapped by `owner` (by this or another copy of the package)
+ * is left alone and false is returned, so one instrumentor's wrappers never
+ * stack. A different owner wraps on top: that is how an aggregator's
+ * instrumentor and the generic one share a method.
  */
-export function wrapMethod(target: unknown, name: string, makeWrapper: (original: AnyFunction) => AnyFunction): boolean {
+export function wrapMethod(
+  target: unknown,
+  name: string,
+  makeWrapper: (original: AnyFunction) => AnyFunction,
+  owner = 'default',
+): boolean {
   if (typeof target !== 'object' || target === null) return false;
   const holder = target as Record<string, unknown>;
   const current = holder[name] as Wrapped | undefined;
   if (typeof current !== 'function') return false;
-  if (current[ORIGINAL] !== undefined) return false;
+  for (let link: Wrapped | undefined = current; link?.[ORIGINAL] !== undefined; link = link[ORIGINAL] as Wrapped) {
+    if (ownerOf(link) === owner && !link[RETIRED]) return false;
+  }
   const wrapper = makeWrapper(current) as Wrapped;
   wrapper[ORIGINAL] = current;
+  wrapper[OWNER] = owner;
   holder[name] = wrapper;
   return true;
 }
 
-/** Put the original method back, if `target[name]` is one of our wrappers. */
-export function unwrapMethod(target: unknown, name: string): void {
+/**
+ * Put the wrapped method back, if `target[name]` is `owner`'s wrapper. A
+ * wrapper buried under another owner's cannot be cut out of the chain: it is
+ * marked retired - its instrumentor makes it a pass-through - and no longer
+ * counts as `owner`'s, so a later instrument() wraps afresh.
+ */
+export function unwrapMethod(target: unknown, name: string, owner = 'default'): void {
   if (typeof target !== 'object' || target === null) return;
   const holder = target as Record<string, unknown>;
   const current = holder[name] as Wrapped | undefined;
-  if (typeof current === 'function' && current[ORIGINAL] !== undefined) holder[name] = current[ORIGINAL];
+  if (typeof current !== 'function' || current[ORIGINAL] === undefined) return;
+  if (ownerOf(current) === owner && !current[RETIRED]) {
+    // Skip past any retired wrappers directly beneath: nothing else refers to them.
+    let next = current[ORIGINAL] as Wrapped;
+    while (next[RETIRED] && next[ORIGINAL] !== undefined) next = next[ORIGINAL] as Wrapped;
+    holder[name] = next;
+    return;
+  }
+  for (let link = current[ORIGINAL] as Wrapped | undefined; link?.[ORIGINAL] !== undefined; link = link[ORIGINAL] as Wrapped) {
+    if (ownerOf(link) === owner && !link[RETIRED]) {
+      link[RETIRED] = true;
+      return;
+    }
+  }
 }
 
 function resolvers(): NodeRequire[] {

@@ -38,23 +38,26 @@ evaluation, media.
 |---|---|---|
 | `openai` | `openai` | **shipped** - Chat Completions (buffered, streamed, tool calls), Embeddings, Responses API |
 | `anthropic` | `@anthropic-ai/sdk` | **shipped** - `messages.create` (buffered, streamed), `messages.stream()` |
-| `azure.ai.openai` | `openai` (`AzureOpenAI`) | planned, phase 2. `AzureOpenAI` calls are already traced by the `openai` instrumentor, as `gen_ai.system = openai`; the dedicated span name and provider value are not ported yet |
-| `azure.ai.inference` | `@azure-rest/ai-inference` | planned, phase 2 |
+| `azure.ai.openai` | `openai` (`AzureOpenAI`) | **covered by `openai`** - the `AzureOpenAI` client is traced by the OpenAI instrumentor (`gen_ai.system = openai`, endpoint in `server.address`), which is also how the reference traces `openai.AzureOpenAI`. The reference's separate instrumentor targets the legacy `azure.ai.openai` client, which has no JavaScript counterpart (`@azure/openai` 2.x is a types companion) |
+| `azure.ai.inference` | `@azure-rest/ai-inference` | not ported: a REST-path client with no method per operation, and not in the Node target list |
 | `google.generativeai` | `@google/genai` | planned, phase 2 |
 | `vertexai` | `@google/genai` (Vertex mode) / `@google-cloud/vertexai` | planned, phase 2 |
 | `boto3` | `@aws-sdk/client-bedrock-runtime` | planned, phase 2 |
 | `bedrock_agents` | `@aws-sdk/client-bedrock-agent-runtime` | planned, phase 2 |
 | `cohere` | `cohere-ai` | planned, phase 2 |
 | `mistralai` | `@mistralai/mistralai` | planned, phase 2 |
-| `groq` | `groq-sdk` | planned, phase 2 |
-| `together` | `together-ai` | planned, phase 2 |
+| `groq` | `groq-sdk` | **shipped** - chat completions (buffered, streamed) |
+| `together` | `together-ai` | **shipped** - chat completions, embeddings |
 | `ollama` | `ollama` | planned, phase 2 |
 | `replicate` | `replicate` | planned, phase 2 |
 | `elevenlabs` | `@elevenlabs/elevenlabs-js` | planned, phase 2 |
 | `sarvamai` | `sarvamai` | planned, phase 2 - library to be confirmed |
-| `openrouter` | `openai` with a base URL | planned, phase 2. The base-URL claim mechanism it needs is shipped |
-| `cometapi` | `openai` / `@anthropic-ai/sdk` with a base URL | planned, phase 2 |
-| `anyscale`, `sambanova`, `hyperbolic`, `vllm`, `llamacpp` (server) | `openai` with a base URL | Calls are traced today by the `openai` instrumentor with the endpoint in `server.address`; the provider-specific span names and server-metrics pollers are planned, phase 2 / 4 |
+| `openrouter` | `openai` at `openrouter.ai` | **shipped** - chat completions (buffered, streamed, tool calls), embeddings |
+| `cometapi` | `openai` / `@anthropic-ai/sdk` at `cometapi.com` | **shipped** - chat completions, embeddings, `messages.create` |
+| `hyperbolic` | `openai` at `api.hyperbolic.xyz` | **shipped** - chat completions. Not in the default list, as in the reference: enable it by name. The reference traces raw `requests.post`; JavaScript applications use the OpenAI client |
+| `sambanova` | `openai` at `api.sambanova.ai` | **shipped** - chat completions. The reference patches the `sambanova` Python SDK; there is no maintained JavaScript one |
+| `anyscale` | `openai` | **shipped** as the no-op it is in the reference; calls are traced by the `openai` instrumentor |
+| `vllm`, `llamacpp` (server) | `openai` with a base URL | Traced by the `openai` instrumentor with the endpoint in `server.address`. Server-metrics pollers: phase 4 |
 | `transformers` | `@huggingface/inference`, `@huggingface/transformers` | planned, phase 2 |
 | `litellm_latency`, `litellm` | - | not applicable: LiteLLM is a Python library. A LiteLLM *gateway* is reached through the `openai` client and is traced by the `openai` instrumentor |
 | `llamacpp` (in-process), `vllm` (in-process) | - | not applicable: Python in-process bindings |
@@ -127,6 +130,8 @@ These are choices, each with a reason. Everything else is meant to be identical.
 | `host.id`, `process.owner` on the resource | Not emitted | Not emitted (the Node detectors would add them; they are removed) | Same attribute set; no machine identifier or OS user name leaves the host |
 | `null` / `undefined` request parameters | `None` is written as the string `"None"` | The attribute is left out | An explicit `undefined` is routine in JavaScript and would put `"undefined"` on every span |
 | `GENAI_CUSTOM_PRICING_JSON` (deliberate difference from Python v1.30.0, to be fixed upstream; `contract/SDK_ADDITIONS.md` section 3) | Ignored by 39 of the 42 instrumentor modules, OpenAI and Anthropic included: their `instrument()` never calls `_setup_config()`, so a custom-priced model is reported `unpriced` (`openai_instrumentor.py:80`, `anthropic_instrumentor.py:244`, `base.py:563`). Cost enrichment of other instrumentation's spans always uses the default table (`auto_instrument.py:381`) | Applied by **every** instrumentor and by the cost-enrichment processor, with the calculator's own merge and validation rules. A custom-priced model gets the `gen_ai.usage.cost.*` attributes and `pricing_source = table`, as the reference calculator reports for it | Founder decision, 2026-10-02: a setting that is accepted and then ignored is a wrong bill |
+| Instrumentors the reference writes by hand (Groq, Hyperbolic, ...) | A hand-rolled span with a short attribute list, and request counters tagged `{model, provider}` | The same span name and attributes through the common wrapper, which also adds what it derives centrally (`server.address`, `server.port`, request parameters) and counts requests as every other instrumentor does (`{operation}`) | One code path for streams, cancellation, errors and leaks; a superset of the reference attributes |
+| Aggregator instrumentors (OpenRouter, CometAPI, ...) | Patch the client constructor and wrap methods per instance | Wrap the client's class prototypes a second time and act only for a client whose base URL is the provider's | Same spans; also covers clients created before `instrument()` |
 | Instrumentation scope / tracer name | `genai_otel.instrumentors.base` | the same | A backend keys on it |
 | `OTEL_METRICS_EXEMPLAR_FILTER` defaulted to `always_off` | yes | not needed: the JS SDK records no exemplars | |
 

@@ -101,3 +101,38 @@ describe('loadModuleCopies', () => {
     await expect(copies.esm).resolves.toEqual([]);
   });
 });
+
+describe('two owners on one method', () => {
+  const make = (tag: string, log: string[]) => (original: (...args: never[]) => unknown) =>
+    function (this: unknown, ...args: unknown[]) {
+      log.push(tag);
+      return (original as (...a: unknown[]) => unknown).apply(this, args);
+    };
+
+  it('each owner wraps once; removal in any order leaves the original', () => {
+    const log: string[] = [];
+    const original = (): string => 'value';
+    const holder = { method: original };
+    expect(wrapMethod(holder, 'method', make('a', log), 'a')).toBe(true);
+    expect(wrapMethod(holder, 'method', make('b', log), 'b')).toBe(true);
+    expect(wrapMethod(holder, 'method', make('a2', log), 'a')).toBe(false);
+    expect(holder.method()).toBe('value');
+    expect(log).toEqual(['b', 'a']);
+
+    // The buried one first: it cannot be cut out, so it is retired...
+    unwrapMethod(holder, 'method', 'a');
+    // ...and the owner may wrap again.
+    expect(wrapMethod(holder, 'method', make('a3', log), 'a')).toBe(true);
+    unwrapMethod(holder, 'method', 'a');
+    unwrapMethod(holder, 'method', 'b');
+    expect(holder.method).toBe(original);
+  });
+
+  it('removing an owner that never wrapped changes nothing', () => {
+    const holder = { method: (): number => 1 };
+    wrapMethod(holder, 'method', make('a', []), 'a');
+    const wrapped = holder.method;
+    unwrapMethod(holder, 'method', 'nobody');
+    expect(holder.method).toBe(wrapped);
+  });
+});
