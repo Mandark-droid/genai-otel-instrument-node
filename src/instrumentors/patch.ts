@@ -49,8 +49,12 @@ export function unwrapMethod(target: unknown, name: string): void {
 
 function resolvers(): NodeRequire[] {
   const out: NodeRequire[] = [];
-  // The application's own dependency tree first, then this package's.
-  for (const base of [join(process.cwd(), 'noop.js'), import.meta.url]) {
+  // The application's own dependency tree first - from its working directory
+  // and from its entry script, which differ when it is started from elsewhere -
+  // then this package's.
+  const bases = [join(process.cwd(), 'noop.js'), process.argv[1], import.meta.url];
+  for (const base of bases) {
+    if (!base) continue;
     try {
       out.push(createRequire(base));
     } catch {
