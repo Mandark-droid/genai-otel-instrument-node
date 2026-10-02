@@ -108,14 +108,19 @@ installed. Every operation is one client span plus the four `mcp.*` metrics
 | SQLAlchemy | sqlalchemy | - | not applicable: a Python ORM; the drivers are covered directly |
 | Redis | redis-py (contrib span) | `redis`, `ioredis` | **shipped** - span named for the command |
 | FalkorDB | falkordb | `falkordb` | **shipped** - `falkordb.query`, `falkordb.ro_query`, `falkordb.delete`, `falkordb.copy` |
-| Kafka | kafka-python (contrib span) | `kafkajs` | planned, phase 3 |
-| RabbitMQ | pika | `amqplib` | planned, phase 3 |
-| OpenSearch | opensearch-py | `@opensearch-project/opensearch` | planned, phase 3 |
-| Elasticsearch | elasticsearch-py (contrib span) | `@elastic/elasticsearch` | planned, phase 3 |
-| MinIO / S3 | minio | `minio`, `@aws-sdk/client-s3` | planned, phase 3 |
-| Qdrant, Pinecone, Weaviate, Chroma, Milvus | their Python clients | their JavaScript clients | planned, phase 3 |
+| Kafka | kafka-python (contrib span) | `kafkajs` | **shipped** - `<topic> send` (producer), `<topic> receive` (consumer, around the application's `eachMessage`). `@confluentinc/kafka-javascript` is not covered |
+| RabbitMQ | pika | `amqplib` | **shipped** - `rabbitmq.basic_publish`, `basic_consume`, `basic_get`, `queue_declare`, `queue_delete`, `exchange_declare`, `exchange_delete`; patched when the first connection and channel are created |
+| OpenSearch | opensearch-py (contrib span) | `@opensearch-project/opensearch` | **shipped** - `opensearch.<api>` (`search`, `bulk`, `doc`, ...), with the index |
+| Elasticsearch | elasticsearch-py (contrib span) | `@elastic/elasticsearch` | **shipped, metrics only** - the client creates its own OpenTelemetry span per request; this adds the `mcp.*` metrics, which is the reference's own split |
+| MinIO | minio | `minio` | **shipped** - `minio.put_object`, `get_object`, `remove_object`, `list_objects`, `make_bucket`, `remove_bucket`, `list_buckets`, `stat_object`, `fput_object`, `fget_object`, with bucket and object |
+| S3 | - | `@aws-sdk/client-s3` | **shipped** (not present in Python) - `s3.<operation>` for every command, with bucket and key |
+| Qdrant | qdrant-client | `@qdrant/js-client-rest` | **shipped** - `qdrant.query_points`, `qdrant.search`, with collection, top-k and the `rag.result.score_*` summary |
+| Pinecone | pinecone | `@pinecone-database/pinecone` | **shipped** - `pinecone.index.query`, `.upsert`, `.delete`, with the score summary |
+| Chroma | chromadb | `chromadb` | **shipped** - `chroma.query`; the collection class is patched when the client first hands one back |
+| Milvus | pymilvus | `@zilliz/milvus2-sdk-node` | **shipped** - `milvus.search` |
+| Weaviate | weaviate-client | `weaviate-client` | not ported: the v3 client builds its query objects per collection and its classes can only be reached through a live connection |
 | FAISS, LanceDB | faiss, lancedb | - | not ported: not in the Node target list |
-| HTTP | httpx | global `fetch` | planned, phase 3 (opt-in, `GENAI_ENABLE_HTTP_INSTRUMENTATION`) |
+| HTTP | httpx | global `fetch` | **shipped**, off by default (`GENAI_ENABLE_HTTP_INSTRUMENTATION`) - `api.call.<method>.<host>`. `url.full` is recorded without its query string, which can carry credentials |
 
 ## Not present in Python
 

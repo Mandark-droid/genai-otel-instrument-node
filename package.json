@@ -99,15 +99,25 @@
   "peerDependencies": {
     "@anthropic-ai/sdk": ">=0.20.0",
     "@aws-sdk/client-bedrock-runtime": "*",
+    "@aws-sdk/client-s3": "*",
+    "@elastic/elasticsearch": "*",
     "@elevenlabs/elevenlabs-js": "*",
     "@google-cloud/vertexai": "*",
     "@google/genai": "*",
     "@huggingface/inference": "*",
     "@mistralai/mistralai": "*",
+    "@opensearch-project/opensearch": "*",
+    "@pinecone-database/pinecone": "*",
+    "@qdrant/js-client-rest": "*",
+    "@zilliz/milvus2-sdk-node": "*",
+    "amqplib": "*",
+    "chromadb": "*",
     "cohere-ai": "*",
     "falkordb": "*",
     "groq-sdk": "*",
     "ioredis": "*",
+    "kafkajs": "*",
+    "minio": "*",
     "mysql2": "*",
     "ollama": "*",
     "openai": ">=4.0.0",
@@ -122,6 +132,12 @@
       "optional": true
     },
     "@aws-sdk/client-bedrock-runtime": {
+      "optional": true
+    },
+    "@aws-sdk/client-s3": {
+      "optional": true
+    },
+    "@elastic/elasticsearch": {
       "optional": true
     },
     "@elevenlabs/elevenlabs-js": {
@@ -139,6 +155,24 @@
     "@mistralai/mistralai": {
       "optional": true
     },
+    "@opensearch-project/opensearch": {
+      "optional": true
+    },
+    "@pinecone-database/pinecone": {
+      "optional": true
+    },
+    "@qdrant/js-client-rest": {
+      "optional": true
+    },
+    "@zilliz/milvus2-sdk-node": {
+      "optional": true
+    },
+    "amqplib": {
+      "optional": true
+    },
+    "chromadb": {
+      "optional": true
+    },
     "cohere-ai": {
       "optional": true
     },
@@ -149,6 +183,12 @@
       "optional": true
     },
     "ioredis": {
+      "optional": true
+    },
+    "kafkajs": {
+      "optional": true
+    },
+    "minio": {
       "optional": true
     },
     "mysql2": {
@@ -179,16 +219,25 @@
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
     "@aws-sdk/client-bedrock-runtime": "^3.1145.0",
+    "@aws-sdk/client-s3": "^3.1145.0",
+    "@elastic/elasticsearch": "^9.5.1",
     "@elevenlabs/elevenlabs-js": "^2.70.0",
     "@eslint/js": "^9.39.5",
     "@google-cloud/vertexai": "^1.12.0",
     "@google/genai": "^2.26.0",
     "@huggingface/inference": "^4.13.30",
     "@mistralai/mistralai": "^2.7.0",
+    "@opensearch-project/opensearch": "^3.9.0",
+    "@pinecone-database/pinecone": "^9.0.0",
+    "@qdrant/js-client-rest": "^1.19.0",
     "@smithy/node-http-handler": "^4.12.1",
+    "@types/amqplib": "^0.10.8",
     "@types/node": "^20.19.43",
     "@types/pg": "^8.23.1",
     "@vitest/coverage-v8": "^4.1.11",
+    "@zilliz/milvus2-sdk-node": "^3.0.6",
+    "amqplib": "^2.2.0",
+    "chromadb": "^3.5.0",
     "cohere-ai": "^8.1.0",
     "esbuild": "^0.28.2",
     "eslint": "^9.39.5",
@@ -196,6 +245,8 @@
     "groq-sdk": "^1.6.0",
     "happy-dom": "^20.14.5",
     "ioredis": "^6.0.0",
+    "kafkajs": "^2.2.4",
+    "minio": "^8.0.7",
     "mysql2": "^3.24.5",
     "ollama": "^0.6.4",
     "openai": "^7.27.0",

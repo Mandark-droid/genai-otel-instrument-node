@@ -103,6 +103,13 @@
   `mcp.request.size` and `mcp.response.size` metrics, for PostgreSQL (`pg`, with
   TimescaleDB operations named), MySQL (`mysql2`), Redis (`redis`, `ioredis`) and FalkorDB.
   Statement text is recorded only with content capture on; parameter values never.
+- More datastores under the same switch: Kafka (`kafkajs`), RabbitMQ (`amqplib`), OpenSearch,
+  Elasticsearch (metrics only: the client makes its own span), MinIO, S3, and the vector
+  databases Qdrant, Pinecone, Chroma and Milvus with the retrieval score summary
+  (`rag.result.score_max` / `_min` / `_mean` / `_margin`). Message bodies, documents and
+  vectors are never recorded.
+- Outbound HTTP through `fetch`, off unless `GENAI_ENABLE_HTTP_INSTRUMENTATION=true`.
+- Example: `examples/datastores` (a traced Qdrant query).
 - On-device inference (spec 6a):
   - transformers.js (`@huggingface/transformers`): `transformers.model.load`,
     `huggingface.pipeline`, `huggingface.model.generate` with measured token counts, time

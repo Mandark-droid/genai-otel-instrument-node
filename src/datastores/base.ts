@@ -32,6 +32,19 @@ export interface DatastoreCall {
   requestSize?: number;
   /** Statement or command text. Recorded as `db.statement` only with content capture on. */
   statement?: string;
+  /** Span kind; a client span unless said otherwise (a message producer or consumer). */
+  kind?: SpanKind;
+  /**
+   * A messaging system rather than a database: the span carries
+   * `messaging.system` / `messaging.operation`, and the metrics are labelled
+   * `messaging.system`.
+   */
+  messaging?: boolean;
+  /**
+   * The client library emits its own OpenTelemetry span for this call; only
+   * the `mcp.*` metrics are added.
+   */
+  metricsOnly?: boolean;
 }
 
 export interface DatastoreWrapperOptions {
@@ -89,15 +102,19 @@ export abstract class DatastoreInstrumentor extends PatchingInstrumentor {
         if (!instrumentor.instrumented) return invoke(this, args);
 
         let call: DatastoreCall | undefined;
-        let span: Span;
+        let span: Span | undefined;
         try {
           call = describe(this, args);
           if (!call) return invoke(this, args);
-          const attributes: Attributes = { 'db.system': call.system, 'db.operation': call.operation };
-          for (const [key, value] of Object.entries(call.attributes ?? {})) if (value !== undefined) attributes[key] = value;
-          const statement = instrumentor.statementAttribute(instrumentor.config, call.statement);
-          if (statement !== undefined) attributes['db.statement'] = statement;
-          span = instrumentor.tracer.startSpan(call.spanName, { kind: SpanKind.CLIENT, attributes });
+          if (!call.metricsOnly) {
+            const attributes: Attributes = call.messaging
+              ? { 'messaging.system': call.system, 'messaging.operation': call.operation }
+              : { 'db.system': call.system, 'db.operation': call.operation };
+            for (const [key, value] of Object.entries(call.attributes ?? {})) if (value !== undefined) attributes[key] = value;
+            const statement = instrumentor.statementAttribute(instrumentor.config, call.statement);
+            if (statement !== undefined) attributes['db.statement'] = statement;
+            span = instrumentor.tracer.startSpan(call.spanName, { kind: call.kind ?? SpanKind.CLIENT, attributes });
+          }
         } catch (error) {
           logger.debug(`Could not start a datastore span: ${String(error)}`);
           return invoke(this, args);
@@ -110,8 +127,9 @@ export abstract class DatastoreInstrumentor extends PatchingInstrumentor {
           if (finished) return;
           finished = true;
           try {
-            const labels = { 'db.system': described.system, 'mcp.operation': described.operation };
-            const sizeLabels = options.sizeLabelsIncludeOperation === false ? { 'db.system': described.system } : labels;
+            const systemLabel = described.messaging ? 'messaging.system' : 'db.system';
+            const labels = { [systemLabel]: described.system, 'mcp.operation': described.operation };
+            const sizeLabels = options.sizeLabelsIncludeOperation === false ? { [systemLabel]: described.system } : labels;
             const mcp = getMcpMetrics();
             mcp.duration.record((now() - started) / 1000, labels);
             mcp.requests.add(1, labels);
@@ -119,11 +137,12 @@ export abstract class DatastoreInstrumentor extends PatchingInstrumentor {
             if (error === undefined || error === null) {
               const responseSize = options.responseSize?.(result);
               if (responseSize && responseSize > 0) mcp.responseSize.record(responseSize, sizeLabels);
-              options.onResult?.(span, result);
+              if (span) options.onResult?.(span, result);
             }
           } catch (failure) {
             logger.debug(`Failed to record datastore metrics: ${String(failure)}`);
           }
+          if (!span) return;
           if (error !== undefined && error !== null) {
             span.setStatus({ code: SpanStatusCode.ERROR, message: error instanceof Error ? error.message : String(error) });
             if (error instanceof Error) span.recordException(error);
@@ -146,7 +165,8 @@ export abstract class DatastoreInstrumentor extends PatchingInstrumentor {
 
         let result: unknown;
         try {
-          result = context.with(trace.setSpan(context.active(), span), () => invoke(this, callArgs));
+          const active = span;
+          result = active ? context.with(trace.setSpan(context.active(), active), () => invoke(this, callArgs)) : invoke(this, callArgs);
         } catch (error) {
           finish(error, undefined);
           throw error;
@@ -169,6 +189,22 @@ export abstract class DatastoreInstrumentor extends PatchingInstrumentor {
       return wrapped as unknown as AnyFunction;
     };
   }
+}
+
+/**
+ * Patch a class that can only be reached through an object the library hands
+ * back: the first time one arrives, its prototype is patched, for every later
+ * instance too.
+ */
+export function onFirstInstance(patch: (prototype: object) => void): (value: unknown) => void {
+  const seen = new WeakSet<object>();
+  return (value) => {
+    if (typeof value !== 'object' || value === null) return;
+    const prototype = Object.getPrototypeOf(value) as object | null;
+    if (!prototype || prototype === Object.prototype || seen.has(prototype)) return;
+    seen.add(prototype);
+    patch(prototype);
+  };
 }
 
 /** Host and port attributes, where the client knows them. */

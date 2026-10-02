@@ -196,7 +196,6 @@ function reportUnhonouredSettings(config: OTelConfig, env: Env): void {
     [config.enableRestrictedTopics, 'GENAI_ENABLE_RESTRICTED_TOPICS'],
     [config.enableHallucinationDetection, 'GENAI_ENABLE_HALLUCINATION_DETECTION'],
     [config.enableCo2Tracking, 'GENAI_ENABLE_CO2_TRACKING'],
-    [config.enableHttpInstrumentation, 'GENAI_ENABLE_HTTP_INSTRUMENTATION'],
     [config.mediaCaptureMode !== 'off', 'GENAI_OTEL_MEDIA_CAPTURE_MODE'],
   ];
   const asked = pending.filter(([enabled]) => enabled).map(([, name]) => name);
@@ -251,7 +250,7 @@ function startInstrumentors(
   }
   // Datastores and tools: all of them, each a no-op when its library is absent.
   if (config.enableMcpInstrumentation) {
-    for (const instrumentor of datastoreInstrumentors()) {
+    for (const instrumentor of datastoreInstrumentors(config)) {
       try {
         const pending = instrumentor.instrument(config);
         if (pending && typeof pending.then === 'function') {

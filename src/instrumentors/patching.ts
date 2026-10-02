@@ -110,6 +110,18 @@ export abstract class PatchingInstrumentor extends BaseInstrumentor {
     this.enabled = false;
   }
 
+  /**
+   * Patch a method on an object that was not reachable when the module was
+   * first looked at - a class only seen through an instance the library hands
+   * back later. Undone with the rest by `uninstrument()`.
+   */
+  protected patchLater(holder: object, method: string, wrap: (original: AnyFunction) => AnyFunction): boolean {
+    if (typeof (holder as Record<string, unknown>)[method] !== 'function') return false;
+    if (!wrapMethod(holder, method, wrap, this.owner)) return false;
+    this.patched.push([holder, method]);
+    return true;
+  }
+
   private patchModule(module: unknown, packageName: string): boolean {
     try {
       let found = false;
