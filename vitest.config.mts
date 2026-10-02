@@ -21,6 +21,7 @@ export default defineConfig({
         'src/config.ts': { statements: 95, branches: 95, functions: 95, lines: 95 },
         'src/cost/**': { statements: 95, branches: 95, functions: 95, lines: 95 },
         'src/metrics.ts': { statements: 95, branches: 95, functions: 95, lines: 95 },
+        'src/evaluation/**': { statements: 95, branches: 95, functions: 95, lines: 95 },
       },
     },
     projects: [

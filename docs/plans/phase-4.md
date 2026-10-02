@@ -53,12 +53,17 @@ set and `GENAI_AIR_GAPPED` not set, as in the reference. No Perspective client s
 
 ## Judge plug-in
 
-One interface for anything a rule cannot decide: `(kind, text, context) -> result`.
-Used for toxicity, and optionally to replace the PII regex fallback or the hallucination
-heuristics. Two implementations are documented, neither is a dependency: a local ONNX
-model through `onnxruntime-node`, and an HTTP call to an on-prem OpenAI-compatible
-endpoint. The HTTP one ships; the ONNX one is an example. A judge that throws or times
-out leaves the attribute absent and logs once.
+As built: a **toxicity scorer** the application supplies (`setToxicityScorer`), a function
+from text to a score per category, answering at once or with a promise. It is the only
+thing a rule cannot decide that the reference's span attributes have a place for.
+Replacing the PII patterns or the hallucination heuristics with a model was considered
+and not built: the reference has no such path to match.
+
+Two ways to write a scorer are shown in `docs/evaluation.md` as application code, a call
+to an on-prem moderation endpoint and a local ONNX model. Neither ships: the mapping from
+an endpoint's or a model's categories to the reference's six is the application's to
+state, not this package's to guess. A scorer that throws, rejects or times out leaves the
+attribute absent.
 
 ## GPU on Node
 

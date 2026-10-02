@@ -36,6 +36,7 @@ import { logger } from '../logger';
 import { getSharedMetrics, type SharedMetrics } from '../metrics';
 import { pyJsonDumps, pyStr, pyTruncate } from '../pycompat';
 import { AGENT_OPERATION_MARKERS, ATTR, genaiSemconvModes, SemanticConvention as SC, TOKEN_MODALITIES } from '../semconv';
+import { activeEvaluation, PolicyViolationError, promptForEvaluation, rememberTexts, responseForEvaluation } from '../evaluation/engine';
 import { contextWithSessionId } from '../session';
 import { stateSlot } from '../state';
 import type { Instrumentor } from './registry';
@@ -221,6 +222,8 @@ export function epochSeconds(): number {
   return typeof origin === 'number' && origin > 0 ? (origin + performance.now()) / 1000 : Date.now() / 1000;
 }
 const now = epochSeconds;
+/** The same clock in milliseconds: a span end time. */
+const wallClockMs = (): number => epochSeconds() * 1000;
 
 /** `gen_ai.operation.name` marks an agent invocation (`agent.run`, `graph.execution`, `runner.run`, ...). */
 function isAgentInvocation(attributes: Attributes): boolean {
@@ -320,6 +323,9 @@ interface Call {
   streamOf?: (result: unknown) => unknown;
   /** Set for an agent invocation: what the model calls inside it consumed. */
   budget?: BudgetFrame;
+  /** The prompt was handed to the evaluation. */
+  evaluated?: boolean;
+  failed?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -351,6 +357,11 @@ export abstract class BaseInstrumentor implements Instrumentor {
 
   /** Response attributes (id, model, finish reasons, tool calls). */
   protected extractResponseAttributes?(result: unknown): Record<string, unknown>;
+
+  /** The response text the evaluation reads. The reference reads the OpenAI shape only; an instrumentor may know better. */
+  protected responseTextForEvaluation(result: unknown): string | undefined {
+    return responseForEvaluation(result);
+  }
 
   protected extractFinishReason?(result: unknown): string | null | undefined;
 
@@ -607,6 +618,32 @@ export abstract class BaseInstrumentor implements Instrumentor {
         }
 
         const active = call;
+        // Evaluation: the prompt is checked before the provider is called when a
+        // policy blocks, and handed to the span's evaluation either way.
+        const evaluation = activeEvaluation();
+        if (evaluation) {
+          let prompt: string | undefined;
+          try {
+            prompt = promptForEvaluation(active.params);
+            if (prompt !== undefined) rememberTexts(active.span, { prompt });
+            active.evaluated = true;
+          } catch (error) {
+            logger.debug(`Could not read the prompt for evaluation: ${String(error)}`);
+          }
+          if (evaluation.blockingActive) {
+            try {
+              evaluation.enforcePreCall(active.span, prompt);
+            } catch (error) {
+              if (!(error instanceof PolicyViolationError)) {
+                logger.warn(`Pre-call policy check failed: ${String(error)}`);
+              } else {
+                // A decision the application asked for: the call is not made.
+                instrumentor.failCall(active, error);
+                throw error;
+              }
+            }
+          }
+        }
         let result: unknown;
         try {
           // The span is the active one for the duration of the call, so nested
@@ -659,12 +696,33 @@ export abstract class BaseInstrumentor implements Instrumentor {
     if (call.done) return false;
     call.done = true;
     this.finishAgentBudget(call);
+    this.endSpan(call.span, call.evaluated === true && !call.failed);
+    return true;
+  }
+
+  /**
+   * End the span - after whatever its evaluation has to wait for (a scorer
+   * that answers with a promise). The span's end time is now, not when the
+   * scorer answers.
+   */
+  private endSpan(span: Span, awaitEvaluation: boolean): void {
     try {
-      call.span.end();
+      const pending = awaitEvaluation ? activeEvaluation()?.prepare(span) : undefined;
+      if (!pending) {
+        span.end();
+        return;
+      }
+      const endTime = wallClockMs();
+      void pending.then(() => {
+        try {
+          span.end(endTime);
+        } catch {
+          // ending a span must not throw into the host
+        }
+      });
     } catch {
       // ending a span must not throw into the host
     }
-    return true;
   }
 
   /**
@@ -865,6 +923,7 @@ export abstract class BaseInstrumentor implements Instrumentor {
   /** The wrapped call threw (or its promise rejected). */
   private failCall(call: Call, error: unknown): void {
     if (call.done) return;
+    call.failed = true;
     const { span, spanName } = call;
     try {
       if (span.isRecording()) {
@@ -895,6 +954,15 @@ export abstract class BaseInstrumentor implements Instrumentor {
       metrics.histograms.latency.record(now() - startTime, { operation: spanName });
     } catch (error) {
       logger.warn(`Failed to record latency for span '${spanName}': ${String(error)}`);
+    }
+
+    if (activeEvaluation()) {
+      try {
+        const response = this.responseTextForEvaluation(result);
+        if (response !== undefined) rememberTexts(span, { response });
+      } catch (error) {
+        logger.debug(`Could not read the response for evaluation: ${String(error)}`);
+      }
     }
 
     try {
@@ -1320,11 +1388,7 @@ export abstract class BaseInstrumentor implements Instrumentor {
       logger.warn(`Failed to finalize stream for span '${spanName}': ${String(error)}`);
     } finally {
       this.finishAgentBudget(call);
-      try {
-        span.end();
-      } catch {
-        // ending a span must not throw into the host
-      }
+      this.endSpan(span, outcome.kind === 'completed' && (call as { evaluated?: boolean }).evaluated === true);
     }
   }
 

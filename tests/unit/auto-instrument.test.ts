@@ -311,7 +311,9 @@ describe('instrument()', () => {
     const warned = log.warn.mock.calls.map(([message]) => String(message)).join('\n');
     expect(warned).not.toContain('crewai');
     expect(warned).not.toContain('Unknown instrumentor');
-  });
+    // The default list loads every client library installed here - in this
+    // repository, all of them. Seconds alone, much longer beside the rest of the suite.
+  }, 120_000);
 
   it('flushTelemetry and uninstrument are safe when nothing was instrumented', async () => {
     await expect(flushTelemetry(1)).resolves.toBe(true);

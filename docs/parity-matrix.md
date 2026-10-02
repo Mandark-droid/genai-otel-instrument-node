@@ -28,7 +28,7 @@ evaluation, media.
 | Agent budget governance | shipped | `gen_ai.agent.iteration_budget`, `gen_ai.agent.token_budget`, the two `.consumed` attributes and the `gen_ai.invoke_agent.token_budget.utilization` histogram, accumulated through the context so that sampled-out child calls still count |
 | Server concurrency gauge (`GENAI_ENABLE_CONCURRENCY_METRICS`) | planned, phase 4 | |
 | GPU, energy, CO2 metrics | planned, phase 4 | |
-| Evaluation (PII, toxicity, bias, prompt injection, restricted topics, hallucination) and pre-call blocking | planned, phase 4 | |
+| Evaluation (PII, toxicity, bias, prompt injection, restricted topics, hallucination) and pre-call blocking | **shipped** | The five rule-based detectors match all 170 of their vectors in `contract/eval_vectors.json` exactly, floats included, and the span attributes match the 10 non-toxicity `span_attribute_vectors`. Rules are generated from `contract/eval_rules.json`; Python `re` semantics (Unicode `\w \d \s \b`, code-point offsets) are reproduced. Toxicity: see the differences table. Pre-call blocking throws `PolicyViolationError`. See [evaluation.md](evaluation.md) |
 | Multimodal content capture and offload | planned, phase 4 | |
 | Anonymous usage reporting (`TRACEVERDE_TELEMETRY`) | not applicable | This SDK makes no call home |
 
@@ -184,6 +184,12 @@ These are choices, each with a reason. Everything else is meant to be identical.
 | Session of the calls inside a framework run | Each span resolves its own session | A span that carries a session id of its own (a graph's thread, an agent session, a `sessionId` in the request) puts it in force for the calls made inside it, unless a `withSession` scope is already open | Otherwise the model calls of a run would be in no session, or in a different generated one each |
 | Session fallback for LangChain and LangGraph | call arguments, extractor, a generated UUID | call arguments, extractor, the session in scope (`withSession`), a generated UUID | The scope is this SDK's way to name a session; a generated id must not displace it |
 | Bedrock `RetrieveAndGenerate` inference parameters | Read from `inferenceConfig.temperature` / `maxTokens` / `topP` | Read from `inferenceConfig.textInferenceConfig.*`, then from the reference's place | The API nests them; the reference's path never matches a real request |
+| Toxicity with nothing to measure it | The detector answers "not toxic" and the span gets `evaluation.toxicity.<prompt\|response>.detected = false` | **No toxicity attribute and no toxicity metric.** The detector's own return value is the reference's (the 24 toxicity vectors pass); nothing downstream reads it as a measurement | A "false" that nothing measured is a fabricated measurement. Decided by the lead |
+| Toxicity backends | Detoxify (local model), Perspective API | A scorer function the application supplies, synchronous or asynchronous (`setToxicityScorer`). No model and no client ships | No Python dependency; no call out of the organisation made by this package |
+| Where spans are evaluated | Inside each instrumentor before the span ends, and again in a span processor for other spans | One span processor, in `onEnding`, for every span; an instrumented call hands it the full prompt and the response | The JS SDK lets a processor write a span that is ending |
+| `evaluation.completed` | Set on every span the processor sees | Set only on a span that had a prompt or a response to evaluate | A database or HTTP span is not "evaluated" |
+| Evaluation metric instruments | All 22 created at start-up | Created on first use | A detector that never fires leaves no empty series |
+| Response text on streamed calls | Not evaluated (the result is a stream) | The same: prompt evaluated, response not | |
 | Instrumentation scope / tracer name | `genai_otel.instrumentors.base` | the same | A backend keys on it |
 | `OTEL_METRICS_EXEMPLAR_FILTER` defaulted to `always_off` | yes | not needed: the JS SDK records no exemplars | |
 
@@ -215,3 +221,8 @@ regenerate the contract, adjust the port).
 | 17 | With no session to be found, LangChain and LangGraph spans get a generated UUID as `session.id`, so unrelated calls each look like a session of their own | `langchain_instrumentor.py`, `langgraph_instrumentor.py` (`_resolve_session_id`) |
 | 18 | `gen_ai.request.model` on an OpenAI Agents run is the agent's name, not a model | `openai_agents_instrumentor.py` (`_extract_runner_attributes`) |
 | 19 | Agent-framework spans (OpenAI Agents, Google ADK, Bedrock Agents) carry no tokens of their own; the Bedrock `InvokeAgent` span ends before its completion stream is read | `openai_agents_instrumentor.py`, `google_adk_instrumentor.py`, `bedrock_agents_instrumentor.py` (`_extract_usage`) |
+| 20 | Evaluation false positives are the reference's: "She is a doctor." is gender bias (0.4, at the threshold); restricted-topic keywords match as substrings (`harm` in "pharmacy"); the hallucination sentence extractor stops at a decimal point ("...earned $45." is reported as a claim); a spaced 16-digit card is also reported as `IN_AADHAAR` | `evaluation/*_detector.py`; pinned by `contract/eval_vectors.json` |
+| 21 | Two thresholds differ between the detector's own default and what the environment gives: restricted topics 0.5 / 0.7, hallucination 0.7 / 0.6. `instrument()` uses the environment's, as the reference does | `evaluation/config.py`, `config.py` |
+| 22 | PII `threshold` and `allow_list` are ignored by the pattern path; 12 of 22 entity types (names, locations, IBAN, ...) have no pattern, in GDPR / HIPAA / PCI mode too | `pii_detector.py` (`_fallback_detection`) |
+| 23 | Prompt-injection `patterns`, `check_patterns`, `use_ml_model` and `log_attempts` are accepted and ignored | `prompt_injection_detector.py` |
+| 24 | On a response, a blocking detector only annotates: the response has already been returned to the application | `evaluation/span_processor.py` |

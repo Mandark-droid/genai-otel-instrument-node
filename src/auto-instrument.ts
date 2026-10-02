@@ -36,6 +36,7 @@ import { datastoreInstrumentors } from './datastores';
 import { resetMcpMetrics } from './datastores/mcp-metrics';
 import { costCalculatorFor } from './cost/default';
 import { CostEnrichmentSpanProcessor } from './cost/enrichment-processor';
+import { activeEvaluation, EvaluationEngine, EvaluationSpanProcessor, evaluationConfigsFrom, setActiveEvaluation } from './evaluation/engine';
 import { AiSdkSpanProcessor, isAiSdkAggregate } from './frameworks/ai-sdk';
 import { resetPricingMissingCounter } from './cost/pricing-missing';
 // Registers the shipped instrumentors.
@@ -332,6 +333,9 @@ export async function flushTelemetry(timeoutSeconds = 5.0): Promise<boolean> {
   const state = activeState();
   if (!state) return true;
   const timeoutMs = Math.max(1, Math.trunc(timeoutSeconds * 1000));
+  // Spans still waiting for an evaluation scorer end first, so that they are flushed too.
+  const evaluation = activeEvaluation();
+  if (evaluation) await withDeadline(evaluation.idle(), timeoutMs);
   const results = await Promise.all(
     [state.handle.tracerProvider, state.handle.meterProvider].map(async (provider) => {
       try {
@@ -369,6 +373,20 @@ function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumen
   const spanProcessors: SpanProcessor[] = [new SessionSpanProcessor()];
   // Before the cost processor: it fills in what that one prices from.
   spanProcessors.push(new AiSdkSpanProcessor({ contentCapture: config.enableContentCapture }));
+  try {
+    const evaluation = evaluationConfigsFrom(config);
+    if (evaluation) {
+      const engine = new EvaluationEngine(evaluation);
+      setActiveEvaluation(engine);
+      spanProcessors.push(new EvaluationSpanProcessor(engine));
+      logger.info('Evaluation and safety span processor added');
+    } else {
+      setActiveEvaluation(undefined);
+    }
+  } catch (error) {
+    setActiveEvaluation(undefined);
+    logger.warn(`Failed to add evaluation span processor: ${String(error)}`);
+  }
   if (config.enableCostTracking) {
     try {
       // Spans from other instrumentation are priced from the same table as our

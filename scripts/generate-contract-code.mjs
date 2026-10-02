@@ -4,6 +4,7 @@
  *
  *   contract/semconv.json  ->  src/semconv.generated.ts
  *   contract/metrics.json  ->  src/metrics.generated.ts
+ *   contract/eval_rules.json ->  src/evaluation/rules.generated.ts
  *
  * Attribute names, metric names, units, kinds and histogram bucket boundaries
  * are never typed by hand in this repository: they are generated from what the
@@ -122,9 +123,36 @@ function generateMetrics() {
   );
 }
 
+/**
+ * contract/eval_rules.json -> the detectors' rule data as a module, so that it
+ * is available where no file can be read (browser, React Native). The prose
+ * (`algorithm` and the like) is left out: it documents, it does not decide.
+ */
+function generateEvalRules() {
+  const rules = readJson('contract/eval_rules.json');
+  const PROSE = new Set(['algorithm', 'rule_based_path', 'ml_backend', 'ml_backends', 'behaviour_without_a_backend', 'decision']);
+  const strip = (value) => {
+    if (Array.isArray(value)) return value.map(strip);
+    if (value && typeof value === 'object') {
+      const out = {};
+      for (const [key, inner] of Object.entries(value)) if (!PROSE.has(key)) out[key] = strip(inner);
+      return out;
+    }
+    return value;
+  };
+  return (
+    header('contract/eval_rules.json') +
+    '/** Schema version of the rules file this was generated from. */\n' +
+    `export const EVAL_RULES_SCHEMA_VERSION = ${JSON.stringify(rules.schema_version)};\n\n` +
+    '/** Rule data of the evaluation detectors, exactly as the reference implementation holds it. */\n' +
+    `export const EVAL_RULES_DATA = ${JSON.stringify(strip(rules.detectors), null, 2)};\n`
+  );
+}
+
 const outputs = [
   ['src/semconv.generated.ts', generateSemconv()],
   ['src/metrics.generated.ts', generateMetrics()],
+  ['src/evaluation/rules.generated.ts', generateEvalRules()],
 ];
 
 const check = process.argv.includes('--check');

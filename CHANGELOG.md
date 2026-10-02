@@ -179,6 +179,13 @@
 - Vercel AI SDK (`ai` 7 with `@ai-sdk/otel`): its own spans are normalised, priced once,
   put in the session, and stripped of prompts and responses unless content capture is on.
 - Examples: `examples/langgraph`, `examples/vercel-ai-sdk`.
+- Evaluation: PII, prompt-injection, bias, restricted-topics and hallucination detectors,
+  ported from the reference and matching every one of its 194 detector vectors; an
+  evaluation span processor writing `evaluation.*` attributes and `genai.evaluation.*`
+  metrics; pre-call blocking (`PolicyViolationError`) for `GENAI_PII_MODE=block` and the
+  `*_BLOCK_ON_DETECTION` switches. Toxicity is measured only by a scorer the application
+  supplies (`setToxicityScorer`, synchronous or asynchronous); without one nothing about
+  toxicity is written. See `docs/evaluation.md`.
 
 ### Fixed
 - On Node 18, `instrument()` in an ES-module application could end the process with an
