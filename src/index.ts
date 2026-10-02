@@ -7,6 +7,8 @@
  */
 import './node-env';
 
+export { extractBudgetAttributes } from './agent-budget';
+
 export {
   DEFAULT_OTLP_ENDPOINT,
   exporterTimeoutMillis,

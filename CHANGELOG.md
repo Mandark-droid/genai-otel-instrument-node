@@ -98,6 +98,9 @@
 - Instrumentors for Replicate (`replicate`), ElevenLabs (`@elevenlabs/elevenlabs-js`) and
   Sarvam AI (`sarvamai`), and `traceHuggingFaceClient()` for `@huggingface/inference`,
   whose client can only be traced by wrapping it. With examples.
+- Agent budget governance, as in the reference: an agent span carries the configured
+  iteration and token caps and what the model calls inside it consumed, and a utilisation
+  histogram is recorded when a token cap is configured. `extractBudgetAttributes()`.
 - MCP instrumentation (`@modelcontextprotocol/sdk`), opt-in under the reference name
   `mcp_client`: one client span per tool call with the `mcp.*` and `commerce.*`
   attribution, and - not in the reference - a server span where an `McpServer` runs a tool

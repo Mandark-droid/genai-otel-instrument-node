@@ -29,12 +29,13 @@ import {
   type Span,
   type Tracer,
 } from '@opentelemetry/api';
+import { BudgetFrame, consumptionAttributes, recordInference, utilization, withBudgetFrame } from '../agent-budget';
 import type { OTelConfig } from '../config';
 import { costCalculatorFor, getDefaultCostCalculator, recordPricingMissing, type CostCalculator, type Usage } from '../cost';
 import { logger } from '../logger';
 import { getSharedMetrics, type SharedMetrics } from '../metrics';
 import { pyJsonDumps, pyStr, pyTruncate } from '../pycompat';
-import { ATTR, genaiSemconvModes, SemanticConvention as SC, TOKEN_MODALITIES } from '../semconv';
+import { AGENT_OPERATION_MARKERS, ATTR, genaiSemconvModes, SemanticConvention as SC, TOKEN_MODALITIES } from '../semconv';
 import { stateSlot } from '../state';
 import type { Instrumentor } from './registry';
 
@@ -220,6 +221,12 @@ export function epochSeconds(): number {
 }
 const now = epochSeconds;
 
+/** `gen_ai.operation.name` marks an agent invocation (`agent.run`, `graph.execution`, `runner.run`, ...). */
+function isAgentInvocation(attributes: Attributes): boolean {
+  const operation = String(attributes[ATTR.GEN_AI_OPERATION_NAME] ?? '').toLowerCase();
+  return operation !== '' && AGENT_OPERATION_MARKERS.some((marker) => operation.includes(marker));
+}
+
 /** Attributes already written to a recording span; empty for a non-recording one. */
 function spanAttributes(span: Span): Attributes {
   return ((span as unknown as { attributes?: Attributes }).attributes ?? {}) as Attributes;
@@ -310,6 +317,8 @@ interface Call {
   model: string;
   done: boolean;
   streamOf?: (result: unknown) => unknown;
+  /** Set for an agent invocation: what the model calls inside it consumed. */
+  budget?: BudgetFrame;
 }
 
 // ---------------------------------------------------------------------------
@@ -582,6 +591,11 @@ export abstract class BaseInstrumentor implements Instrumentor {
             done: false,
           };
           if (span.isRecording()) instrumentor.applySessionAndUser(span, this, args, params);
+          // An agent invocation: the model calls made inside it are accounted to it.
+          if (isAgentInvocation(initial)) {
+            call.budget = new BudgetFrame();
+            ctx = withBudgetFrame(ctx, call.budget);
+          }
         } catch (error) {
           // Failure during span setup, before the call ran: instrumentation must
           // never break the host application.
@@ -617,9 +631,31 @@ export abstract class BaseInstrumentor implements Instrumentor {
     };
   }
 
+  /** Budget consumption and utilisation onto an agent span, just before it ends. */
+  private finishAgentBudget(call: Call | StreamCall): void {
+    const frame = (call as Call).budget;
+    if (!frame) return;
+    (call as Call).budget = undefined;
+    try {
+      const consumed = consumptionAttributes(frame);
+      for (const [key, value] of Object.entries(consumed)) call.span.setAttribute(key, value);
+      const attributes = spanAttributes(call.span);
+      const ratio = utilization(consumed[SC.GEN_AI_AGENT_TOKEN_BUDGET_CONSUMED], attributes[SC.GEN_AI_AGENT_TOKEN_BUDGET]);
+      if (ratio !== undefined) {
+        this.metrics.histograms.tokenBudgetUtilization.record(ratio, {
+          'gen_ai.operation.name': String(attributes[ATTR.GEN_AI_OPERATION_NAME] ?? ''),
+          'gen_ai.agent.name': String(attributes[ATTR.GEN_AI_AGENT_NAME] ?? ''),
+        });
+      }
+    } catch (error) {
+      logger.debug(`Could not finish agent budget accounting: ${String(error)}`);
+    }
+  }
+
   private endOnce(call: Call): boolean {
     if (call.done) return false;
     call.done = true;
+    this.finishAgentBudget(call);
     try {
       call.span.end();
     } catch {
@@ -952,7 +988,11 @@ export abstract class BaseInstrumentor implements Instrumentor {
         metrics.histograms.completionTokens.record(Math.trunc(completionTokens), { model, operation: spanName });
       }
     }
-    if (isPositive(totalTokens)) span.setAttribute(ATTR.GEN_AI_USAGE_TOTAL_TOKENS, Math.trunc(totalTokens));
+    if (isPositive(totalTokens)) {
+      span.setAttribute(ATTR.GEN_AI_USAGE_TOTAL_TOKENS, Math.trunc(totalTokens));
+      // To the enclosing agent invocation's budget, if there is one.
+      recordInference(Math.trunc(totalTokens));
+    }
   }
 
   /** Cost attributes and counters. Costs of zero are not written; a missing price is counted. */
@@ -1262,6 +1302,7 @@ export abstract class BaseInstrumentor implements Instrumentor {
     } catch (error) {
       logger.warn(`Failed to finalize stream for span '${spanName}': ${String(error)}`);
     } finally {
+      this.finishAgentBudget(call);
       try {
         span.end();
       } catch {

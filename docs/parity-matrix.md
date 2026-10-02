@@ -25,7 +25,7 @@ evaluation, media.
 | Sampling, W3C trace-context propagation, flush on exit / SIGTERM | shipped | |
 | Session / user id extractors | shipped | Programmatic only, as in the reference |
 | `withSession()` / `setSession()` | shipped | **Not present in Python.** Puts `session.id`, `gen_ai.conversation.id` and optionally `user.id` on every span in scope; an extractor still wins |
-| Agent budget accounting (`gen_ai.agent.token_budget*`) | planned, phase 3 | Arrives with the agent frameworks |
+| Agent budget governance | shipped | `gen_ai.agent.iteration_budget`, `gen_ai.agent.token_budget`, the two `.consumed` attributes and the `gen_ai.invoke_agent.token_budget.utilization` histogram, accumulated through the context so that sampled-out child calls still count |
 | Server concurrency gauge (`GENAI_ENABLE_CONCURRENCY_METRICS`) | planned, phase 4 | |
 | GPU, energy, CO2 metrics | planned, phase 4 | |
 | Evaluation (PII, toxicity, bias, prompt injection, restricted topics, hallucination) and pre-call blocking | planned, phase 4 | |

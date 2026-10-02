@@ -18,6 +18,7 @@ import {
   type AttributeExtractor,
   type UsageDict,
 } from '../../src/instrumentors/base';
+import { extractBudgetAttributes } from '../../src/agent-budget';
 import { startHarness, type Harness } from '../helpers/harness';
 
 class TestInstrumentor extends BaseInstrumentor {
@@ -441,5 +442,105 @@ describe('sampled-out calls', () => {
     await expect(instrumentor.wrap('test.unsampled.fail', async () => Promise.reject(new Error('x')))()).rejects.toThrow('x');
     expect(await harness.metric('gen_ai.requests')).toBeUndefined();
     expect(await harness.metric('gen_ai.client.errors')).toBeUndefined();
+  });
+});
+
+describe('agent budget governance', () => {
+  let harness: Harness;
+  let instrumentor: TestInstrumentor;
+
+  beforeEach(async () => {
+    harness = await startHarness({ enabledInstrumentors: [] });
+    instrumentor = new TestInstrumentor();
+    instrumentor.instrument(loadConfig({}, {}));
+  });
+  afterEach(async () => {
+    instrumentor.uninstrument();
+    await harness.stop();
+  });
+
+  /** The test instrumentor reads no usage from a result carrying `chunk`: an agent's result has none of its own. */
+  const AGENT_RESULT = { chunk: true };
+
+  const AGENT: AttributeExtractor = (_instance, _args, params) => ({
+    'gen_ai.system': 'test',
+    'gen_ai.operation.name': 'agent.run',
+    'gen_ai.agent.name': 'planner',
+    'gen_ai.request.model': 'planner',
+    ...extractBudgetAttributes(params),
+  });
+
+  it('extractBudgetAttributes reads a cap wherever a framework keeps it, and never invents one', () => {
+    expect(extractBudgetAttributes({ max_turns: 8 })).toEqual({ 'gen_ai.agent.iteration_budget': 8 });
+    expect(extractBudgetAttributes(undefined, { other: 1 }, { recursion_limit: 25, token_budget: 4000 })).toEqual({
+      'gen_ai.agent.iteration_budget': 25,
+      'gen_ai.agent.token_budget': 4000,
+    });
+    // Zero, negative, boolean and non-numeric values are not budgets.
+    expect(extractBudgetAttributes({ max_turns: 0, max_iterations: true, max_iter: 'ten', max_tokens: -5 })).toEqual({});
+    expect(extractBudgetAttributes({ max_iterations: 3.9 })).toEqual({ 'gen_ai.agent.iteration_budget': 3 });
+  });
+
+  it('the tokens and calls of the model calls made inside an agent invocation are put on its span, with the utilisation', async () => {
+    const llm = instrumentor.wrap('test.chat', async (_params: { model: string }) => ({ ok: true }), MODEL_ATTRS);
+    const agent = instrumentor.wrap(
+      'test.agent',
+      async (_params: { token_budget: number; max_turns: number }) => {
+        await llm({ model: 'gpt-4o-mini' });
+        await llm({ model: 'gpt-4o-mini' });
+        return AGENT_RESULT;
+      },
+      AGENT,
+    );
+    instrumentor.usage = { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 };
+    await agent({ token_budget: 100, max_turns: 4 });
+
+    const span = harness.span('test.agent');
+    expect(span.attributes).toMatchObject({
+      'gen_ai.agent.token_budget': 100,
+      'gen_ai.agent.iteration_budget': 4,
+      'gen_ai.agent.token_budget.consumed': 30,
+      'gen_ai.agent.iteration_budget.consumed': 2,
+    });
+    const utilisation = await harness.metric('gen_ai.invoke_agent.token_budget.utilization');
+    expect(utilisation?.points).toHaveLength(1);
+    expect(utilisation?.points[0]?.attributes).toEqual({ 'gen_ai.operation.name': 'agent.run', 'gen_ai.agent.name': 'planner' });
+  });
+
+  it('a nested agent accounts for its own calls only; a call outside any agent is counted nowhere', async () => {
+    const llm = instrumentor.wrap('test.chat', async (_params: { model: string }) => ({ ok: true }), MODEL_ATTRS);
+    const worker = instrumentor.wrap(
+      'test.worker',
+      async (_params: object) => {
+        await llm({ model: 'm' });
+        return AGENT_RESULT;
+      },
+      () => ({ 'gen_ai.operation.name': 'agent.run', 'gen_ai.agent.name': 'worker' }),
+    );
+    const supervisor = instrumentor.wrap(
+      'test.supervisor',
+      async (_params: object) => {
+        await llm({ model: 'm' });
+        await worker({});
+        return AGENT_RESULT;
+      },
+      () => ({ 'gen_ai.operation.name': 'agent.run', 'gen_ai.agent.name': 'supervisor' }),
+    );
+    await llm({ model: 'm' });
+    await supervisor({});
+    expect(harness.span('test.worker').attributes['gen_ai.agent.token_budget.consumed']).toBe(15);
+    expect(harness.span('test.supervisor').attributes['gen_ai.agent.token_budget.consumed']).toBe(15);
+    // No budget was configured: consumption is recorded, a utilisation is not.
+    expect(await harness.metric('gen_ai.invoke_agent.token_budget.utilization')).toBeUndefined();
+  });
+
+  it('an agent that made no model call carries no consumption attributes', async () => {
+    const agent = instrumentor.wrap('test.agent', async (_params: object) => null, AGENT);
+    instrumentor.usage = null;
+    await agent({ max_turns: 4 });
+    const attributes = harness.span('test.agent').attributes;
+    expect(attributes['gen_ai.agent.iteration_budget']).toBe(4);
+    expect('gen_ai.agent.token_budget.consumed' in attributes).toBe(false);
+    expect('gen_ai.agent.iteration_budget.consumed' in attributes).toBe(false);
   });
 });
