@@ -204,6 +204,10 @@
   this repository installed, `instrument()` in a CommonJS application went from 6.6 s to
   40 ms. ES-module applications still import the ES-module builds
   (`docs/configuration.md`, "Start-up cost").
+- `examples/e2e/full`: chat, streaming, tool calls, embeddings, LangGraph, a traced HTTP
+  call (or Qdrant) and one prompt per evaluation detector, in one session and one trace,
+  with a JSON summary of what the SDK measured. Tested against mocks; run against a local
+  Ollama.
 
 ### Fixed
 - On Node 18, `instrument()` in an ES-module application could end the process with an
