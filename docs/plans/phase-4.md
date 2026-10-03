@@ -104,3 +104,22 @@ CPU and RAM as well. Here:
 - The Perspective API client.
 - Anything in a real browser or on a device; a multi-GPU or data-centre host. Those are the
   lead's runs.
+
+## As built
+
+| # | Commit | Notes |
+|---|---|---|
+| 4.1 - 4.4 | `e341585` | Toxicity is measured only through `setToxicityScorer` (synchronous or asynchronous) |
+| 4.5 | `d5805a7` | |
+| 4.6, 4.7 | `794475a`, `52fa3b0` | NVIDIA only; energy corrected (section 9); live run on an RTX 5090 Laptop GPU |
+| 4.8 | `add3a87` | Redactors are registered functions; text and canonical messages need content capture |
+| 4.9 | `449e872` | 26 reference-classified sessions |
+| 4.10 | this commit | Parity matrix rows for the server metrics, Ollama poller and vLLM / llama.cpp updated |
+| `examples/e2e/full` | `b90b43d` | Run live against the local Ollama |
+
+Also in this phase, by ruling: sections 5 - 7 (`147bd3b`, `d628d56`), section 8
+(`0d15353`), the lazy loader (`63f0632`).
+
+Not built: AMD GPUs, CPU and RAM energy, PCIe throughput; see
+[gpu-energy.md](../gpu-energy.md).
+

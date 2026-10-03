@@ -26,7 +26,7 @@ evaluation, media.
 | Session / user id extractors | shipped | Programmatic only, as in the reference |
 | `withSession()` / `setSession()` | shipped | **Not present in Python.** Puts `session.id`, `gen_ai.conversation.id` and optionally `user.id` on every span in scope; an extractor still wins |
 | Agent budget governance | shipped | `gen_ai.agent.iteration_budget`, `gen_ai.agent.token_budget`, the two `.consumed` attributes and the `gen_ai.invoke_agent.token_budget.utilization` histogram, accumulated through the context so that sampled-out child calls still count |
-| Server concurrency gauge (`GENAI_ENABLE_CONCURRENCY_METRICS`) | planned, phase 4 | |
+| Server concurrency gauge (`GENAI_ENABLE_CONCURRENCY_METRICS`) | **shipped** | `gen_ai.server.requests.running` from every instrumentor, plus the server-metrics API. The setting is accepted and, as in the reference, read by nothing: the gauge is always on |
 | GPU, energy, CO2 metrics | **shipped** for NVIDIA on Node | 16 per-device gauges and 4 aggregates from `nvidia-smi`, polled every `GENAI_GPU_COLLECTION_INTERVAL` seconds; energy, electricity cost and CO2 from measured GPU power. Parsed against the real output of an RTX 5090 Laptop GPU (driver 592.02). **Not shipped:** AMD (`amd-smi`), CPU and RAM energy, PCIe throughput. Not run on a multi-GPU or data-centre host. See [gpu-energy.md](gpu-energy.md) |
 | Evaluation (PII, toxicity, bias, prompt injection, restricted topics, hallucination) and pre-call blocking | **shipped** | The five rule-based detectors match all 170 of their vectors in `contract/eval_vectors.json` exactly, floats included, and the span attributes match the 10 non-toxicity `span_attribute_vectors`. Rules are generated from `contract/eval_rules.json`; Python `re` semantics (Unicode `\w \d \s \b`, code-point offsets) are reproduced. Toxicity: see the differences table. Pre-call blocking throws `PolicyViolationError`. See [evaluation.md](evaluation.md) |
 | Multimodal content capture and offload | **shipped** | Detection, offload and the canonical form match vectors made by running the reference; filesystem, HTTP and S3 / MinIO stores. Text needs content capture too; redactors are registered functions. See [media.md](media.md) |
@@ -43,12 +43,11 @@ evaluation, media.
 | `google.generativeai` | `@google/genai` | **shipped** - `generateContent`, `generateContentStream`, `embedContent` (one span per request to the model). The legacy `@google/generative-ai` package is end-of-life and not instrumented |
 | `vertexai` | `@google-cloud/vertexai` | **shipped** - `GenerativeModel.generateContent`, as the reference. Vertex AI through `@google/genai` (`vertexai: true`) is traced by the `google.generativeai` instrumentor, as in the reference |
 | `boto3` | `@aws-sdk/client-bedrock-runtime` | **shipped** - Converse, ConverseStream, InvokeModel, InvokeModelWithResponseStream, through `client.send()` and the aggregated client |
-| `bedrock_agents` | `@aws-sdk/client-bedrock-agent-runtime` | planned, phase 2 |
 | `cohere` | `cohere-ai` | **shipped** - `generate`, `embed` (as the reference), plus `chat` / `chatStream` on the v1 and v2 clients (**not present in Python**, which traces only the legacy `generate`) |
 | `mistralai` | `@mistralai/mistralai` | **shipped** - `chat.complete`, `chat.stream`, `embeddings.create`. Span names carry the model, as in the reference |
 | `groq` | `groq-sdk` | **shipped** - chat completions (buffered, streamed) |
 | `together` | `together-ai` | **shipped** - chat completions, embeddings |
-| `ollama` | `ollama` | **shipped** - `chat`, `generate` (buffered, streamed), `embed`, `embeddings`; token estimate when the server reports no counts. Server-metrics poller: phase 4 |
+| `ollama` | `ollama` | **shipped** - `chat`, `generate` (buffered, streamed), `embed`, `embeddings`; token estimate when the server reports no counts. Server-metrics poller (`/api/ps`): **shipped** - per-model VRAM, and its share only when the GPU's VRAM is known |
 | `replicate` | `replicate` | **shipped** - `run()`. No tokens and no cost: Replicate bills by hardware time, as the reference notes |
 | `elevenlabs` | `@elevenlabs/elevenlabs-js` | **shipped** - `textToSpeech.convert` / `stream` (cost by character), `speechToText.convert` (cost by second) |
 | `sarvamai` | `sarvamai` | **shipped** - chat completions, translate, transliterate, identify-language, speech-to-text (transcribe, translate), text-to-speech (convert, stream); cost per thousand characters |
@@ -57,7 +56,7 @@ evaluation, media.
 | `hyperbolic` | `openai` at `api.hyperbolic.xyz` | **shipped** - chat completions. Not in the default list, as in the reference: enable it by name. The reference traces raw `requests.post`; JavaScript applications use the OpenAI client |
 | `sambanova` | `openai` at `api.sambanova.ai` | **shipped** - chat completions. The reference patches the `sambanova` Python SDK; there is no maintained JavaScript one |
 | `anyscale` | `openai` | **shipped** as the no-op it is in the reference; calls are traced by the `openai` instrumentor |
-| `vllm`, `llamacpp` (server) | `openai` with a base URL | Traced by the `openai` instrumentor with the endpoint in `server.address`. Server-metrics pollers: phase 4 |
+| `vllm`, `llamacpp` (server) | `openai` with a base URL | Traced by the `openai` instrumentor with the endpoint in `server.address`; llama.cpp `timings` become `gen_ai.latency.*`. The reference has no poller for either server, so none here |
 | `transformers` (inference client half) | `@huggingface/inference` | **shipped, by wrapping** - `chatCompletion`, `chatCompletionStream`, `textGeneration` on a client passed through `traceHuggingFaceClient()`. The client cannot be patched from outside (per-instance non-configurable methods, read-only exports) |
 | `transformers` (local pipeline half) | `@huggingface/transformers` (transformers.js) | **shipped** - `huggingface.pipeline`, `huggingface.model.generate`, and `transformers.model.load`. On Node found by name; in a browser handed over with `instrumentTransformers()` |
 | `litellm_latency`, `litellm` | - | not applicable: LiteLLM is a Python library. A LiteLLM *gateway* is reached through the `openai` client and is traced by the `openai` instrumentor |

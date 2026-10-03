@@ -210,6 +210,9 @@
   Ollama.
 
 ### Changed
+- Parity matrix: the server concurrency gauge, the Ollama server-metrics poller and the
+  vLLM / llama.cpp rows describe what shipped; a stale duplicate `bedrock_agents` row is
+  gone. `docs/plans/phase-4.md` records what was built, by commit.
 - Content and span shape are the same for every provider (SDK_ADDITIONS.md sections 5 to
   7): no content-bearing attribute without content capture, whatever an instrumentor
   extracted (`gen_ai.response` was written regardless for Bedrock, Groq, Mistral and
