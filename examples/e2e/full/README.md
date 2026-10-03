@@ -33,7 +33,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://<collector-host>:4318 node examples/e2e/full/
 | `E2E_EMBEDDING_MODEL` | `embeddinggemma:300m` | |
 | `E2E_LLM_API_KEY` | a placeholder | Ollama needs none |
 | `E2E_MAX_TOKENS` | `1024` | Per call. Generous on purpose: a reasoning model spends tokens thinking first, and with a small limit its answer comes back empty |
-| `E2E_SESSION_ID` | `genai-sdk-e2e-node-<epoch ms>` | Printed on stderr as `session.id: ...` and in the JSON as `session_id` |
+| `E2E_SESSION_ID` | `genai-sdk-e2e-node-<12 random hex characters>` | Printed on stderr as `session.id: ...` and in the JSON as `session_id` |
 | `E2E_DATASTORE` | `http` | `http`: GET `/api/tags` on the model server, traced by the fetch instrumentor (switched on by the script); `qdrant`: the Qdrant instrumentor; `none`: skipped |
 | `E2E_QDRANT_URL` | `http://localhost:6333` | With `E2E_DATASTORE=qdrant`. The collection `E2E_QDRANT_COLLECTION` (default `genai-sdk-e2e-node`) is created if missing and one point is upserted |
 
@@ -73,7 +73,7 @@ stdout is one JSON document:
 ```json
 {
   "service_name": "genai-sdk-e2e-node",
-  "session_id": "genai-sdk-e2e-node-1790956311063",
+  "session_id": "genai-sdk-e2e-node-3f9c1a7be204",
   "trace_id": "…32 hex…",
   "steps": [
     { "name": "chat", "status": "ok", "detail": { "answer": "pong", "model_calls": 1, "input_tokens": 17, "output_tokens": 108, "evaluation": { "…": "…" } } },

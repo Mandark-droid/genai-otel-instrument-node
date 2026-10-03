@@ -11,6 +11,7 @@
  *
  * The model is any OpenAI-compatible endpoint; the default is a local Ollama.
  */
+import { randomBytes } from 'node:crypto';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { OpenTelemetry } from '@ai-sdk/otel';
 import { generateText } from 'ai';
@@ -25,7 +26,7 @@ const provider = createOpenAICompatible({
   baseURL: process.env.EXAMPLE_BASE_URL ?? 'http://localhost:11434/v1',
 });
 
-const sessionId = process.env.EXAMPLE_SESSION_ID ?? `ai-sdk-${Date.now()}`;
+const sessionId = process.env.EXAMPLE_SESSION_ID ?? `ai-sdk-${randomBytes(6).toString('hex')}`;
 const result = await withSession(sessionId, () =>
   generateText({
     model: provider(process.env.EXAMPLE_CHAT_MODEL ?? 'qwen3.5:4b'),

@@ -250,6 +250,10 @@
   `docs/media.md`.
 
 ### Fixed
+- Example session ids end in 12 random hex characters instead of an epoch-millisecond
+  timestamp (`examples/e2e/smoke`, `examples/e2e/full` and the other examples). The
+  platform collector's card-number redaction masks a 13-digit run, so every run of an
+  example was stored as one session.
 - On Node 18, `instrument()` in an ES-module application could end the process with an
   unhandled `ReferenceError: File is not defined` when an installed client library needs a
   newer Node (anything on `undici` 7). A library whose CommonJS build fails to run is now

@@ -41,7 +41,7 @@ const dtype = query.get('dtype') ?? 'q4';
 // 1. Telemetry. Without an endpoint nothing is exported and the page still works.
 if (endpoint) {
   instrument({ serviceName: query.get('service') ?? 'genai-sdk-e2e-web', endpoint });
-  setSession(query.get('session') ?? 'web-' + Date.now());
+  setSession(query.get('session') ?? 'web-' + [...globalThis.crypto.getRandomValues(new Uint8Array(6))].map((byte) => byte.toString(16).padStart(2, '0')).join(''));
 } else {
   fact('telemetry', 'off: pass ?endpoint=http://<collector>:4318 to export');
 }

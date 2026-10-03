@@ -88,7 +88,8 @@ describe('examples/e2e/smoke against a mock model server and a local OTLP receiv
     expect(summary.telemetry_flushed).toBe(true);
     expect(summary.trace_id).toMatch(/^[0-9a-f]{32}$/);
     // Every span of the run carries the session id the summary prints.
-    expect(summary.session_id).toMatch(/^genai-sdk-e2e-node-\d+$/);
+    // A hex suffix: the platform redacts digit runs shaped like a card number, which an epoch-ms suffix is.
+    expect(summary.session_id).toMatch(/^genai-sdk-e2e-node-[0-9a-f]{12}$/);
     expect(receiver.spans.length).toBeGreaterThan(0);
     for (const exported of receiver.spans) expect(exported.attributes['session.id'], exported.name).toBe(summary.session_id);
 

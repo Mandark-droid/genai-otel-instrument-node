@@ -20,6 +20,7 @@
  * variable is missing. A step that could not be exercised (no datastore, a
  * model that did not call the tool) is recorded as such and does not fail the run.
  */
+import { randomBytes } from 'node:crypto';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import { QdrantClient } from '@qdrant/js-client-rest';
@@ -39,7 +40,9 @@ const apiKey = process.env.E2E_LLM_API_KEY ?? 'not-needed';
 const datastore = (process.env.E2E_DATASTORE ?? 'http').toLowerCase();
 const qdrantUrl = process.env.E2E_QDRANT_URL || 'http://localhost:6333';
 const qdrantCollection = process.env.E2E_QDRANT_COLLECTION || 'genai-sdk-e2e-node';
-const sessionId = process.env.E2E_SESSION_ID || `genai-sdk-e2e-node-${Date.now()}`;
+// A hex suffix, never an epoch: a 13-digit run is masked by the collector's card-number
+// redaction, which would put every run in the same session.
+const sessionId = process.env.E2E_SESSION_ID || `genai-sdk-e2e-node-${randomBytes(6).toString('hex')}`;
 // Generous on purpose: a reasoning model (qwen3.5 is one) spends tokens thinking
 // before it answers, and with a small limit the answer comes back empty.
 const maxTokens = Number(process.env.E2E_MAX_TOKENS) > 0 ? Number(process.env.E2E_MAX_TOKENS) : 1024;

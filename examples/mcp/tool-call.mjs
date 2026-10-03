@@ -10,6 +10,7 @@
  * MCP instrumentation is opt-in, as in the Python library: name `mcp_client`
  * in the instrumentor list.
  */
+import { randomBytes } from 'node:crypto';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -54,7 +55,7 @@ const client = new Client({ name: 'example-agent', version: '1.0.0' });
 const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
 await Promise.all([server.connect(serverSide), client.connect(clientSide)]);
 
-const sessionId = process.env.EXAMPLE_SESSION_ID ?? `mcp-${Date.now()}`;
+const sessionId = process.env.EXAMPLE_SESSION_ID ?? `mcp-${randomBytes(6).toString('hex')}`;
 await withMcpSession(
   sessionId,
   async () => {

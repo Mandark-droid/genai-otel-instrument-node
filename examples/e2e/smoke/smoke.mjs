@@ -21,6 +21,7 @@
  * telemetry was accepted by the collector; 1 the call itself failed; 2 the call
  * succeeded but the telemetry could not be flushed.
  */
+import { randomBytes } from 'node:crypto';
 import { trace } from '@opentelemetry/api';
 import OpenAI from 'openai';
 import {
@@ -82,7 +83,9 @@ void CostEnrichmentSpanProcessor;
 
 const client = new OpenAI({ apiKey, baseURL, maxRetries: 0 });
 // The platform builds a session only from spans that carry a session id.
-const sessionId = process.env.E2E_SESSION_ID || `genai-sdk-e2e-node-${Date.now()}`;
+// A hex suffix, never an epoch: a 13-digit run is masked by the collector's card-number
+// redaction, which would put every run in the same session.
+const sessionId = process.env.E2E_SESSION_ID || `genai-sdk-e2e-node-${randomBytes(6).toString('hex')}`;
 const prompt = process.env.E2E_PROMPT ?? 'Reply with the single word: pong';
 
 /** @type {import('openai').OpenAI.Chat.Completions.ChatCompletion} */

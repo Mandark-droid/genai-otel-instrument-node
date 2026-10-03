@@ -10,6 +10,7 @@
  *
  * The model is any OpenAI-compatible endpoint; the default is a local Ollama.
  */
+import { randomBytes } from 'node:crypto';
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import OpenAI from 'openai';
 import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from '@traceverse/genai-otel-instrument';
@@ -43,7 +44,7 @@ const graph = new StateGraph(State)
   .addEdge('shorten', END)
   .compile();
 
-const threadId = process.env.EXAMPLE_SESSION_ID ?? `langgraph-${Date.now()}`;
+const threadId = process.env.EXAMPLE_SESSION_ID ?? `langgraph-${randomBytes(6).toString('hex')}`;
 const result = await graph.invoke({ question: 'What is the capital of France?' }, { configurable: { thread_id: threadId }, recursionLimit: 10 });
 console.log('answer:', result.answer);
 console.log('session.id:', threadId);

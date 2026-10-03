@@ -14,7 +14,8 @@ import { instrument, instrumentCactus, setSession } from '@traceverse/genai-otel
 export const COLLECTOR_ENDPOINT = 'http://10.0.2.2:4318';
 
 /** One conversation, one session: the platform groups spans by this id. */
-export const SESSION_ID = `rn-${Date.now()}`;
+// Not an epoch suffix: a 13-digit run is masked by the collector's card-number redaction.
+export const SESSION_ID = `rn-${Math.random().toString(16).slice(2, 14).padEnd(12, '0')}`;
 
 let started = false;
 

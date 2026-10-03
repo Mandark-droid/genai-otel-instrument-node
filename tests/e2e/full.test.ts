@@ -52,7 +52,7 @@ const MODEL_REPLIES: MockReply[] = [
   chat('pong'), // chat
   { fixture: 'openai/chat.completion.stream.sse' }, // streaming
   { fixture: 'openai/chat.completion.tool-calls.json' }, // tool call: the model asks for tools
-  chat('It is 31 degrees in Mumbai.'), // tool call: the answer after the tool results
+  chat('It is 31°C in Mumbai.'), // tool call: the answer after the tool results; non-ASCII on purpose
   { fixture: 'openai/embeddings.float.json' }, // embeddings
   chat('Paris is the capital of France, a country in Europe.'), // framework: draft
   chat('Paris.'), // framework: shorten
@@ -149,6 +149,8 @@ describe('examples/e2e/full against mocks', () => {
     const summary = JSON.parse(outcome.stdout) as Summary;
     expect(summary.service_name).toBe('genai-sdk-e2e-node');
     expect(summary.session_id).toBe('full-session-under-test');
+    // The model's answer reaches the summary as UTF-8, unchanged: no latin-1 decoding anywhere in the process.
+    expect(summary.steps.find((step) => step.name === 'tool_calls')?.detail?.answer).toBe('It is 31°C in Mumbai.');
     expect(summary.telemetry_flushed).toBe(true);
     expect(summary.steps.map((step) => [step.name, step.status])).toEqual([
       ['chat', 'ok'],
@@ -229,7 +231,8 @@ describe('examples/e2e/full against mocks', () => {
     expect(outcome.code, `${outcome.stderr}\n${outcome.stdout}`).toBe(0);
     const summary = JSON.parse(outcome.stdout) as Summary;
     expect(summary.steps.find((step) => step.name === 'datastore')).toMatchObject({ status: 'not_exercised', reason: 'E2E_DATASTORE=none' });
-    expect(summary.session_id).toMatch(/^genai-sdk-e2e-node-\d+$/);
+    // A hex suffix: the platform redacts digit runs shaped like a card number, which an epoch-ms suffix is.
+    expect(summary.session_id).toMatch(/^genai-sdk-e2e-node-[0-9a-f]{12}$/);
     expect(named('qdrant.query_points')).toEqual([]);
   }, 120_000);
 

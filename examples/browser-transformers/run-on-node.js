@@ -8,12 +8,13 @@
  *
  * The first run downloads the model from the Hugging Face hub.
  */
+import { randomBytes } from 'node:crypto';
 import { pipeline } from '@huggingface/transformers';
 import { flushTelemetry, instrument, instrumentorsReady, setSession, uninstrument } from '../../dist/index.mjs';
 
 instrument({ serviceName: process.env.OTEL_SERVICE_NAME ?? 'example-transformers-node' });
 await instrumentorsReady();
-setSession(process.env.EXAMPLE_SESSION_ID ?? 'transformers-node-' + Date.now());
+setSession(process.env.EXAMPLE_SESSION_ID ?? 'transformers-node-' + randomBytes(6).toString('hex'));
 
 const model = process.env.EXAMPLE_CHAT_MODEL ?? 'Xenova/distilgpt2';
 const generator = await pipeline('text-generation', model, { dtype: 'q8' });
