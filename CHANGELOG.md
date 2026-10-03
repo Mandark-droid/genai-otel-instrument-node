@@ -250,6 +250,13 @@
   `docs/media.md`.
 
 ### Fixed
+- No GPU, energy, power-cost or CO2 telemetry from a process whose event loop was busy while
+  the first `nvidia-smi` call ran (the platform run of `examples/e2e/full` on 2026-10-04).
+  `execFile`'s timeout fired on the finished child after the loop unblocked, its output was
+  lost without an error, and the empty answer read as "no GPU" at info level, never retried.
+  Now: the SDK's own timeout (10 s) never fires on a child that has exited; an empty answer
+  is a failure, not "no GPU"; a failing first sample is retried on the interval, up to 5
+  times, with a warning; and `flushTelemetry()` waits for the first sample.
 - Example session ids end in 12 random hex characters instead of an epoch-millisecond
   timestamp (`examples/e2e/smoke`, `examples/e2e/full` and the other examples). The
   platform collector's card-number redaction masks a 13-digit run, so every run of an

@@ -376,6 +376,8 @@ export async function flushTelemetry(timeoutSeconds = 5.0): Promise<boolean> {
   const evaluation = activeEvaluation();
   if (evaluation) await withDeadline(evaluation.idle(), timeoutMs);
   await withDeadline(mediaIdle(), timeoutMs);
+  // The first GPU sample runs a process; a run shorter than that would export no GPU reading at all.
+  if (state.gpu?.firstAttempt) await withDeadline(state.gpu.firstAttempt, timeoutMs);
   const results = await Promise.all(
     [state.handle.tracerProvider, state.handle.meterProvider].map(async (provider) => {
       try {

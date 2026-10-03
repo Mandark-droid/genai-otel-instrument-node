@@ -7,7 +7,7 @@
  *
  * Not available this way: PCIe throughput, which `--query-gpu` does not offer.
  */
-import { execFile } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import type { GpuSample, GpuSource } from './collector';
 
 type NumericField = Exclude<keyof GpuSample, 'index' | 'name'>;
@@ -93,11 +93,53 @@ export function parseNvidiaSmi(output: string, fields: readonly QueryField[]): G
 /** Run a command and resolve to its standard output; reject on a non-zero exit, with `stdout` on the error. */
 export type RunCommand = (command: string, args: string[], timeoutMs: number) => Promise<string>;
 
-const runWithExecFile: RunCommand = (command, args, timeoutMs) =>
+const MAX_OUTPUT = 1024 * 1024;
+
+/**
+ * Run a vendor tool with a timeout that cannot fire on a child that has
+ * already finished.
+ *
+ * `execFile`'s own timeout is a timer. When the event loop is blocked past it -
+ * an application evaluating its modules right after `instrument()` - the timers
+ * phase runs before the child's exit and output are read: the finished child is
+ * "killed" and its output lost, with no error. That read as a host without a
+ * GPU. Here the timer only defers to the end of the loop's turn, after pending
+ * I/O, and a child that has exited is left alone.
+ */
+export const runCommand: RunCommand = (command, args, timeoutMs) =>
   new Promise((resolve, reject) => {
-    execFile(command, args, { timeout: timeoutMs, windowsHide: true, maxBuffer: 1024 * 1024 }, (error, stdout, stderr) => {
-      if (error) reject(Object.assign(error, { stdout: String(stdout), stderr: String(stderr) }));
-      else resolve(String(stdout));
+    let stdout = '';
+    let stderr = '';
+    let settled = false;
+    const settle = (finish: () => void): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      finish();
+    };
+    const child = spawn(command, args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', (chunk: string) => {
+      if (stdout.length < MAX_OUTPUT) stdout += chunk;
+    });
+    child.stderr.on('data', (chunk: string) => {
+      if (stderr.length < MAX_OUTPUT) stderr += chunk;
+    });
+    const timer = setTimeout(() => {
+      setImmediate(() => {
+        if (settled || child.exitCode !== null || child.signalCode !== null) return;
+        child.kill();
+        settle(() => reject(Object.assign(new Error(`${command} did not finish within ${timeoutMs} ms`), { code: 'ETIMEDOUT', stdout, stderr })));
+      });
+    }, timeoutMs);
+    (timer as { unref?: () => void }).unref?.();
+    child.on('error', (error) => settle(() => reject(Object.assign(error, { stdout, stderr }))));
+    child.on('close', (code, signal) => {
+      settle(() => {
+        if (code === 0) resolve(stdout);
+        else reject(Object.assign(new Error(`${command} exited with ${code ?? signal}`), { code: code ?? signal, stdout, stderr }));
+      });
     });
   });
 
@@ -107,14 +149,16 @@ export class NvidiaSmiSource implements GpuSource {
   unavailable = false;
 
   constructor(
-    private readonly run: RunCommand = runWithExecFile,
-    private readonly timeoutMs = 5000,
+    private readonly run: RunCommand = runCommand,
+    // As the Java SDK: a busy driver can take seconds to answer.
+    private readonly timeoutMs = 10_000,
   ) {}
 
   async sample(): Promise<GpuSample[] | undefined> {
     if (this.unavailable) return undefined;
+    let output: string;
     try {
-      return parseNvidiaSmi(await this.query(this.fields), this.fields);
+      output = await this.query(this.fields);
     } catch (error) {
       const failure = error as { code?: unknown; stdout?: unknown; stderr?: unknown; message?: unknown };
       if (failure.code === 'ENOENT') {
@@ -127,8 +171,13 @@ export class NvidiaSmiSource implements GpuSource {
         this.fields = CORE_FIELDS;
         return this.sample();
       }
+      // What nvidia-smi says, with a non-zero exit, on a host whose driver sees no GPU.
+      if (/no devices were found/i.test(said)) return [];
       throw new Error(`nvidia-smi failed: ${said || String(failure.message ?? error)}`);
     }
+    // Success with nothing to read is not "no GPU": nvidia-smi always prints a line per device.
+    if (!output.trim()) throw new Error('nvidia-smi exited with no output');
+    return parseNvidiaSmi(output, this.fields);
   }
 
   /** VRAM of the first device in GB, or undefined when it cannot be found out. Never rejects. */

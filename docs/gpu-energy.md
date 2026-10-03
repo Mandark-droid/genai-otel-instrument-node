@@ -7,7 +7,17 @@ WebGPU exposes no utilisation or power, and the device's own counters are not re
 
 `nvidia-smi --query-gpu=... --format=csv,noheader,nounits` is run every
 `GENAI_GPU_COLLECTION_INTERVAL` seconds (default 5), off the request path, with a
-5-second timeout. One line per device. The gauges report the latest sample.
+10-second timeout. One line per device. The gauges report the latest sample.
+`flushTelemetry()` waits for the first sample, so a run shorter than one `nvidia-smi` call
+still exports a GPU reading.
+
+The timeout is the SDK's own, not `execFile`'s. `execFile`'s timeout is a timer: when the
+application blocks the event loop past it while `nvidia-smi` runs - an ES-module application
+evaluating its modules right after `instrument()` - the timer fires before the child's exit
+and output are read, the finished child is "killed", and its output is lost with no error.
+Up to 0.1.0-dev that read as "no GPU on this host", logged at info level, and the process
+reported no GPU telemetry at all. Here a timer that fires defers to after pending I/O, and
+a child that has exited is never killed.
 
 | Metric | Unit | From |
 |---|---|---|
@@ -38,7 +48,8 @@ From power, between two samples:
 | Situation | What happens |
 |---|---|
 | No `nvidia-smi` on the host | No GPU instrument is created. One line at info level. Not asked again |
-| `nvidia-smi` present and failing at start (no driver, no device) | No instrument. One warning with what the tool said |
+| `nvidia-smi` answers "No devices were found" | As a host with no GPU: no instrument, one line at info level |
+| `nvidia-smi` present and failing at start (no driver, a timeout, no output at all) | No instrument yet. One warning with what the tool said; the first sample is tried again every interval, and after 5 failures in a row one more warning and no further attempt. An empty answer is a failure, never "no GPU" |
 | A field the device reports as `[N/A]` (on a laptop GPU: power limit, fan speed, ECC) | That gauge has no point for that device. The others do |
 | An older driver that does not know one of the fields | The core set (utilisation, memory, temperature, power) is used from then on |
 | The tool starts failing later | Nothing is observed for that sample, and the energy of the gap is not integrated. After 5 failed samples in a row collection stops, with one warning |

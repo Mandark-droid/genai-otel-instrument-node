@@ -7,7 +7,9 @@
  * measured power integrated over the time between two samples.
  *
  * What is not measured is not reported:
- * - no GPU on the host, or the tool failing: no instrument is created at all;
+ * - no GPU on the host: no instrument is created at all;
+ * - the tool failing at start: one warning, and the first sample is tried again
+ *   on the interval, up to the consecutive-failure limit, before giving up;
  * - a field a device does not report (`[N/A]`): that gauge has no point for it;
  * - no energy across a gap in the samples.
  *
@@ -86,7 +88,7 @@ const JOULES_PER_KWH = 3_600_000;
 export interface GpuCollectorOptions {
   /** Seconds between samples. Default: `GENAI_GPU_COLLECTION_INTERVAL`. */
   intervalSeconds?: number;
-  /** Consecutive failed samples after which collection stops. Default 5. */
+  /** Consecutive failed samples (at start, or once running) after which collection stops. Default 5. */
   maxConsecutiveFailures?: number;
   /** Seconds since any fixed point; for tests. */
   now?: () => number;
@@ -105,6 +107,8 @@ export class GpuMetricsCollector {
   private previous: Timed | undefined;
   private failures = 0;
   private timer: ReturnType<typeof setInterval> | undefined;
+  private retry: ReturnType<typeof setTimeout> | undefined;
+  private stopped = false;
   private started = false;
   private energy: Counter | undefined;
   private energyTotal: Counter | undefined;
@@ -134,21 +138,48 @@ export class GpuMetricsCollector {
 
   /**
    * Take the first sample and, if there is a GPU, create the instruments and
-   * start polling. Resolves to whether collection started. Never rejects.
+   * start polling. Resolves to whether this first attempt started collection.
+   * Never rejects.
+   *
+   * A host without a GPU is final. A failing tool is not: a driver that is
+   * busy at start-up answers a moment later, so the first sample is tried
+   * again on the interval - one warning now, one more if it never answers.
    */
-  async start(): Promise<boolean> {
-    if (this.started) return true;
+  start(): Promise<boolean> {
+    if (this.started) return Promise.resolve(true);
+    this.stopped = false;
+    this.firstAttempt = this.attemptStart();
+    return this.firstAttempt;
+  }
+
+  /** The first sample being taken, or done: what a flush waits for, so a short run still reports its GPU. */
+  firstAttempt: Promise<boolean> | undefined;
+
+  private async attemptStart(): Promise<boolean> {
     let devices: GpuSample[] | undefined;
     try {
       devices = await this.source.sample();
     } catch (error) {
-      logger.warn(`GPU metrics are not collected: ${error instanceof Error ? error.message : String(error)}`);
+      if (this.stopped) return false;
+      this.failures += 1;
+      const reason = error instanceof Error ? error.message : String(error);
+      if (this.failures >= this.maxFailures) {
+        logger.warn(`GPU metrics are not collected: no answer after ${this.failures} attempts: ${reason}`);
+        this.failures = 0;
+        return false;
+      }
+      if (this.failures === 1) logger.warn(`GPU metrics not collected yet, trying again every ${this.intervalMs / 1000}s: ${reason}`);
+      else logger.debug(`GPU sample failed (${this.failures}): ${reason}`);
+      this.retry = setTimeout(() => void this.attemptStart(), this.intervalMs);
+      (this.retry as { unref?: () => void }).unref?.();
       return false;
     }
+    if (this.stopped) return false;
     if (!devices || devices.length === 0) {
       logger.info('No GPU found on this host: GPU, energy and CO2 metrics are not collected');
       return false;
     }
+    this.failures = 0;
     this.createInstruments(metrics.getMeter(GPU_METER_NAME));
     this.latest = devices;
     this.previous = { at: this.now(), devices };
@@ -161,8 +192,11 @@ export class GpuMetricsCollector {
   }
 
   stop(): void {
+    this.stopped = true;
     if (this.timer !== undefined) clearInterval(this.timer);
+    if (this.retry !== undefined) clearTimeout(this.retry);
     this.timer = undefined;
+    this.retry = undefined;
     this.started = false;
     this.latest = undefined;
     this.previous = undefined;

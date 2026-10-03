@@ -10,7 +10,9 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GpuMetricsCollector, type GpuSample, type GpuSource } from '../../src/gpu/collector';
-import { FULL_FIELDS, CORE_FIELDS, NvidiaSmiSource, parseNvidiaSmi, type RunCommand } from '../../src/gpu/nvidia-smi';
+import { FULL_FIELDS, CORE_FIELDS, NvidiaSmiSource, parseNvidiaSmi, runCommand, type RunCommand } from '../../src/gpu/nvidia-smi';
+import { InMemoryMetricExporter, AggregationTemporality, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
+import { flushTelemetry } from '../../src/auto-instrument';
 import { setGpuSource } from '../../src/gpu/collector';
 import { loadConfig } from '../../src/config';
 import { setLogger } from '../../src/logger';
@@ -133,10 +135,52 @@ describe('NvidiaSmiSource', () => {
     expect(source.unavailable).toBe(false);
   });
 
+  it('an empty answer is a failure, not a host without a GPU', async () => {
+    // What execFile handed back when its timeout fired on a child that had already exited.
+    await expect(new NvidiaSmiSource(async () => '').sample()).rejects.toThrow('no output');
+  });
+
+  it('"No devices were found" is a host without a GPU, not a failure', async () => {
+    const source = new NvidiaSmiSource(async () => {
+      throw Object.assign(new Error('exit code 6'), { stdout: 'No devices were found\n' });
+    });
+    expect(await source.sample()).toEqual([]);
+  });
+
   it('VRAM of the first device, in GB', async () => {
     const source = new NvidiaSmiSource(async () => fixture('rtx5090-laptop.full.csv'));
     expect(await source.firstDeviceVramGb()).toBeCloseTo(24463 / 1024, 6);
     expect(await new NvidiaSmiSource(async () => '').firstDeviceVramGb()).toBeUndefined();
+  });
+});
+
+const busy = (ms: number): void => {
+  const until = Date.now() + ms;
+  while (Date.now() < until) {
+    // Synchronous work, as an application's module evaluation is.
+  }
+};
+
+describe('runCommand', () => {
+  // The cause of a platform run with no GPU telemetry at all: execFile's own timeout
+  // is a timer, and when the event loop is blocked past it the timers phase runs
+  // before the child's exit and output are read - the finished child is "killed"
+  // and its output lost, which then read as "no GPU on this host".
+  it('a child that finished while the event loop was blocked past the timeout: its output is kept', async () => {
+    const pending = runCommand(process.execPath, ['-e', "process.stdout.write('0, Test GPU')"], 300);
+    busy(1500);
+    await expect(pending).resolves.toBe('0, Test GPU');
+  });
+
+  it('a child that does not finish in time is killed and the call fails', async () => {
+    const started = Date.now();
+    await expect(runCommand(process.execPath, ['-e', 'setTimeout(() => {}, 20000)'], 300)).rejects.toMatchObject({ code: 'ETIMEDOUT' });
+    expect(Date.now() - started).toBeLessThan(5000);
+  });
+
+  it('a non-zero exit fails with what the command printed; a missing command fails with ENOENT', async () => {
+    await expect(runCommand(process.execPath, ['-e', "process.stdout.write('said'); process.exit(3)"], 5000)).rejects.toMatchObject({ stdout: 'said' });
+    await expect(runCommand('genai-otel-no-such-command', [], 5000)).rejects.toMatchObject({ code: 'ENOENT' });
   });
 });
 
@@ -159,16 +203,31 @@ describe('GpuMetricsCollector', () => {
     expect(await empty.start()).toBe(false);
   });
 
-  it('nvidia-smi failing at start: no instrument, one warning, no retry loop', async () => {
+  it('nvidia-smi failing at start: one warning, then retried on the interval until it answers', async () => {
+    harness = await startHarness({ enabledInstrumentors: [] });
+    const log = quietLogger();
+    const source = playback(new Error('could not communicate with the NVIDIA driver'), new Error('still busy'), [gpu({ utilization: 7 })]);
+    const collector = new GpuMetricsCollector(config(), source, { intervalSeconds: 0.02 });
+    collectors.push(collector);
+    expect(await collector.start()).toBe(false);
+    await vi.waitFor(() => expect(collector.running).toBe(true));
+    expect(source.polls).toBe(3);
+    expect(await points('gen_ai.gpu.utilization')).toEqual([{ attributes: { gpu_id: '0', gpu_name: 'Test GPU' }, value: 7 }]);
+    expect(log.warn.mock.calls.map(([m]) => String(m)).join('\n')).toContain('could not communicate');
+    expect(log.warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('nvidia-smi failing at every attempt: retried a bounded number of times, then one more warning, no instrument', async () => {
     harness = await startHarness({ enabledInstrumentors: [] });
     const log = quietLogger();
     const source = playback(new Error('could not communicate with the NVIDIA driver'));
-    const collector = new GpuMetricsCollector(config(), source);
+    const collector = new GpuMetricsCollector(config(), source, { intervalSeconds: 0.01, maxConsecutiveFailures: 3 });
     collectors.push(collector);
     expect(await collector.start()).toBe(false);
-    await new Promise((done) => setTimeout(done, 80));
-    expect(source.polls).toBe(1);
-    expect(log.warn.mock.calls.map(([m]) => String(m)).join('\n')).toContain('could not communicate');
+    await new Promise((done) => setTimeout(done, 200));
+    expect(source.polls).toBe(3);
+    expect(collector.running).toBe(false);
+    expect(log.warn).toHaveBeenCalledTimes(2);
     expect(await points('gen_ai.gpu.utilization')).toBeUndefined();
   });
 
@@ -302,6 +361,20 @@ describe('instrument()', () => {
     setGpuSource(() => source);
     harness = await startHarness({ enabledInstrumentors: [], enableGpuMetrics: true, gpuCollectionInterval: 1 });
     await vi.waitFor(async () => expect(await points('gen_ai.gpu.temperature')).toEqual([{ attributes: { gpu_id: '0', gpu_name: 'NVIDIA GeForce RTX 5090 Laptop GPU' }, value: 59 }]));
+  });
+
+  it('flushTelemetry() right after instrument() waits for the first GPU sample, so a short run still exports it', async () => {
+    // A first sample that takes as long as a real nvidia-smi call on a busy host.
+    const source: GpuSource = {
+      sample: () => new Promise((done) => setTimeout(() => done([gpu({ temperatureC: 61 })]), 150)),
+    };
+    setGpuSource(() => source);
+    const exporter = new InMemoryMetricExporter(AggregationTemporality.CUMULATIVE);
+    const reader = new PeriodicExportingMetricReader({ exporter, exportIntervalMillis: 3_600_000 });
+    harness = await startHarness({ enabledInstrumentors: [], enableGpuMetrics: true, gpuCollectionInterval: 60, metricReaders: [reader] });
+    await flushTelemetry(5);
+    const exported = exporter.getMetrics().flatMap((batch) => batch.scopeMetrics.flatMap((scope) => scope.metrics.map((metric) => metric.descriptor.name)));
+    expect(exported).toContain('gen_ai.gpu.temperature');
   });
 
   it('switched off: the source is never asked', async () => {
