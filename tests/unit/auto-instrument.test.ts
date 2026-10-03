@@ -295,6 +295,23 @@ describe('instrument()', () => {
     expect(warned).not.toContain('GENAI_ENABLE_PII_DETECTION');
   });
 
+  it('the codecarbon location settings are accepted and reported as having no effect (SDK_ADDITIONS.md section 9)', async () => {
+    const log = quietLogger();
+    const port = await closedPort();
+    process.env.GENAI_CO2_COUNTRY_ISO_CODE = 'IND';
+    process.env.GENAI_CO2_OFFLINE_MODE = 'true';
+    try {
+      instrument({ endpoint: `http://127.0.0.1:${port}`, enabledInstrumentors: [], enableCo2Tracking: true });
+    } finally {
+      delete process.env.GENAI_CO2_COUNTRY_ISO_CODE;
+      delete process.env.GENAI_CO2_OFFLINE_MODE;
+    }
+    const warned = log.warn.mock.calls.map(([message]) => String(message)).join(String.fromCharCode(10));
+    expect(warned).toContain('GENAI_CO2_COUNTRY_ISO_CODE');
+    expect(warned).toContain('GENAI_CO2_OFFLINE_MODE');
+    expect(warned).toContain('GENAI_CARBON_INTENSITY');
+  });
+
   it('an instrumentor name it does not know is reported', async () => {
     const log = quietLogger();
     const port = await closedPort();

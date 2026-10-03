@@ -209,7 +209,23 @@ function reportUnhonouredSettings(config: OTelConfig, env: Env): void {
   if (config.enableCo2Tracking && !config.enableGpuMetrics) {
     logger.warn('GENAI_ENABLE_CO2_TRACKING is on but GENAI_ENABLE_GPU_METRICS is off: CO2 is computed from measured GPU energy, so nothing is collected for it.');
   }
-  void env;
+  // codecarbon's location and mode settings: accepted, and said to have no effect here.
+  const codecarbon = [
+    'GENAI_CO2_COUNTRY_ISO_CODE',
+    'GENAI_CO2_REGION',
+    'GENAI_CO2_CLOUD_PROVIDER',
+    'GENAI_CO2_CLOUD_REGION',
+    'GENAI_CO2_OFFLINE_MODE',
+    'GENAI_CO2_TRACKING_MODE',
+    'GENAI_CO2_USE_MANUAL',
+    'GENAI_CODECARBON_LOG_LEVEL',
+  ].filter((name) => env[name] !== undefined);
+  if (codecarbon.length > 0) {
+    logger.warn(
+      `${codecarbon.join(', ')}: codecarbon settings, with no effect in this SDK. CO2 here is measured GPU energy ` +
+        'times GENAI_CARBON_INTENSITY (a configured factor, not a reading of the grid). See docs/gpu-energy.md.',
+    );
+  }
 }
 
 /**

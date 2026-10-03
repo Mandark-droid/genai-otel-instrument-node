@@ -57,15 +57,15 @@ the reference implementation's default. It is not the intensity of the grid the 
 on. Set it to that grid's figure, or treat the metric as an order of magnitude.
 
 The reference uses codecarbon, which carries regional grid data and also measures CPU and
-RAM. None of that exists here, and the `GENAI_CO2_*` location and mode variables have no
-effect.
+RAM. None of that exists here. The `GENAI_CO2_*` location and mode variables are accepted
+and have no effect; setting one says so in the log at start-up.
 
 ## Differences from the reference
 
 - The reference's own formula for energy from power is 3.6 times too high (it multiplies
   kilowatts by seconds and treats the result as watt-hours); it affects its
   `gen_ai.power.cost` always, and its CO2 when codecarbon is not installed. Here the
-  energy is watts times seconds over 3 600 000. Pending the lead's confirmation.
+  energy is watts times seconds over 3 600 000. Confirmed, SDK_ADDITIONS.md section 9.
 - `gen_ai.gpu.pcie.tx` / `.rx` and `gen_ai.codecarbon.task.duration` are never reported.
 - AMD GPUs are not read. The reference reads them through the `amdsmi` Python binding;
   the command-line tool's output could not be checked on any machine available here.
