@@ -2,10 +2,8 @@
  * MCP semantic conventions: attribution for tool calls made through the Model
  * Context Protocol. A port of `genai_otel/mcp_semconv/`.
  *
- * Not ported in this phase: the terminal-state classifier
- * (`terminal_state.py`), which reduces a finished session's spans to one of
- * seven outcomes. It is an analysis of collected spans, not instrumentation,
- * and is planned with the evaluation work.
+ * Also the terminal-state classifier (`terminal_state.py`): a finished
+ * session's spans reduced to one of seven outcomes, with the evidence.
  */
 export { BEHAVIOUR_MUTATING, BEHAVIOUR_READ_ONLY, CommerceAttributes, GuardrailAttributes, MCPAttributes, STAGES } from './attributes';
 export {
@@ -41,3 +39,15 @@ export {
   type ToolMetadata,
   type ToolResolution,
 } from './tool-registry';
+export {
+  CART_MUTATION_STAGES,
+  classifySession,
+  GUARDRAIL_BLOCK_DECISIONS,
+  NoToolResolution,
+  PLATFORM_HTTP_STATUSES,
+  TerminalState,
+  TerminalStateClassifier,
+  type Classification,
+  type ClassifierOptions,
+  type Evidence,
+} from './terminal-state';

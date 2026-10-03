@@ -21,9 +21,21 @@ export function run(script: string, env: Record<string, string>): Promise<{ code
     let stderr = '';
     child.stdout.on('data', (chunk: Buffer) => (stdout += chunk.toString()));
     child.stderr.on('data', (chunk: Buffer) => (stderr += chunk.toString()));
-    child.on('close', (code) => done({ code, stdout, stderr }));
+    // A child that hangs is killed with its output kept, so the failure says where it stopped.
+    const timer = setTimeout(() => {
+      stderr += `
+[killed after ${RUN_LIMIT_MS} ms]`;
+      child.kill();
+    }, RUN_LIMIT_MS);
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      done({ code, stdout, stderr });
+    });
   });
 }
+
+/** Under the 60 s test timeout, so a hung example fails with its output rather than a bare timeout. */
+const RUN_LIMIT_MS = 50_000;
 
 export interface ExampleCase {
   script: string;

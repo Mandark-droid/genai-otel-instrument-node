@@ -1,0 +1,1568 @@
+{
+ "generated_by": "genai_otel_instrument (reference) mcp_semconv.terminal_state, scratch generator",
+ "registry": [
+  {
+   "server": "shop",
+   "tools": [
+    {
+     "behaviour": "read-only",
+     "name": "search_products",
+     "stage": "Discover"
+    },
+    {
+     "behaviour": "mutating",
+     "name": "add_to_cart",
+     "stage": "Cart"
+    },
+    {
+     "behaviour": "mutating",
+     "name": "place_order",
+     "placement": true,
+     "stage": "Order"
+    },
+    {
+     "behaviour": "read-only",
+     "name": "track_order",
+     "stage": "Track"
+    },
+    {
+     "behaviour": "mutating",
+     "capabilities": [
+      "cancel_order"
+     ],
+     "name": "cancel_order",
+     "stage": "Manage"
+    },
+    {
+     "behaviour": "mutating",
+     "name": "report_error",
+     "stage": "Support"
+    }
+   ]
+  }
+ ],
+ "vectors": [
+  {
+   "name": "guardrail decision block",
+   "options": {},
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {
+       "mcp.tool": "place_order",
+       "traceguard.decision": "deny",
+       "traceguard.rule": "no-pii"
+      },
+      "detail": "Enforcement blocked the call (rule=no-pii)",
+      "rule": "guardrail.blocked",
+      "span_index": 0,
+      "span_name": "a"
+     }
+    ],
+    "explain": "BLOCKED_BY_GUARDRAIL (rule=guardrail.blocked, confident=True)\n  - guardrail.blocked [span 0]: Enforcement blocked the call (rule=no-pii)",
+    "order_placed": false,
+    "resolution": null,
+    "rule": "guardrail.blocked",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [
+      1
+     ],
+     "hallucinated_span_indexes": [],
+     "order_placed": false,
+     "placement_span_indexes": [],
+     "repeated_failing_tools": {},
+     "requested_resolution": null,
+     "span_count": 2,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "BLOCKED_BY_GUARDRAIL"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "mcp.tool": "place_order",
+      "traceguard.decision": "deny",
+      "traceguard.rule": "no-pii"
+     },
+     "name": "a",
+     "status": null
+    },
+    {
+     "attributes": {
+      "mcp.error.http_status": 503
+     },
+     "name": "b",
+     "status": "ERROR"
+    }
+   ]
+  },
+  {
+   "name": "guardrail blocked flag as string",
+   "options": {},
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {
+       "guardrail.blocked": "true",
+       "mcp.tool": "x"
+      },
+      "detail": "Enforcement blocked the call",
+      "rule": "guardrail.blocked",
+      "span_index": 0,
+      "span_name": "a"
+     }
+    ],
+    "explain": "BLOCKED_BY_GUARDRAIL (rule=guardrail.blocked, confident=True)\n  - guardrail.blocked [span 0]: Enforcement blocked the call",
+    "order_placed": false,
+    "resolution": null,
+    "rule": "guardrail.blocked",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [],
+     "hallucinated_span_indexes": [],
+     "order_placed": false,
+     "placement_span_indexes": [],
+     "repeated_failing_tools": {},
+     "requested_resolution": null,
+     "span_count": 1,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "BLOCKED_BY_GUARDRAIL"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "guardrail.blocked": "true",
+      "mcp.tool": "x"
+     },
+     "name": "a",
+     "status": null
+    }
+   ]
+  },
+  {
+   "name": "steer is not a block",
+   "options": {},
+   "result": {
+    "confident": false,
+    "evidence": [
+     {
+      "attributes": {},
+      "detail": "No rule matched: no guardrail block, no platform error, no requested resolution, no order placed and no agent-fault signal. Defaulted to ABANDONED_RECOVERABLE with confident=False.",
+      "rule": "fallback.no_terminal_signal",
+      "span_index": null,
+      "span_name": null
+     }
+    ],
+    "explain": "ABANDONED_RECOVERABLE (rule=fallback.no_terminal_signal, confident=False)\n  - fallback.no_terminal_signal: No rule matched: no guardrail block, no platform error, no requested resolution, no order placed and no agent-fault signal. Defaulted to ABANDONED_RECOVERABLE with confident=False.",
+    "order_placed": false,
+    "resolution": null,
+    "rule": "fallback.no_terminal_signal",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [],
+     "hallucinated_span_indexes": [],
+     "order_placed": false,
+     "placement_span_indexes": [],
+     "repeated_failing_tools": {},
+     "requested_resolution": null,
+     "span_count": 1,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "ABANDONED_RECOVERABLE"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "mcp.tool": "search_products",
+      "traceguard.decision": "steer"
+     },
+     "name": "a",
+     "status": null
+    }
+   ]
+  },
+  {
+   "name": "platform 503 at the end",
+   "options": {},
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {
+       "mcp.error.http_status": 503,
+       "mcp.server": "shop",
+       "mcp.tool": "place_order"
+      },
+      "detail": "Session ended on an unrecovered HTTP 503, which is a platform condition (auth, shed or outage), not an agent or surface fault.",
+      "rule": "platform.http_status",
+      "span_index": 1,
+      "span_name": "b"
+     }
+    ],
+    "explain": "BLOCKED_BY_PLATFORM (rule=platform.http_status, confident=True)\n  - platform.http_status [span 1]: Session ended on an unrecovered HTTP 503, which is a platform condition (auth, shed or outage), not an agent or surface fault.",
+    "order_placed": false,
+    "resolution": null,
+    "rule": "platform.http_status",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [
+      1
+     ],
+     "hallucinated_span_indexes": [],
+     "order_placed": false,
+     "placement_span_indexes": [],
+     "repeated_failing_tools": {},
+     "requested_resolution": null,
+     "span_count": 2,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "BLOCKED_BY_PLATFORM"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "mcp.tool": "search_products"
+     },
+     "name": "a",
+     "status": null
+    },
+    {
+     "attributes": {
+      "mcp.error.http_status": 503,
+      "mcp.server": "shop",
+      "mcp.tool": "place_order"
+     },
+     "name": "b",
+     "status": "ERROR"
+    }
+   ]
+  },
+  {
+   "name": "platform failure recovered from",
+   "options": {},
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {
+       "commerce.order.placed": true
+      },
+      "detail": "Order placed with no degradation signal present.",
+      "rule": "completed.clean",
+      "span_index": 1,
+      "span_name": "b"
+     }
+    ],
+    "explain": "COMPLETED_SUCCESS (rule=completed.clean, confident=True)\n  - completed.clean [span 1]: Order placed with no degradation signal present.",
+    "order_placed": true,
+    "resolution": null,
+    "rule": "completed.clean",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [
+      0
+     ],
+     "hallucinated_span_indexes": [],
+     "order_placed": true,
+     "placement_span_indexes": [
+      1
+     ],
+     "repeated_failing_tools": {},
+     "requested_resolution": null,
+     "span_count": 2,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "COMPLETED_SUCCESS"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "mcp.error.http_status": 503,
+      "mcp.tool": "place_order"
+     },
+     "name": "a",
+     "status": "ERROR"
+    },
+    {
+     "attributes": {
+      "commerce.order.placed": true,
+      "mcp.tool": "place_order"
+     },
+     "name": "b",
+     "status": null
+    }
+   ]
+  },
+  {
+   "name": "404 is not a platform error",
+   "options": {},
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {
+       "mcp.error.jsonrpc_code": null,
+       "mcp.error.message_raw": null,
+       "mcp.tool": "track_order"
+      },
+      "detail": "Session ended on a recoverable failure of 'track_order' that was never retried or worked around.",
+      "rule": "recoverable.unretried_failure",
+      "span_index": 0,
+      "span_name": "a"
+     }
+    ],
+    "explain": "ABANDONED_RECOVERABLE (rule=recoverable.unretried_failure, confident=True)\n  - recoverable.unretried_failure [span 0]: Session ended on a recoverable failure of 'track_order' that was never retried or worked around.",
+    "order_placed": false,
+    "resolution": null,
+    "rule": "recoverable.unretried_failure",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [
+      0
+     ],
+     "hallucinated_span_indexes": [],
+     "order_placed": false,
+     "placement_span_indexes": [],
+     "repeated_failing_tools": {},
+     "requested_resolution": null,
+     "span_count": 1,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "ABANDONED_RECOVERABLE"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "mcp.error.http_status": 404,
+      "mcp.tool": "track_order"
+     },
+     "name": "a",
+     "status": "ERROR"
+    }
+   ]
+  },
+  {
+   "name": "no tool for refund",
+   "options": {
+    "registry": true
+   },
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {
+       "commerce.requested_resolution": "refund"
+      },
+      "detail": "The user requested 'refund' and no tool in the 6-tool registration surface can satisfy it, so no agent behaviour could have succeeded.",
+      "rule": "no_tool.capability_absent",
+      "span_index": null,
+      "span_name": null
+     },
+     {
+      "attributes": {},
+      "detail": "Hallucinated identifiers were also observed on spans [1], but the surface gap takes precedence: no tool existed to call correctly.",
+      "rule": "no_tool.agent_signals_present_but_not_decisive",
+      "span_index": null,
+      "span_name": null
+     }
+    ],
+    "explain": "BLOCKED_NO_TOOL (rule=no_tool.capability_absent, confident=True) resolution=refund\n  - no_tool.capability_absent: The user requested 'refund' and no tool in the 6-tool registration surface can satisfy it, so no agent behaviour could have succeeded.\n  - no_tool.agent_signals_present_but_not_decisive: Hallucinated identifiers were also observed on spans [1], but the surface gap takes precedence: no tool existed to call correctly.",
+    "order_placed": false,
+    "resolution": "refund",
+    "rule": "no_tool.capability_absent",
+    "signals": {
+     "capability_available": false,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [],
+     "hallucinated_span_indexes": [
+      1
+     ],
+     "order_placed": false,
+     "placement_span_indexes": [],
+     "repeated_failing_tools": {},
+     "requested_resolution": "refund",
+     "span_count": 2,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "BLOCKED_NO_TOOL"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "commerce.requested_resolution": "refund",
+      "mcp.tool": "track_order"
+     },
+     "name": "a",
+     "status": null
+    },
+    {
+     "attributes": {
+      "mcp.identifier.hallucinated": true,
+      "mcp.identifier.hallucinated_keys": [
+       "order_id"
+      ],
+      "mcp.tool": "track_order"
+     },
+     "name": "b",
+     "status": null
+    }
+   ]
+  },
+  {
+   "name": "no tool, resolution not in enum",
+   "options": {
+    "registry": true
+   },
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {
+       "commerce.requested_resolution": "teleport"
+      },
+      "detail": "The user requested 'teleport' and no tool in the 6-tool registration surface can satisfy it, so no agent behaviour could have succeeded.",
+      "rule": "no_tool.capability_absent",
+      "span_index": null,
+      "span_name": null
+     }
+    ],
+    "explain": "BLOCKED_NO_TOOL (rule=no_tool.capability_absent, confident=True)\n  - no_tool.capability_absent: The user requested 'teleport' and no tool in the 6-tool registration surface can satisfy it, so no agent behaviour could have succeeded.",
+    "order_placed": false,
+    "resolution": null,
+    "rule": "no_tool.capability_absent",
+    "signals": {
+     "capability_available": false,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [],
+     "hallucinated_span_indexes": [],
+     "order_placed": false,
+     "placement_span_indexes": [],
+     "repeated_failing_tools": {},
+     "requested_resolution": "teleport",
+     "span_count": 1,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "BLOCKED_NO_TOOL"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "mcp.tool_selection.requested_capability": "teleport"
+     },
+     "name": "a",
+     "status": null
+    }
+   ]
+  },
+  {
+   "name": "no tool without a registry is undecided",
+   "options": {},
+   "result": {
+    "confident": false,
+    "evidence": [
+     {
+      "attributes": {},
+      "detail": "No rule matched: no guardrail block, no platform error, no requested resolution, no order placed and no agent-fault signal. Defaulted to ABANDONED_RECOVERABLE with confident=False.",
+      "rule": "fallback.no_terminal_signal",
+      "span_index": null,
+      "span_name": null
+     }
+    ],
+    "explain": "ABANDONED_RECOVERABLE (rule=fallback.no_terminal_signal, confident=False)\n  - fallback.no_terminal_signal: No rule matched: no guardrail block, no platform error, no requested resolution, no order placed and no agent-fault signal. Defaulted to ABANDONED_RECOVERABLE with confident=False.",
+    "order_placed": false,
+    "resolution": null,
+    "rule": "fallback.no_terminal_signal",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [],
+     "hallucinated_span_indexes": [],
+     "order_placed": false,
+     "placement_span_indexes": [],
+     "repeated_failing_tools": {},
+     "requested_resolution": "refund",
+     "span_count": 1,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "ABANDONED_RECOVERABLE"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "commerce.requested_resolution": "refund"
+     },
+     "name": "a",
+     "status": null
+    }
+   ]
+  },
+  {
+   "name": "capability list given explicitly",
+   "options": {
+    "capabilities": [
+     "refund",
+     "cancel_order"
+    ]
+   },
+   "result": {
+    "confident": false,
+    "evidence": [
+     {
+      "attributes": {},
+      "detail": "No rule matched: no guardrail block, no platform error, no requested resolution, no order placed and no agent-fault signal. Defaulted to ABANDONED_RECOVERABLE with confident=False.",
+      "rule": "fallback.no_terminal_signal",
+      "span_index": null,
+      "span_name": null
+     }
+    ],
+    "explain": "ABANDONED_RECOVERABLE (rule=fallback.no_terminal_signal, confident=False)\n  - fallback.no_terminal_signal: No rule matched: no guardrail block, no platform error, no requested resolution, no order placed and no agent-fault signal. Defaulted to ABANDONED_RECOVERABLE with confident=False.",
+    "order_placed": false,
+    "resolution": null,
+    "rule": "fallback.no_terminal_signal",
+    "signals": {
+     "capability_available": true,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [],
+     "hallucinated_span_indexes": [],
+     "order_placed": false,
+     "placement_span_indexes": [],
+     "repeated_failing_tools": {},
+     "requested_resolution": "refund",
+     "span_count": 1,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "ABANDONED_RECOVERABLE"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "commerce.requested_resolution": "refund"
+     },
+     "name": "a",
+     "status": null
+    }
+   ]
+  },
+  {
+   "name": "requested resolution argument wins",
+   "options": {
+    "registry": true,
+    "requested": "refund"
+   },
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {
+       "commerce.requested_resolution": "refund"
+      },
+      "detail": "The user requested 'refund' and no tool in the 6-tool registration surface can satisfy it, so no agent behaviour could have succeeded.",
+      "rule": "no_tool.capability_absent",
+      "span_index": null,
+      "span_name": null
+     }
+    ],
+    "explain": "BLOCKED_NO_TOOL (rule=no_tool.capability_absent, confident=True) resolution=refund\n  - no_tool.capability_absent: The user requested 'refund' and no tool in the 6-tool registration surface can satisfy it, so no agent behaviour could have succeeded.",
+    "order_placed": false,
+    "resolution": "refund",
+    "rule": "no_tool.capability_absent",
+    "signals": {
+     "capability_available": false,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [],
+     "hallucinated_span_indexes": [],
+     "order_placed": false,
+     "placement_span_indexes": [],
+     "repeated_failing_tools": {},
+     "requested_resolution": "refund",
+     "span_count": 1,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "BLOCKED_NO_TOOL"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "commerce.requested_resolution": "cancel_order",
+      "mcp.tool": "search_products"
+     },
+     "name": "a",
+     "status": null
+    }
+   ]
+  },
+  {
+   "name": "completed clean",
+   "options": {},
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {
+       "commerce.order.placed": true
+      },
+      "detail": "Order placed with no degradation signal present.",
+      "rule": "completed.clean",
+      "span_index": 1,
+      "span_name": "b"
+     }
+    ],
+    "explain": "COMPLETED_SUCCESS (rule=completed.clean, confident=True)\n  - completed.clean [span 1]: Order placed with no degradation signal present.",
+    "order_placed": true,
+    "resolution": null,
+    "rule": "completed.clean",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [
+      "h1"
+     ],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [],
+     "hallucinated_span_indexes": [],
+     "order_placed": true,
+     "placement_span_indexes": [
+      1
+     ],
+     "repeated_failing_tools": {},
+     "requested_resolution": null,
+     "span_count": 2,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "COMPLETED_SUCCESS"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "commerce.cart_hash": "h1",
+      "mcp.behaviour": "mutating",
+      "mcp.stage": "Cart",
+      "mcp.tool": "add_to_cart"
+     },
+     "name": "a",
+     "status": null
+    },
+    {
+     "attributes": {
+      "commerce.cart_hash": "h1",
+      "commerce.order.placed": true,
+      "mcp.tool": "place_order"
+     },
+     "name": "b",
+     "status": null
+    }
+   ]
+  },
+  {
+   "name": "completed after an order that failed is not placed",
+   "options": {},
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {
+       "mcp.error.jsonrpc_code": null,
+       "mcp.error.message_raw": "boom",
+       "mcp.tool": "place_order"
+      },
+      "detail": "Session ended on a recoverable failure of 'place_order' that was never retried or worked around.",
+      "rule": "recoverable.unretried_failure",
+      "span_index": 0,
+      "span_name": "a"
+     }
+    ],
+    "explain": "ABANDONED_RECOVERABLE (rule=recoverable.unretried_failure, confident=True)\n  - recoverable.unretried_failure [span 0]: Session ended on a recoverable failure of 'place_order' that was never retried or worked around.",
+    "order_placed": false,
+    "resolution": null,
+    "rule": "recoverable.unretried_failure",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [
+      0
+     ],
+     "hallucinated_span_indexes": [],
+     "order_placed": false,
+     "placement_span_indexes": [],
+     "repeated_failing_tools": {},
+     "requested_resolution": null,
+     "span_count": 1,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "ABANDONED_RECOVERABLE"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "commerce.order.placed": true,
+      "mcp.error.message_raw": "boom",
+      "mcp.tool": "place_order"
+     },
+     "name": "a",
+     "status": "ERROR"
+    }
+   ]
+  },
+  {
+   "name": "degraded: duplicate placement",
+   "options": {},
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {
+       "commerce.order.placement_attempt": 2
+      },
+      "detail": "Placement attempt 2 against the same cart hash - the order was submitted more than once.",
+      "rule": "degraded.duplicate_placement",
+      "span_index": 0,
+      "span_name": "a"
+     }
+    ],
+    "explain": "COMPLETED_DEGRADED (rule=degraded.duplicate_placement, confident=True)\n  - degraded.duplicate_placement [span 0]: Placement attempt 2 against the same cart hash - the order was submitted more than once.",
+    "order_placed": true,
+    "resolution": null,
+    "rule": "degraded.duplicate_placement",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [
+      0
+     ],
+     "failed_span_indexes": [],
+     "hallucinated_span_indexes": [],
+     "order_placed": true,
+     "placement_span_indexes": [
+      0
+     ],
+     "repeated_failing_tools": {},
+     "requested_resolution": null,
+     "span_count": 1,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "COMPLETED_DEGRADED"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "commerce.order.placed": true,
+      "commerce.order.placement_attempt": 2,
+      "mcp.tool": "place_order"
+     },
+     "name": "a",
+     "status": null
+    }
+   ]
+  },
+  {
+   "name": "degraded: price mismatch and coupon missed and wrong variant",
+   "options": {},
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {
+       "commerce.price.charged": 12,
+       "commerce.price.quoted": 10.5
+      },
+      "detail": "Quoted 10.5 but charged 12; the mismatch was absorbed.",
+      "rule": "degraded.price_mismatch",
+      "span_index": 1,
+      "span_name": "b"
+     },
+     {
+      "attributes": {
+       "commerce.coupon.requested": true
+      },
+      "detail": "A coupon was requested but never applied to the placed order.",
+      "rule": "degraded.coupon_missed",
+      "span_index": null,
+      "span_name": null
+     },
+     {
+      "attributes": {
+       "commerce.variant.match": false
+      },
+      "detail": "The ordered variant does not match the requested variant.",
+      "rule": "degraded.wrong_variant",
+      "span_index": 0,
+      "span_name": "a"
+     }
+    ],
+    "explain": "COMPLETED_DEGRADED (rule=degraded.price_mismatch, confident=True)\n  - degraded.price_mismatch [span 1]: Quoted 10.5 but charged 12; the mismatch was absorbed.\n  - degraded.coupon_missed: A coupon was requested but never applied to the placed order.\n  - degraded.wrong_variant [span 0]: The ordered variant does not match the requested variant.",
+    "order_placed": true,
+    "resolution": null,
+    "rule": "degraded.price_mismatch",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [],
+     "hallucinated_span_indexes": [],
+     "order_placed": true,
+     "placement_span_indexes": [
+      1
+     ],
+     "repeated_failing_tools": {},
+     "requested_resolution": null,
+     "span_count": 2,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "COMPLETED_DEGRADED"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "commerce.coupon.requested": "yes",
+      "commerce.variant.match": "false"
+     },
+     "name": "a",
+     "status": null
+    },
+    {
+     "attributes": {
+      "commerce.order.placed": 1,
+      "commerce.price.charged": 12,
+      "commerce.price.quoted": 10.5,
+      "mcp.tool": "place_order"
+     },
+     "name": "b",
+     "status": null
+    }
+   ]
+  },
+  {
+   "name": "degraded: unexplained cart drift",
+   "options": {},
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {
+       "commerce.cart_hash": [
+        "h1",
+        "h2"
+       ]
+      },
+      "detail": "Cart hash changed across the session (['h1', 'h2']); the cart ordered is not the cart confirmed.",
+      "rule": "degraded.cart_drift",
+      "span_index": null,
+      "span_name": null
+     }
+    ],
+    "explain": "COMPLETED_DEGRADED (rule=degraded.cart_drift, confident=True)\n  - degraded.cart_drift: Cart hash changed across the session (['h1', 'h2']); the cart ordered is not the cart confirmed.",
+    "order_placed": true,
+    "resolution": null,
+    "rule": "degraded.cart_drift",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": true,
+     "cart_drift_span_indexes": [
+      1
+     ],
+     "cart_hash_sequence": [
+      "h1",
+      "h2"
+     ],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [],
+     "hallucinated_span_indexes": [],
+     "order_placed": true,
+     "placement_span_indexes": [
+      2
+     ],
+     "repeated_failing_tools": {},
+     "requested_resolution": null,
+     "span_count": 3,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "COMPLETED_DEGRADED"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "commerce.cart_hash": "h1"
+     },
+     "name": "a",
+     "status": null
+    },
+    {
+     "attributes": {
+      "commerce.cart_hash": "h2",
+      "mcp.tool": "track_order"
+     },
+     "name": "b",
+     "status": null
+    },
+    {
+     "attributes": {
+      "commerce.order.placed": true
+     },
+     "name": "c",
+     "status": null
+    }
+   ]
+  },
+  {
+   "name": "cart change explained by a pending cart mutation",
+   "options": {},
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {
+       "commerce.order.placed": true
+      },
+      "detail": "Order placed with no degradation signal present.",
+      "rule": "completed.clean",
+      "span_index": 3,
+      "span_name": "d"
+     }
+    ],
+    "explain": "COMPLETED_SUCCESS (rule=completed.clean, confident=True)\n  - completed.clean [span 3]: Order placed with no degradation signal present.",
+    "order_placed": true,
+    "resolution": null,
+    "rule": "completed.clean",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [
+      "h1",
+      "h2"
+     ],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [],
+     "hallucinated_span_indexes": [],
+     "order_placed": true,
+     "placement_span_indexes": [
+      3
+     ],
+     "repeated_failing_tools": {},
+     "requested_resolution": null,
+     "span_count": 4,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "COMPLETED_SUCCESS"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "commerce.cart_hash": "h1"
+     },
+     "name": "a",
+     "status": null
+    },
+    {
+     "attributes": {
+      "mcp.behaviour": "mutating",
+      "mcp.stage": "Reserve"
+     },
+     "name": "b",
+     "status": null
+    },
+    {
+     "attributes": {
+      "commerce.cart_hash": "h2"
+     },
+     "name": "c",
+     "status": null
+    },
+    {
+     "attributes": {
+      "commerce.order.placed": true
+     },
+     "name": "d",
+     "status": null
+    }
+   ]
+  },
+  {
+   "name": "placement does not explain a cart change",
+   "options": {},
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {
+       "commerce.cart_hash": [
+        "h1",
+        "h2"
+       ]
+      },
+      "detail": "Cart hash changed across the session (['h1', 'h2']); the cart ordered is not the cart confirmed.",
+      "rule": "degraded.cart_drift",
+      "span_index": null,
+      "span_name": null
+     }
+    ],
+    "explain": "COMPLETED_DEGRADED (rule=degraded.cart_drift, confident=True)\n  - degraded.cart_drift: Cart hash changed across the session (['h1', 'h2']); the cart ordered is not the cart confirmed.",
+    "order_placed": true,
+    "resolution": null,
+    "rule": "degraded.cart_drift",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": true,
+     "cart_drift_span_indexes": [
+      1
+     ],
+     "cart_hash_sequence": [
+      "h1",
+      "h2"
+     ],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [],
+     "hallucinated_span_indexes": [],
+     "order_placed": true,
+     "placement_span_indexes": [
+      1
+     ],
+     "repeated_failing_tools": {},
+     "requested_resolution": null,
+     "span_count": 2,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "COMPLETED_DEGRADED"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "commerce.cart_hash": "h1"
+     },
+     "name": "a",
+     "status": null
+    },
+    {
+     "attributes": {
+      "commerce.cart_hash": "h2",
+      "commerce.order.placed": true,
+      "mcp.behaviour": "mutating",
+      "mcp.stage": "Order"
+     },
+     "name": "b",
+     "status": null
+    }
+   ]
+  },
+  {
+   "name": "agent fault: hallucinated and wrong tool",
+   "options": {},
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {
+       "mcp.identifier.hallucinated": true,
+       "mcp.identifier.hallucinated_keys": [
+        "order_id"
+       ],
+       "mcp.tool": "cancel_order"
+      },
+      "detail": "Call passed identifier key(s) ['order_id'] that appeared in no prior response in this session.",
+      "rule": "agent_fault.hallucinated_identifier",
+      "span_index": 0,
+      "span_name": "a"
+     },
+     {
+      "attributes": {
+       "mcp.tool": "report_error",
+       "mcp.tool_selection.correct": false,
+       "mcp.tool_selection.expected": "cancel_order"
+      },
+      "detail": "Called 'report_error' where ground truth was 'cancel_order'.",
+      "rule": "agent_fault.wrong_tool",
+      "span_index": 1,
+      "span_name": "b"
+     }
+    ],
+    "explain": "ABANDONED_AGENT_FAULT (rule=agent_fault.hallucinated_identifier, confident=True)\n  - agent_fault.hallucinated_identifier [span 0]: Call passed identifier key(s) ['order_id'] that appeared in no prior response in this session.\n  - agent_fault.wrong_tool [span 1]: Called 'report_error' where ground truth was 'cancel_order'.",
+    "order_placed": false,
+    "resolution": null,
+    "rule": "agent_fault.hallucinated_identifier",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [],
+     "hallucinated_span_indexes": [
+      0
+     ],
+     "order_placed": false,
+     "placement_span_indexes": [],
+     "repeated_failing_tools": {},
+     "requested_resolution": null,
+     "span_count": 2,
+     "wrong_tool_span_indexes": [
+      1
+     ]
+    },
+    "state": "ABANDONED_AGENT_FAULT"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "mcp.identifier.hallucinated": true,
+      "mcp.identifier.hallucinated_keys": [
+       "order_id"
+      ],
+      "mcp.tool": "cancel_order"
+     },
+     "name": "a",
+     "status": null
+    },
+    {
+     "attributes": {
+      "mcp.tool": "report_error",
+      "mcp.tool_selection.correct": false,
+      "mcp.tool_selection.expected": "cancel_order"
+     },
+     "name": "b",
+     "status": null
+    }
+   ]
+  },
+  {
+   "name": "agent fault: stale cart and repeated failure",
+   "options": {},
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {},
+      "detail": "Cart hash drifted (['h1', 'h2']) and the session ended on a failure - the agent operated on a stale cart.",
+      "rule": "agent_fault.stale_cart",
+      "span_index": null,
+      "span_name": null
+     },
+     {
+      "attributes": {
+       "mcp.tool": "add_to_cart"
+      },
+      "detail": "Tool 'add_to_cart' failed 2 times with no change in approach.",
+      "rule": "agent_fault.repeated_identical_failure",
+      "span_index": null,
+      "span_name": null
+     }
+    ],
+    "explain": "ABANDONED_AGENT_FAULT (rule=agent_fault.stale_cart, confident=True)\n  - agent_fault.stale_cart: Cart hash drifted (['h1', 'h2']) and the session ended on a failure - the agent operated on a stale cart.\n  - agent_fault.repeated_identical_failure: Tool 'add_to_cart' failed 2 times with no change in approach.",
+    "order_placed": false,
+    "resolution": null,
+    "rule": "agent_fault.stale_cart",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": true,
+     "cart_drift_span_indexes": [
+      1
+     ],
+     "cart_hash_sequence": [
+      "h1",
+      "h2"
+     ],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [
+      2,
+      3
+     ],
+     "hallucinated_span_indexes": [],
+     "order_placed": false,
+     "placement_span_indexes": [],
+     "repeated_failing_tools": {
+      "add_to_cart": 2
+     },
+     "requested_resolution": null,
+     "span_count": 4,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "ABANDONED_AGENT_FAULT"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "commerce.cart_hash": "h1"
+     },
+     "name": "a",
+     "status": null
+    },
+    {
+     "attributes": {
+      "commerce.cart_hash": "h2"
+     },
+     "name": "b",
+     "status": null
+    },
+    {
+     "attributes": {
+      "mcp.error.jsonrpc_code": -32000,
+      "mcp.tool": "add_to_cart"
+     },
+     "name": "c",
+     "status": "ERROR"
+    },
+    {
+     "attributes": {
+      "mcp.tool": "add_to_cart"
+     },
+     "name": "d",
+     "status": "STATUS_CODE_ERROR"
+    }
+   ]
+  },
+  {
+   "name": "recoverable: capability there, unused",
+   "options": {
+    "registry": true
+   },
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {
+       "commerce.requested_resolution": "cancel_order"
+      },
+      "detail": "'cancel_order' was requested and tool(s) ['cancel_order'] could have satisfied it, but none were called.",
+      "rule": "recoverable.capability_available_unused",
+      "span_index": null,
+      "span_name": null
+     }
+    ],
+    "explain": "ABANDONED_RECOVERABLE (rule=recoverable.capability_available_unused, confident=True)\n  - recoverable.capability_available_unused: 'cancel_order' was requested and tool(s) ['cancel_order'] could have satisfied it, but none were called.",
+    "order_placed": false,
+    "resolution": null,
+    "rule": "recoverable.capability_available_unused",
+    "signals": {
+     "capability_available": true,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [],
+     "hallucinated_span_indexes": [],
+     "order_placed": false,
+     "placement_span_indexes": [],
+     "repeated_failing_tools": {},
+     "requested_resolution": "cancel_order",
+     "span_count": 1,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "ABANDONED_RECOVERABLE"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "commerce.requested_resolution": "cancel_order",
+      "mcp.tool": "track_order"
+     },
+     "name": "a",
+     "status": null
+    }
+   ]
+  },
+  {
+   "name": "recoverable: unretried failure",
+   "options": {},
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {
+       "mcp.error.jsonrpc_code": -32603,
+       "mcp.error.message_raw": "timeout",
+       "mcp.tool": "track_order"
+      },
+      "detail": "Session ended on a recoverable failure of 'track_order' that was never retried or worked around.",
+      "rule": "recoverable.unretried_failure",
+      "span_index": 1,
+      "span_name": "b"
+     }
+    ],
+    "explain": "ABANDONED_RECOVERABLE (rule=recoverable.unretried_failure, confident=True)\n  - recoverable.unretried_failure [span 1]: Session ended on a recoverable failure of 'track_order' that was never retried or worked around.",
+    "order_placed": false,
+    "resolution": null,
+    "rule": "recoverable.unretried_failure",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [
+      1
+     ],
+     "hallucinated_span_indexes": [],
+     "order_placed": false,
+     "placement_span_indexes": [],
+     "repeated_failing_tools": {},
+     "requested_resolution": null,
+     "span_count": 2,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "ABANDONED_RECOVERABLE"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "mcp.tool": "search_products"
+     },
+     "name": "a",
+     "status": null
+    },
+    {
+     "attributes": {
+      "mcp.error.jsonrpc_code": -32603,
+      "mcp.error.message_raw": "timeout",
+      "mcp.tool": "track_order"
+     },
+     "name": "b",
+     "status": true
+    }
+   ]
+  },
+  {
+   "name": "retried failure falls through to the fallback",
+   "options": {},
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {
+       "mcp.tool": "track_order"
+      },
+      "detail": "Tool 'track_order' failed 2 times with no change in approach.",
+      "rule": "agent_fault.repeated_identical_failure",
+      "span_index": null,
+      "span_name": null
+     }
+    ],
+    "explain": "ABANDONED_AGENT_FAULT (rule=agent_fault.repeated_identical_failure, confident=True)\n  - agent_fault.repeated_identical_failure: Tool 'track_order' failed 2 times with no change in approach.",
+    "order_placed": false,
+    "resolution": null,
+    "rule": "agent_fault.repeated_identical_failure",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [
+      0,
+      1
+     ],
+     "hallucinated_span_indexes": [],
+     "order_placed": false,
+     "placement_span_indexes": [],
+     "repeated_failing_tools": {
+      "track_order": 2
+     },
+     "requested_resolution": null,
+     "span_count": 2,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "ABANDONED_AGENT_FAULT"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "mcp.tool": "track_order"
+     },
+     "name": "a",
+     "status": "ERROR"
+    },
+    {
+     "attributes": {
+      "mcp.tool": "track_order"
+     },
+     "name": "b",
+     "status": "error"
+    }
+   ]
+  },
+  {
+   "name": "empty session",
+   "options": {},
+   "result": {
+    "confident": false,
+    "evidence": [
+     {
+      "attributes": {},
+      "detail": "No rule matched: no guardrail block, no platform error, no requested resolution, no order placed and no agent-fault signal. Defaulted to ABANDONED_RECOVERABLE with confident=False.",
+      "rule": "fallback.no_terminal_signal",
+      "span_index": null,
+      "span_name": null
+     }
+    ],
+    "explain": "ABANDONED_RECOVERABLE (rule=fallback.no_terminal_signal, confident=False)\n  - fallback.no_terminal_signal: No rule matched: no guardrail block, no platform error, no requested resolution, no order placed and no agent-fault signal. Defaulted to ABANDONED_RECOVERABLE with confident=False.",
+    "order_placed": false,
+    "resolution": null,
+    "rule": "fallback.no_terminal_signal",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [],
+     "hallucinated_span_indexes": [],
+     "order_placed": false,
+     "placement_span_indexes": [],
+     "repeated_failing_tools": {},
+     "requested_resolution": null,
+     "span_count": 0,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "ABANDONED_RECOVERABLE"
+   },
+   "spans": []
+  },
+  {
+   "name": "nothing decisive",
+   "options": {},
+   "result": {
+    "confident": false,
+    "evidence": [
+     {
+      "attributes": {},
+      "detail": "No rule matched: no guardrail block, no platform error, no requested resolution, no order placed and no agent-fault signal. Defaulted to ABANDONED_RECOVERABLE with confident=False.",
+      "rule": "fallback.no_terminal_signal",
+      "span_index": null,
+      "span_name": null
+     }
+    ],
+    "explain": "ABANDONED_RECOVERABLE (rule=fallback.no_terminal_signal, confident=False)\n  - fallback.no_terminal_signal: No rule matched: no guardrail block, no platform error, no requested resolution, no order placed and no agent-fault signal. Defaulted to ABANDONED_RECOVERABLE with confident=False.",
+    "order_placed": false,
+    "resolution": null,
+    "rule": "fallback.no_terminal_signal",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [],
+     "hallucinated_span_indexes": [],
+     "order_placed": false,
+     "placement_span_indexes": [],
+     "repeated_failing_tools": {},
+     "requested_resolution": null,
+     "span_count": 1,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "ABANDONED_RECOVERABLE"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "mcp.tool": "search_products"
+     },
+     "name": "a",
+     "status": null
+    }
+   ]
+  },
+  {
+   "name": "status as a dict-like object is read by name",
+   "options": {},
+   "result": {
+    "confident": true,
+    "evidence": [
+     {
+      "attributes": {
+       "mcp.error.jsonrpc_code": null,
+       "mcp.error.message_raw": null,
+       "mcp.tool": "track_order"
+      },
+      "detail": "Session ended on a recoverable failure of 'track_order' that was never retried or worked around.",
+      "rule": "recoverable.unretried_failure",
+      "span_index": 0,
+      "span_name": "a"
+     }
+    ],
+    "explain": "ABANDONED_RECOVERABLE (rule=recoverable.unretried_failure, confident=True)\n  - recoverable.unretried_failure [span 0]: Session ended on a recoverable failure of 'track_order' that was never retried or worked around.",
+    "order_placed": false,
+    "resolution": null,
+    "rule": "recoverable.unretried_failure",
+    "signals": {
+     "capability_available": null,
+     "cart_drift": false,
+     "cart_drift_span_indexes": [],
+     "cart_hash_sequence": [],
+     "duplicate_placement_span_indexes": [],
+     "failed_span_indexes": [
+      0
+     ],
+     "hallucinated_span_indexes": [],
+     "order_placed": false,
+     "placement_span_indexes": [],
+     "repeated_failing_tools": {},
+     "requested_resolution": null,
+     "span_count": 1,
+     "wrong_tool_span_indexes": []
+    },
+    "state": "ABANDONED_RECOVERABLE"
+   },
+   "spans": [
+    {
+     "attributes": {
+      "mcp.tool": "track_order"
+     },
+     "name": "a",
+     "status": {
+      "status_code": "ERROR"
+     }
+    }
+   ]
+  }
+ ]
+}

@@ -235,6 +235,11 @@
   made by a framework's streaming generator are children of the framework's span.
 - The LangChain streaming span is `langchain.chat_model.invoke` with
   `gen_ai.request.stream = true` (was `langchain.chat_model.stream`; section 7).
+- The MCP terminal-state classifier (`classifySession`, `TerminalStateClassifier`): a
+  finished session's spans - OpenTelemetry spans or plain records - reduced to one of
+  seven outcomes (completed, degraded, abandoned, blocked by guardrail / platform / a
+  missing tool) with the evidence for it. Checked against sessions classified by the
+  reference.
 - Multimodal content (`GENAI_OTEL_MEDIA_*`): image, audio, video and document parts of
   OpenAI, Anthropic, Gemini and Groq requests are recorded by reference or uploaded to a
   filesystem, HTTP or S3 / MinIO store, with the span pointing at them; a registered
