@@ -78,6 +78,7 @@ function firstFinishReason(result: unknown): string | null {
 }
 
 export class GoogleGenAIInstrumentor extends OpenAIShapeInstrumentor {
+  protected override readonly mediaProvider = 'google';
   protected readonly label = 'Google GenAI';
   protected readonly packages = ['@google/genai'];
 

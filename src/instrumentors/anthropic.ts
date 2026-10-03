@@ -57,6 +57,7 @@ function defined(attributes: Record<string, string | undefined>): Record<string,
 }
 
 export class AnthropicInstrumentor extends BaseInstrumentor {
+  protected override readonly mediaProvider = 'anthropic';
   private patched: [object, string][] = [];
   private stopListening: (() => void) | undefined;
   /** Above zero while the `stream()` helper is making its own `create()` call. */

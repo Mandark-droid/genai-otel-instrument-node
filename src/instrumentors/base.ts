@@ -39,6 +39,7 @@ import { pyJsonDumps, pyStr, pyTruncate } from '../pycompat';
 import { AGENT_OPERATION_MARKERS, ATTR, genaiSemconvModes, SemanticConvention as SC, TOKEN_MODALITIES } from '../semconv';
 import { activeEvaluation, PolicyViolationError, promptForEvaluation, rememberTexts, responseForEvaluation } from '../evaluation/engine';
 import { llamacppLatencyAttributes } from '../engine-latency';
+import { emitMedia } from '../media/emit';
 import { chunkText, completionText, ensureContent, StreamText, withoutContent } from './content';
 import { getServerMetrics } from '../server-metrics';
 import { contextWithSessionId } from '../session';
@@ -264,6 +265,9 @@ function spanAttributes(span: Span): Attributes {
 // One model call, one usage record (SDK_ADDITIONS.md section 8)
 // ---------------------------------------------------------------------------
 
+/** Media uploads a span waits for before it ends. */
+const mediaWork = (): WeakMap<object, Promise<void>> => stateSlot('media.work', () => new WeakMap<object, Promise<void>>());
+
 /** The operation of a model call the instrumentor did not name, from its request type or span name. */
 function operationFor(spanName: string, requestType: unknown): string | undefined {
   if (requestType === 'embedding' || /embed/i.test(spanName)) return 'embeddings';
@@ -396,6 +400,9 @@ export abstract class BaseInstrumentor implements Instrumentor {
 
   /** Response attributes (id, model, finish reasons, tool calls). */
   protected extractResponseAttributes?(result: unknown): Record<string, unknown>;
+
+  /** The message format of the provider, for media capture (`openai`, `anthropic`, `google`, `groq`); none: no media capture. */
+  protected readonly mediaProvider: string | undefined = undefined;
 
   /** The completion text of a buffered response, for content capture. */
   protected completionTextForContent(result: unknown): string | undefined {
@@ -780,6 +787,16 @@ export abstract class BaseInstrumentor implements Instrumentor {
     return true;
   }
 
+  /** The media of the request onto the span, uploading what is to be uploaded; the span waits for it. */
+  protected startMedia(span: Span, params: Params): void {
+    try {
+      const work = emitMedia(span, this.mediaProvider, params, this.config);
+      if (work) mediaWork().set(span, work);
+    } catch (error) {
+      logger.warn(`Failed to emit media attributes: ${String(error)}`);
+    }
+  }
+
   /** This call is no longer in flight under the spans above it. Once per call. */
   private releaseHolders(call: { span: Span; holdersHeld?: boolean }): void {
     if (!call.holdersHeld) return;
@@ -820,7 +837,9 @@ export abstract class BaseInstrumentor implements Instrumentor {
    */
   private endSpan(span: Span, awaitEvaluation: boolean): void {
     try {
-      const pending = awaitEvaluation ? activeEvaluation()?.prepare(span) : undefined;
+      const evaluation = awaitEvaluation ? activeEvaluation()?.prepare(span) : undefined;
+      const media = mediaWork().get(span);
+      const pending = evaluation && media ? Promise.all([evaluation, media]) : (evaluation ?? media);
       if (!pending) {
         span.end();
         return;
@@ -1025,6 +1044,7 @@ export abstract class BaseInstrumentor implements Instrumentor {
     }
     try {
       this.recordResultMetrics(span, spanName, result, call.startTime, call.params);
+      this.startMedia(span, call.params);
     } catch (error) {
       logger.warn(`Failed to record metrics for span '${spanName}': ${String(error)}`);
     }
@@ -1506,6 +1526,7 @@ export abstract class BaseInstrumentor implements Instrumentor {
       }
 
       if (completed) {
+        if ('params' in call) this.startMedia(span, call.params);
         this.recordTimePerOutputToken(span, spanName, timing.ttft, duration, outputTokens, model);
         // Content capture on: the assembled completion, as a buffered call carries it.
         if (timing.text && 'params' in call && !/embed/.test(String(spanAttributes(span)[ATTR.GEN_AI_OPERATION_NAME] ?? ''))) {

@@ -161,3 +161,4 @@ export {
 } from './webgpu';
 export { VERSION } from './version';
 export { NvidiaSmiSource, parseNvidiaSmi } from './gpu/nvidia-smi';
+export { FilesystemStore } from './media/filesystem-store';

@@ -235,6 +235,11 @@
   made by a framework's streaming generator are children of the framework's span.
 - The LangChain streaming span is `langchain.chat_model.invoke` with
   `gen_ai.request.stream = true` (was `langchain.chat_model.stream`; section 7).
+- Multimodal content (`GENAI_OTEL_MEDIA_*`): image, audio, video and document parts of
+  OpenAI, Anthropic, Gemini and Groq requests are recorded by reference or uploaded to a
+  filesystem, HTTP or S3 / MinIO store, with the span pointing at them; a registered
+  redactor runs first. Checked against vectors made by running the reference. See
+  `docs/media.md`.
 
 ### Fixed
 - On Node 18, `instrument()` in an ES-module application could end the process with an

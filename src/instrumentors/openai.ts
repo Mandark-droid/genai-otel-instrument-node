@@ -57,6 +57,7 @@ function responsesContentToText(content: unknown): string {
 }
 
 export class OpenAIInstrumentor extends BaseInstrumentor {
+  protected override readonly mediaProvider = 'openai';
   private patched: [object, string][] = [];
   private stopListening: (() => void) | undefined;
   private readonly responsesPrototypes = new WeakSet<object>();

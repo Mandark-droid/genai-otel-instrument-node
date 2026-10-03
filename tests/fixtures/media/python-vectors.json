@@ -1,0 +1,1413 @@
+{
+ "canonical": [
+  {
+   "max_length": 20,
+   "messages": [
+    [
+     "user",
+     [
+      {
+       "data_b64": null,
+       "external_url": null,
+       "extra": {},
+       "media_byte_size": null,
+       "media_mime_type": null,
+       "media_source": null,
+       "media_uri": null,
+       "text": "Describe this yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+       "type": "text"
+      },
+      {
+       "data_b64": "iVBORw0KGgpmYWtlLXBuZy1ieXRlcw==",
+       "external_url": null,
+       "extra": {},
+       "media_byte_size": 22,
+       "media_mime_type": "image/png",
+       "media_source": null,
+       "media_uri": null,
+       "text": null,
+       "type": "image"
+      },
+      {
+       "data_b64": null,
+       "external_url": "https://example.com/c.jpg",
+       "extra": {},
+       "media_byte_size": null,
+       "media_mime_type": "image/*",
+       "media_source": null,
+       "media_uri": null,
+       "text": null,
+       "type": "image"
+      }
+     ]
+    ]
+   ],
+   "name": "inline, external, text capped",
+   "result": [
+    {
+     "parts": [
+      {
+       "content": "Describe this yyyyyy",
+       "type": "text"
+      },
+      {
+       "byte_size": 22,
+       "content": "iVBORw0KGgpmYWtlLXBuZy1ieXRlcw==",
+       "mime_type": "image/png",
+       "modality": "image",
+       "type": "blob"
+      },
+      {
+       "type": "image"
+      }
+     ],
+     "role": "user"
+    }
+   ]
+  },
+  {
+   "max_length": null,
+   "messages": [
+    [
+     "user",
+     [
+      {
+       "data_b64": null,
+       "external_url": null,
+       "extra": {
+        "stripped_reason": "modality_not_allowed"
+       },
+       "media_byte_size": 16,
+       "media_mime_type": "audio/wav",
+       "media_source": "reference_only",
+       "media_uri": null,
+       "text": null,
+       "type": "audio"
+      }
+     ]
+    ],
+    [
+     "user",
+     [
+      {
+       "data_b64": null,
+       "external_url": null,
+       "extra": {
+        "sha256": "d19e7d49f6b8d8769418f937116ec3b56a28ea6c85d4f80f3d116115023c7d1e"
+       },
+       "media_byte_size": 22,
+       "media_mime_type": "image/png",
+       "media_source": "inline_offloaded",
+       "media_uri": "file:///store/x.png",
+       "text": null,
+       "type": "image"
+      }
+     ]
+    ],
+    [
+     "assistant",
+     [
+      {
+       "data_b64": null,
+       "external_url": "https://example.com/d.pdf",
+       "extra": {},
+       "media_byte_size": null,
+       "media_mime_type": "application/pdf",
+       "media_source": null,
+       "media_uri": null,
+       "text": null,
+       "type": "document"
+      }
+     ]
+    ]
+   ],
+   "name": "stripped and uploaded and url-only document",
+   "result": [
+    {
+     "parts": [
+      {
+       "byte_size": 16,
+       "mime_type": "audio/wav",
+       "modality": "audio",
+       "stripped_reason": "modality_not_allowed",
+       "type": "blob"
+      }
+     ],
+     "role": "user"
+    },
+    {
+     "parts": [
+      {
+       "byte_size": 22,
+       "mime_type": "image/png",
+       "modality": "image",
+       "type": "uri",
+       "uri": "file:///store/x.png"
+      }
+     ],
+     "role": "user"
+    },
+    {
+     "parts": [
+      {
+       "type": "document"
+      }
+     ],
+     "role": "assistant"
+    }
+   ]
+  }
+ ],
+ "detect": [
+  {
+   "content": "What is in this image?",
+   "name": "plain string",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": null,
+     "media_source": null,
+     "media_uri": null,
+     "text": "What is in this image?",
+     "type": "text"
+    }
+   ],
+   "provider": "openai"
+  },
+  {
+   "content": [
+    {
+     "text": "Describe",
+     "type": "text"
+    },
+    {
+     "image_url": {
+      "url": "data:image/png;base64,iVBORw0KGgpmYWtlLXBuZy1ieXRlcw=="
+     },
+     "type": "image_url"
+    }
+   ],
+   "name": "text and data image",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": null,
+     "media_source": null,
+     "media_uri": null,
+     "text": "Describe",
+     "type": "text"
+    },
+    {
+     "data_b64": "iVBORw0KGgpmYWtlLXBuZy1ieXRlcw==",
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": 22,
+     "media_mime_type": "image/png",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "provider": "openai"
+  },
+  {
+   "content": [
+    {
+     "image_url": {
+      "url": "https://example.com/cat.jpg"
+     },
+     "type": "image_url"
+    }
+   ],
+   "name": "external image",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": "https://example.com/cat.jpg",
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": "image/*",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "provider": "openai"
+  },
+  {
+   "content": [
+    {
+     "image_url": "https://example.com/dog.png",
+     "type": "image_url"
+    }
+   ],
+   "name": "image url as string",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": "https://example.com/dog.png",
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": "image/*",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "provider": "openai"
+  },
+  {
+   "content": [
+    {
+     "image_url": {
+      "url": "data:;base64,iVBORw0KGgpmYWtlLXBuZy1ieXRlcw=="
+     },
+     "type": "image_url"
+    }
+   ],
+   "name": "data url without mime",
+   "parts": [
+    {
+     "data_b64": "iVBORw0KGgpmYWtlLXBuZy1ieXRlcw==",
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": 22,
+     "media_mime_type": "image/png",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "provider": "openai"
+  },
+  {
+   "content": [
+    {
+     "image_url": {
+      "url": "data:image/png;base64"
+     },
+     "type": "image_url"
+    }
+   ],
+   "name": "malformed data url",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": "data:image/png;base64",
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": null,
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "provider": "openai"
+  },
+  {
+   "content": [
+    {
+     "input_audio": {
+      "data": "UklGRi4uLi5XQVZFZmFrZQ==",
+      "format": "wav"
+     },
+     "type": "input_audio"
+    }
+   ],
+   "name": "input audio",
+   "parts": [
+    {
+     "data_b64": "UklGRi4uLi5XQVZFZmFrZQ==",
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": 16,
+     "media_mime_type": "audio/wav",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "audio"
+    }
+   ],
+   "provider": "openai"
+  },
+  {
+   "content": [
+    {
+     "input_audio": {
+      "data": "UklGRi4uLi5XQVZFZmFrZQ=="
+     },
+     "type": "input_audio"
+    }
+   ],
+   "name": "input audio no format",
+   "parts": [
+    {
+     "data_b64": "UklGRi4uLi5XQVZFZmFrZQ==",
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": 16,
+     "media_mime_type": "audio/wav",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "audio"
+    }
+   ],
+   "provider": "openai"
+  },
+  {
+   "content": [
+    {
+     "input_video": {
+      "url": "data:video/mp4;base64,iVBORw0KGgpmYWtlLXBuZy1ieXRlcw=="
+     },
+     "type": "input_video"
+    }
+   ],
+   "name": "video data url",
+   "parts": [
+    {
+     "data_b64": "iVBORw0KGgpmYWtlLXBuZy1ieXRlcw==",
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": 22,
+     "media_mime_type": "video/mp4",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "video"
+    }
+   ],
+   "provider": "openai"
+  },
+  {
+   "content": [
+    {
+     "type": "video",
+     "video": {
+      "url": "https://example.com/v.mp4"
+     }
+    }
+   ],
+   "name": "video external",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": "https://example.com/v.mp4",
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": "video/mp4",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "video"
+    }
+   ],
+   "provider": "openai"
+  },
+  {
+   "content": [
+    {
+     "input_video": {
+      "data": "iVBORw0KGgpmYWtlLXBuZy1ieXRlcw==",
+      "mime_type": "video/webm"
+     },
+     "type": "input_video"
+    }
+   ],
+   "name": "video inline data",
+   "parts": [
+    {
+     "data_b64": "iVBORw0KGgpmYWtlLXBuZy1ieXRlcw==",
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": 22,
+     "media_mime_type": "video/webm",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "video"
+    }
+   ],
+   "provider": "openai"
+  },
+  {
+   "content": [
+    {
+     "file": {
+      "file_data": "JVBERi0xLjQgZmFrZQ=="
+     },
+     "type": "file"
+    }
+   ],
+   "name": "file data",
+   "parts": [
+    {
+     "data_b64": "JVBERi0xLjQgZmFrZQ==",
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": 13,
+     "media_mime_type": "application/pdf",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "document"
+    }
+   ],
+   "provider": "openai"
+  },
+  {
+   "content": [
+    {
+     "file_url": "https://example.com/a.pdf",
+     "type": "input_file"
+    }
+   ],
+   "name": "input_file url",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": "https://example.com/a.pdf",
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": "application/pdf",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "document"
+    }
+   ],
+   "provider": "openai"
+  },
+  {
+   "content": [
+    {
+     "text": "x",
+     "type": "thinking"
+    },
+    42,
+    "plain"
+   ],
+   "name": "unknown type and non-dict",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": null,
+     "media_source": null,
+     "media_uri": null,
+     "text": "plain",
+     "type": "text"
+    }
+   ],
+   "provider": "openai"
+  },
+  {
+   "content": {
+    "text": "single",
+    "type": "text"
+   },
+   "name": "dict content",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": null,
+     "media_source": null,
+     "media_uri": null,
+     "text": "single",
+     "type": "text"
+    }
+   ],
+   "provider": "openai"
+  },
+  {
+   "content": null,
+   "name": "none content",
+   "parts": [],
+   "provider": "openai"
+  },
+  {
+   "content": 3.5,
+   "name": "number content",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": null,
+     "media_source": null,
+     "media_uri": null,
+     "text": "3.5",
+     "type": "text"
+    }
+   ],
+   "provider": "openai"
+  },
+  {
+   "content": [
+    {
+     "text": "What?",
+     "type": "text"
+    },
+    {
+     "source": {
+      "data": "iVBORw0KGgpmYWtlLXBuZy1ieXRlcw==",
+      "media_type": "image/jpeg",
+      "type": "base64"
+     },
+     "type": "image"
+    }
+   ],
+   "name": "text and base64 image",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": null,
+     "media_source": null,
+     "media_uri": null,
+     "text": "What?",
+     "type": "text"
+    },
+    {
+     "data_b64": "iVBORw0KGgpmYWtlLXBuZy1ieXRlcw==",
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": 22,
+     "media_mime_type": "image/jpeg",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "provider": "anthropic"
+  },
+  {
+   "content": [
+    {
+     "source": {
+      "type": "url",
+      "url": "https://example.com/x.png"
+     },
+     "type": "image"
+    }
+   ],
+   "name": "image url",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": "https://example.com/x.png",
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": "image/png",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "provider": "anthropic"
+  },
+  {
+   "content": [
+    {
+     "source": {
+      "data": "iVBORw0KGgpmYWtlLXBuZy1ieXRlcw==",
+      "type": "base64"
+     },
+     "type": "image"
+    }
+   ],
+   "name": "image no media type",
+   "parts": [
+    {
+     "data_b64": "iVBORw0KGgpmYWtlLXBuZy1ieXRlcw==",
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": 22,
+     "media_mime_type": "image/png",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "provider": "anthropic"
+  },
+  {
+   "content": [
+    {
+     "source": {
+      "data": "JVBERi0xLjQgZmFrZQ==",
+      "media_type": "application/pdf",
+      "type": "base64"
+     },
+     "type": "document"
+    },
+    {
+     "source": {
+      "type": "url",
+      "url": "https://example.com/d.pdf"
+     },
+     "type": "document"
+    }
+   ],
+   "name": "document base64 and url",
+   "parts": [
+    {
+     "data_b64": "JVBERi0xLjQgZmFrZQ==",
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": 13,
+     "media_mime_type": "application/pdf",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "document"
+    },
+    {
+     "data_b64": null,
+     "external_url": "https://example.com/d.pdf",
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": "application/pdf",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "document"
+    }
+   ],
+   "provider": "anthropic"
+  },
+  {
+   "content": [
+    {
+     "source": {
+      "file_id": "f1",
+      "type": "file"
+     },
+     "type": "image"
+    }
+   ],
+   "name": "image with unknown source",
+   "parts": [],
+   "provider": "anthropic"
+  },
+  {
+   "content": [
+    {
+     "text": "Look"
+    },
+    {
+     "inline_data": {
+      "data": "iVBORw0KGgpmYWtlLXBuZy1ieXRlcw==",
+      "mime_type": "image/png"
+     }
+    }
+   ],
+   "name": "text and inline image",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": null,
+     "media_source": null,
+     "media_uri": null,
+     "text": "Look",
+     "type": "text"
+    },
+    {
+     "data_b64": "iVBORw0KGgpmYWtlLXBuZy1ieXRlcw==",
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": 22,
+     "media_mime_type": "image/png",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "provider": "google"
+  },
+  {
+   "content": [
+    {
+     "inlineData": {
+      "data": "UklGRi4uLi5XQVZFZmFrZQ==",
+      "mimeType": "audio/mp3"
+     }
+    }
+   ],
+   "name": "camel case inline audio",
+   "parts": [
+    {
+     "data_b64": "UklGRi4uLi5XQVZFZmFrZQ==",
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": 16,
+     "media_mime_type": "audio/mp3",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "audio"
+    }
+   ],
+   "provider": "google"
+  },
+  {
+   "content": [
+    {
+     "file_data": {
+      "file_uri": "gs://bucket/v.mp4",
+      "mime_type": "video/mp4"
+     }
+    }
+   ],
+   "name": "file data video",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": "gs://bucket/v.mp4",
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": "video/mp4",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "video"
+    }
+   ],
+   "provider": "google"
+  },
+  {
+   "content": [
+    {
+     "fileData": {
+      "fileUri": "gs://b/d.pdf",
+      "mimeType": "application/pdf"
+     }
+    }
+   ],
+   "name": "camel file data pdf",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": "gs://b/d.pdf",
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": "application/pdf",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "document"
+    }
+   ],
+   "provider": "google"
+  },
+  {
+   "content": [
+    {
+     "inline_data": {
+      "data": "JVBERi0xLjQgZmFrZQ==",
+      "mime_type": "text/plain"
+     }
+    },
+    {
+     "inline_data": {
+      "data": "JVBERi0xLjQgZmFrZQ==",
+      "mime_type": "model/gltf"
+     }
+    }
+   ],
+   "name": "text/plain and unknown mime",
+   "parts": [
+    {
+     "data_b64": "JVBERi0xLjQgZmFrZQ==",
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": 13,
+     "media_mime_type": "text/plain",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "document"
+    },
+    {
+     "data_b64": "JVBERi0xLjQgZmFrZQ==",
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": 13,
+     "media_mime_type": "model/gltf",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "document"
+    }
+   ],
+   "provider": "google"
+  },
+  {
+   "content": [
+    {
+     "text": ""
+    }
+   ],
+   "name": "empty text part",
+   "parts": [],
+   "provider": "google"
+  },
+  {
+   "content": [
+    {
+     "image_url": {
+      "url": "https://example.com/g.png"
+     },
+     "type": "image_url"
+    }
+   ],
+   "name": "groq is openai shaped",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": "https://example.com/g.png",
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": "image/*",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "provider": "groq"
+  },
+  {
+   "content": [
+    {
+     "text": "hi",
+     "type": "text"
+    }
+   ],
+   "name": "falls back to openai",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": null,
+     "media_source": null,
+     "media_uri": null,
+     "text": "hi",
+     "type": "text"
+    }
+   ],
+   "provider": "unknown-provider"
+  }
+ ],
+ "detect_with_cap": [
+  {
+   "content": [
+    {
+     "image_url": {
+      "url": "data:image/png;base64,iVBORw0KGgpmYWtlLXBuZy1ieXRlcw=="
+     },
+     "type": "image_url"
+    }
+   ],
+   "max_decoded_bytes": 4,
+   "name": "data url over cap",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": "image/png",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "provider": "openai"
+  },
+  {
+   "content": [
+    {
+     "source": {
+      "data": "iVBORw0KGgpmYWtlLXBuZy1ieXRlcw==",
+      "media_type": "image/png",
+      "type": "base64"
+     },
+     "type": "image"
+    }
+   ],
+   "max_decoded_bytes": 4,
+   "name": "base64 over cap",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": "image/png",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "provider": "anthropic"
+  }
+ ],
+ "generated_by": "genai_otel_instrument (reference) media package, scratch generator",
+ "offload": [
+  {
+   "config": {
+    "allow_external_egress": true,
+    "content_max_length": 200,
+    "media_allowed_modalities": "image,audio,video,document",
+    "media_capture_mode": "off",
+    "media_max_bytes": 10485760,
+    "media_redactor": "",
+    "media_store_prefix": "traces/{date}/{trace_id}/",
+    "profile": ""
+   },
+   "name": "off returns unchanged",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": null,
+     "media_source": null,
+     "media_uri": null,
+     "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "type": "text"
+    },
+    {
+     "data_b64": "iVBORw0KGgpmYWtlLXBuZy1ieXRlcw==",
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": 22,
+     "media_mime_type": "image/png",
+     "media_source": null,
+     "media_uri": null,
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "trace_id": "abc123",
+   "use_store": true
+  },
+  {
+   "config": {
+    "allow_external_egress": true,
+    "content_max_length": 200,
+    "media_allowed_modalities": "image,audio,video,document",
+    "media_capture_mode": "full",
+    "media_max_bytes": 10485760,
+    "media_redactor": "",
+    "media_store_prefix": "traces/{date}/{trace_id}/",
+    "profile": ""
+   },
+   "name": "full uploads and caps text",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": null,
+     "media_source": null,
+     "media_uri": null,
+     "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "type": "text"
+    },
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {
+      "sha256": "d19e7d49f6b8d8769418f937116ec3b56a28ea6c85d4f80f3d116115023c7d1e"
+     },
+     "media_byte_size": 22,
+     "media_mime_type": "image/png",
+     "media_source": "inline_offloaded",
+     "media_uri": "<file-uri:traces/<date>/abc123/<uuid>.png>",
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "trace_id": "abc123",
+   "use_store": true
+  },
+  {
+   "config": {
+    "allow_external_egress": true,
+    "content_max_length": 200,
+    "media_allowed_modalities": "image,audio,video,document",
+    "media_capture_mode": "full",
+    "media_max_bytes": 10485760,
+    "media_redactor": "",
+    "media_store_prefix": "p/{date}",
+    "profile": ""
+   },
+   "name": "full with no prefix slash and no trace",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": null,
+     "media_source": null,
+     "media_uri": null,
+     "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "type": "text"
+    },
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {
+      "sha256": "d19e7d49f6b8d8769418f937116ec3b56a28ea6c85d4f80f3d116115023c7d1e"
+     },
+     "media_byte_size": 22,
+     "media_mime_type": "image/png",
+     "media_source": "inline_offloaded",
+     "media_uri": "<file-uri:p/<date>/<uuid>.png>",
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "trace_id": "",
+   "use_store": true
+  },
+  {
+   "config": {
+    "allow_external_egress": true,
+    "content_max_length": 200,
+    "media_allowed_modalities": "image,audio,video,document",
+    "media_capture_mode": "reference_only",
+    "media_max_bytes": 10485760,
+    "media_redactor": "",
+    "media_store_prefix": "traces/{date}/{trace_id}/",
+    "profile": ""
+   },
+   "name": "reference_only",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": null,
+     "media_source": null,
+     "media_uri": null,
+     "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "type": "text"
+    },
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": 22,
+     "media_mime_type": "image/png",
+     "media_source": "reference_only",
+     "media_uri": null,
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "trace_id": "abc123",
+   "use_store": true
+  },
+  {
+   "config": {
+    "allow_external_egress": true,
+    "content_max_length": 200,
+    "media_allowed_modalities": "image,audio,video,document",
+    "media_capture_mode": "full",
+    "media_max_bytes": 10485760,
+    "media_redactor": "",
+    "media_store_prefix": "traces/{date}/{trace_id}/",
+    "profile": ""
+   },
+   "name": "external url kept",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": "https://example.com/cat.jpg",
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": "image/*",
+     "media_source": "external_url",
+     "media_uri": "https://example.com/cat.jpg",
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "trace_id": "abc123",
+   "use_store": true
+  },
+  {
+   "config": {
+    "allow_external_egress": true,
+    "content_max_length": 200,
+    "media_allowed_modalities": "image",
+    "media_capture_mode": "full",
+    "media_max_bytes": 10485760,
+    "media_redactor": "",
+    "media_store_prefix": "traces/{date}/{trace_id}/",
+    "profile": ""
+   },
+   "name": "modality not allowed",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {
+      "stripped_reason": "modality_not_allowed"
+     },
+     "media_byte_size": 16,
+     "media_mime_type": "audio/wav",
+     "media_source": "reference_only",
+     "media_uri": null,
+     "text": null,
+     "type": "audio"
+    }
+   ],
+   "trace_id": "abc123",
+   "use_store": true
+  },
+  {
+   "config": {
+    "allow_external_egress": true,
+    "content_max_length": 200,
+    "media_allowed_modalities": "image,audio,video,document",
+    "media_capture_mode": "full",
+    "media_max_bytes": 10485760,
+    "media_redactor": "",
+    "media_store_prefix": "traces/{date}/{trace_id}/",
+    "profile": ""
+   },
+   "name": "no store",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": null,
+     "media_source": null,
+     "media_uri": null,
+     "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "type": "text"
+    },
+    {
+     "data_b64": "iVBORw0KGgpmYWtlLXBuZy1ieXRlcw==",
+     "external_url": null,
+     "extra": {
+      "stripped_reason": "no_data_or_store"
+     },
+     "media_byte_size": 22,
+     "media_mime_type": "image/png",
+     "media_source": "reference_only",
+     "media_uri": null,
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "trace_id": "abc123",
+   "use_store": false
+  },
+  {
+   "config": {
+    "allow_external_egress": true,
+    "content_max_length": 200,
+    "media_allowed_modalities": "image,audio,video,document",
+    "media_capture_mode": "full",
+    "media_max_bytes": 4,
+    "media_redactor": "",
+    "media_store_prefix": "traces/{date}/{trace_id}/",
+    "profile": ""
+   },
+   "name": "over max bytes",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": null,
+     "media_source": null,
+     "media_uri": null,
+     "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "type": "text"
+    },
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {
+      "stripped_reason": "size_exceeded"
+     },
+     "media_byte_size": 22,
+     "media_mime_type": "image/png",
+     "media_source": "reference_only",
+     "media_uri": null,
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "trace_id": "abc123",
+   "use_store": true
+  },
+  {
+   "config": {
+    "allow_external_egress": true,
+    "content_max_length": 200,
+    "media_allowed_modalities": "image,audio,video,document",
+    "media_capture_mode": "full",
+    "media_max_bytes": 10485760,
+    "media_redactor": "my.module.redact",
+    "media_store_prefix": "traces/{date}/{trace_id}/",
+    "profile": "strict"
+   },
+   "name": "redactor not allowed under strict",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": null,
+     "media_source": null,
+     "media_uri": null,
+     "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "type": "text"
+    },
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {
+      "stripped_reason": "redactor_not_allowed"
+     },
+     "media_byte_size": 22,
+     "media_mime_type": "image/png",
+     "media_source": "reference_only",
+     "media_uri": null,
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "trace_id": "abc123",
+   "use_store": true
+  },
+  {
+   "config": {
+    "allow_external_egress": true,
+    "content_max_length": 200,
+    "media_allowed_modalities": "image,audio,video,document",
+    "media_capture_mode": "full",
+    "media_max_bytes": 10485760,
+    "media_redactor": "nonexistent_mod.fn",
+    "media_store_prefix": "traces/{date}/{trace_id}/",
+    "profile": ""
+   },
+   "name": "redactor not resolvable",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": null,
+     "media_source": null,
+     "media_uri": null,
+     "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "type": "text"
+    },
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {
+      "stripped_reason": "redactor_not_allowed"
+     },
+     "media_byte_size": 22,
+     "media_mime_type": "image/png",
+     "media_source": "reference_only",
+     "media_uri": null,
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "trace_id": "abc123",
+   "use_store": true
+  },
+  {
+   "config": {
+    "allow_external_egress": true,
+    "content_max_length": 0,
+    "media_allowed_modalities": "image,audio,video,document",
+    "media_capture_mode": "full",
+    "media_max_bytes": 10485760,
+    "media_redactor": "",
+    "media_store_prefix": "traces/{date}/{trace_id}/",
+    "profile": ""
+   },
+   "name": "text unlimited",
+   "parts": [
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {},
+     "media_byte_size": null,
+     "media_mime_type": null,
+     "media_source": null,
+     "media_uri": null,
+     "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "type": "text"
+    },
+    {
+     "data_b64": null,
+     "external_url": null,
+     "extra": {
+      "sha256": "d19e7d49f6b8d8769418f937116ec3b56a28ea6c85d4f80f3d116115023c7d1e"
+     },
+     "media_byte_size": 22,
+     "media_mime_type": "image/png",
+     "media_source": "inline_offloaded",
+     "media_uri": "<file-uri:traces/<date>/abc123/<uuid>.png>",
+     "text": null,
+     "type": "image"
+    }
+   ],
+   "trace_id": "abc123",
+   "use_store": true
+  }
+ ]
+}

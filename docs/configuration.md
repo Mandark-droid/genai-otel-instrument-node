@@ -93,6 +93,7 @@ before: an ES-module import of a library that cannot run on Node 18 (anything on
 | `GENAI_ENABLE_RESTRICTED_TOPICS` | `false` | `GENAI_RESTRICTED_TOPICS_THRESHOLD` `0.7`, `GENAI_RESTRICTED_TOPICS_BLOCK_ON_DETECTION` |
 | `GENAI_ENABLE_HALLUCINATION_DETECTION` | `false` | `GENAI_HALLUCINATION_THRESHOLD` `0.6` |
 | `GENAI_ENABLE_TOXICITY_DETECTION` | `false` | `GENAI_TOXICITY_THRESHOLD` `0.7`, `GENAI_TOXICITY_BLOCK_ON_DETECTION`. In effect only once the application supplies a scorer (`setToxicityScorer`); until then nothing about toxicity is written. `GENAI_TOXICITY_USE_PERSPECTIVE_API` is read and has no effect: no Perspective client ships |
+| `GENAI_OTEL_MEDIA_CAPTURE_MODE` and the other `GENAI_OTEL_MEDIA_*` | `off` | Multimodal capture; see [media.md](media.md) |
 | `GENAI_ENABLE_GPU_METRICS` | `true` | NVIDIA, through `nvidia-smi`, every `GENAI_GPU_COLLECTION_INTERVAL` seconds (default `5`). No `nvidia-smi` or no device: nothing is created, one log line. See [gpu-energy.md](gpu-energy.md) |
 | `GENAI_POWER_COST_PER_KWH` | `0.12` | USD; `gen_ai.power.cost` is measured GPU energy times this |
 | `GENAI_ENABLE_CO2_TRACKING` | `false` | `gen_ai.co2.emissions` is measured GPU energy times `GENAI_CARBON_INTENSITY` (default `475.0` gCO2e/kWh, a world average - set the grid's own figure). Needs GPU metrics |
@@ -107,7 +108,6 @@ reported in the log at start-up; it is never silently ignored.
 | Variables | Feature | Phase |
 |---|---|---|
 | `GENAI_CO2_COUNTRY_ISO_CODE`, `GENAI_CO2_REGION`, `GENAI_CO2_CLOUD_PROVIDER`, `GENAI_CO2_CLOUD_REGION`, `GENAI_CO2_OFFLINE_MODE`, `GENAI_CO2_TRACKING_MODE`, `GENAI_CO2_USE_MANUAL`, `GENAI_CODECARBON_LOG_LEVEL` | codecarbon's location and mode settings. There is no codecarbon here: CO2 is energy times `GENAI_CARBON_INTENSITY` | - |
-| `GENAI_OTEL_MEDIA_*` | Multimodal capture | 4 |
 | `GENAI_ENABLE_CONCURRENCY_METRICS` | Read by the Python library's configuration and used by nothing there either | - |
 
 Variables the Python library reads that this SDK does not, and why, are listed in

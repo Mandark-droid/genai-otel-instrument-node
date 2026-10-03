@@ -40,6 +40,8 @@ import { activeEvaluation, EvaluationEngine, EvaluationSpanProcessor, evaluation
 import { AiSdkSpanProcessor, isAiSdkAggregate } from './frameworks/ai-sdk';
 import { GpuMetricsCollector, gpuSourceFactory } from './gpu/collector';
 import { NvidiaSmiSource } from './gpu/nvidia-smi';
+import { mediaIdle } from './media/emit';
+import './media/node-stores';
 import { initializeServerMetrics, resetServerMetrics, setVramDetector } from './server-metrics';
 import { resetPricingMissingCounter } from './cost/pricing-missing';
 // Registers the shipped instrumentors.
@@ -193,18 +195,8 @@ function metricIntervals(): { exportIntervalMillis: number; exportTimeoutMillis:
   return { exportIntervalMillis, exportTimeoutMillis };
 }
 
-/** Settings whose feature lands in a later phase of this SDK. Reported, not ignored. */
+/** Settings this SDK accepts and cannot act on, said so at start-up rather than ignored. */
 function reportUnhonouredSettings(config: OTelConfig, env: Env): void {
-  const pending: [boolean, string][] = [
-    [config.mediaCaptureMode !== 'off', 'GENAI_OTEL_MEDIA_CAPTURE_MODE'],
-  ];
-  const asked = pending.filter(([enabled]) => enabled).map(([, name]) => name);
-  if (asked.length > 0) {
-    logger.warn(
-      `Not available in @traceverse/genai-otel-instrument ${VERSION} and therefore NOT in effect: ` +
-        `${asked.join(', ')}. See docs/parity-matrix.md.`,
-    );
-  }
   // CO2 is computed from GPU energy: without GPU metrics there is nothing to compute it from.
   if (config.enableCo2Tracking && !config.enableGpuMetrics) {
     logger.warn('GENAI_ENABLE_CO2_TRACKING is on but GENAI_ENABLE_GPU_METRICS is off: CO2 is computed from measured GPU energy, so nothing is collected for it.');
@@ -383,6 +375,7 @@ export async function flushTelemetry(timeoutSeconds = 5.0): Promise<boolean> {
   // Spans still waiting for an evaluation scorer end first, so that they are flushed too.
   const evaluation = activeEvaluation();
   if (evaluation) await withDeadline(evaluation.idle(), timeoutMs);
+  await withDeadline(mediaIdle(), timeoutMs);
   const results = await Promise.all(
     [state.handle.tracerProvider, state.handle.meterProvider].map(async (provider) => {
       try {

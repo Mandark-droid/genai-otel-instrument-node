@@ -31,7 +31,9 @@ export default defineConfig({
           include: ['tests/**/*.test.ts'],
           setupFiles: ['tests/setup.ts'],
           environment: 'node',
-          testTimeout: 20000,
+          // Generous: a worker's first instrument() imports the client libraries it is
+          // given, and a development machine running a VM and a model server is slow.
+          testTimeout: 60000,
           // tests/instrumentors/no-leaked-spans.test.ts forces garbage collections.
           execArgv: ['--expose-gc'],
         },

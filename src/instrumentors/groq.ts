@@ -13,6 +13,7 @@ import { exportedClass } from './patch';
 import type { PatchTarget } from './patching';
 
 export class GroqInstrumentor extends OpenAIShapeInstrumentor {
+  protected override readonly mediaProvider = 'groq';
   protected readonly label = 'Groq';
   protected readonly packages = ['groq-sdk'];
 
