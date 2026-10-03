@@ -155,6 +155,10 @@
   waiting requests and (vLLM) the prefix cache, `gen_ai.server.prefix_cache.queries` /
   `.hits` (SDK_ADDITIONS.md sections 12, 13). `PrometheusServerMetricsPoller` is exported.
 
+- `GENAI_TOXICITY_JUDGE_URL`: an on-prem HTTP toxicity judge (SDK_ADDITIONS.md section 12),
+  used when no scorer is given in code. A judge that fails or answers with no score writes
+  nothing. Allowed when air-gapped.
+
 ### Changed
 - A wrapped call now returns the very promise the client library returned, observed on a
   side branch, instead of a promise derived from it. Clients that return a promise
@@ -261,6 +265,9 @@
   `docs/media.md`.
 
 ### Fixed
+- The SDK's own HTTP requests (engine pollers, the toxicity judge) are never traced or
+  counted in the `mcp.*` metrics as the application's traffic: they run with tracing
+  suppressed, and the HTTP instrumentation honours the suppression.
 - No GPU, energy, power-cost or CO2 telemetry from a process whose event loop was busy while
   the first `nvidia-smi` call ran (the platform run of `examples/e2e/full` on 2026-10-04).
   `execFile`'s timeout fired on the finished child after the loop unblocked, its output was

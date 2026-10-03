@@ -74,6 +74,27 @@ scorer, enabling toxicity detection writes nothing** - no attribute and no metri
 reference writes `detected = false` in that situation; a "false" that nothing measured is
 not written here.
 
+### An on-prem judge: `GENAI_TOXICITY_JUDGE_URL`
+
+Set `GENAI_TOXICITY_JUDGE_URL` to an http(s) endpoint the operator runs, and toxicity is
+scored there (contract/SDK_ADDITIONS.md section 12; the same protocol in every SDK). It is
+posted
+
+```json
+{"text": "You are an idiot.", "categories": ["identity_attack", "insult", "profanity", "severe_toxicity", "threat", "toxicity"]}
+```
+
+and answers `{"scores": {"toxicity": 0.91, ...}}`, or the scores as a flat object as a
+Detoxify server does - Detoxify's `obscene` is read as `profanity`. A judge that fails, times
+out (the time a span waits for a score, 5 s unless set) or answers with no score measured
+nothing: no toxicity attribute is written for that text, never a 0. The request is this
+SDK's own and is never traced or counted as the application's traffic, even with
+`GENAI_ENABLE_HTTP_INSTRUMENTATION` on. The endpoint is the operator's, so it stays allowed
+with `GENAI_AIR_GAPPED`, which forbids downloading models and assets at run time. A scorer
+given in code (below) wins over the URL.
+
+### A scorer in code
+
 A scorer is a function from text to a score between 0 and 1 per category
 (`toxicity`, `severe_toxicity`, `identity_attack`, `insult`, `profanity`, `threat`). Give
 it before `instrument()`:

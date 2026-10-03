@@ -114,6 +114,11 @@ const scorerSlot = (): { scorer?: ToxicityScorer; timeoutSeconds?: number } => s
 /** How long a span waits for a scorer that answers with a promise. */
 const DEFAULT_SCORER_TIMEOUT_SECONDS = 5;
 
+/** The time a span waits for a toxicity score: as set with `setToxicityScorer`, else 5 s. */
+export function toxicityWaitSeconds(): number {
+  return scorerSlot().timeoutSeconds ?? DEFAULT_SCORER_TIMEOUT_SECONDS;
+}
+
 /**
  * Give the toxicity detector something to measure with: a function returning
  * a score from 0 to 1 per category. Call it before `instrument()`. Without
@@ -339,15 +344,23 @@ export class EvaluationEngine {
   private readonly scorerTimeoutMs: number;
   private readonly pending = new Set<Promise<void>>();
 
-  constructor(configs: EvaluationConfigs, options: { toxicityScorer?: ToxicityScorer; scorerTimeoutSeconds?: number } = {}) {
+  constructor(
+    configs: EvaluationConfigs,
+    options: {
+      toxicityScorer?: ToxicityScorer;
+      scorerTimeoutSeconds?: number;
+      /** Used when neither `toxicityScorer` nor `setToxicityScorer()` gave one: the judge of GENAI_TOXICITY_JUDGE_URL. */
+      fallbackToxicityScorer?: ToxicityScorer;
+    } = {},
+  ) {
     this.scorerTimeoutMs = Math.max(1, (options.scorerTimeoutSeconds ?? scorerSlot().timeoutSeconds ?? DEFAULT_SCORER_TIMEOUT_SECONDS) * 1000);
     if (configs.pii?.enabled) this.pii = new PIIDetector(configs.pii);
     if (configs.toxicity?.enabled) {
-      const scorer = options.toxicityScorer ?? scorerSlot().scorer;
+      const scorer = options.toxicityScorer ?? scorerSlot().scorer ?? options.fallbackToxicityScorer;
       this.toxicity = new ToxicityDetector(configs.toxicity, scorer);
       if (!this.toxicity.isAvailable()) {
         logger.warn(
-          'Toxicity detection is enabled but nothing measures it: supply a scorer with setToxicityScorer(). ' +
+          'Toxicity detection is enabled but nothing measures it: set GENAI_TOXICITY_JUDGE_URL or supply a scorer with setToxicityScorer(). ' +
             'Until then no toxicity attribute or metric is written.',
         );
       }

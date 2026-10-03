@@ -20,6 +20,7 @@
 import { metrics, type Meter, type ObservableResult } from '@opentelemetry/api';
 import { logger } from './logger';
 import { METRIC_DEFINITIONS, type MetricName } from './metrics';
+import { ownFetch } from './own-fetch';
 import { clearStateSlot, stateSlot } from './state';
 
 export const SERVER_METER_NAME = 'genai.server';
@@ -282,17 +283,11 @@ abstract class EnginePoller {
 
   protected abstract read(): Promise<EngineReading>;
 
-  /** GET `baseUrl + path`; the body of a 2xx answer. */
+  /** GET `baseUrl + path`, untraced; a 2xx answer. */
   protected async get(path: string): Promise<Response> {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
-    try {
-      const response = await fetch(`${this.baseUrl}${path}`, { signal: controller.signal });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return response;
-    } finally {
-      clearTimeout(timer);
-    }
+    const response = await ownFetch(`${this.baseUrl}${path}`, {}, this.timeoutMs);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response;
   }
 }
 

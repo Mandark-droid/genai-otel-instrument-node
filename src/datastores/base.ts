@@ -12,6 +12,7 @@
  * accounting happens here.
  */
 import { context, SpanKind, SpanStatusCode, trace, type Attributes, type AttributeValue, type Span } from '@opentelemetry/api';
+import { isTracingSuppressed } from '@opentelemetry/core';
 import type { OTelConfig } from '../config';
 import type { UsageDict } from '../instrumentors/base';
 import { PatchingInstrumentor } from '../instrumentors/patching';
@@ -99,7 +100,8 @@ export abstract class DatastoreInstrumentor extends PatchingInstrumentor {
       const invoke = (self: unknown, args: unknown[]): unknown => (original as unknown as (...a: unknown[]) => unknown).apply(self, args);
 
       const wrapped = function (this: unknown, ...args: unknown[]): unknown {
-        if (!instrumentor.instrumented) return invoke(this, args);
+        // A call this SDK makes for itself (pollers, the toxicity judge) runs with tracing suppressed.
+        if (!instrumentor.instrumented || isTracingSuppressed(context.active())) return invoke(this, args);
 
         let call: DatastoreCall | undefined;
         let span: Span | undefined;

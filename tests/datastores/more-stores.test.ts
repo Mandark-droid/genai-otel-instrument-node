@@ -373,6 +373,19 @@ describe('outbound HTTP (fetch)', () => {
     expect(JSON.stringify(span.attributes)).not.toContain('private');
   });
 
+  it("the SDK's own requests (engine pollers, the toxicity judge) are never traced: ownFetch runs with tracing suppressed", async () => {
+    const { ownFetch } = await import('../../src/own-fetch');
+    harness = await startHarness({ enabledInstrumentors: [], enableHttpInstrumentation: true });
+    server.reply({ json: { ok: true } });
+    await (await ownFetch(`${server.url}/metrics`, {}, 2000)).json();
+    expect(harness.spans()).toEqual([]);
+    // Not counted as the application's traffic either.
+    expect(await harness.metric('mcp.requests')).toBeUndefined();
+    server.reply({ json: { ok: true } });
+    await (await fetch(`${server.url}/v1/status`)).json();
+    expect(harness.spans().map((span) => span.name)).toEqual(['api.call.get.127.0.0.1']);
+  });
+
   it('after uninstrument() fetch is the platform one again', async () => {
     const before = globalThis.fetch;
     harness = await startHarness({ enabledInstrumentors: [], enableHttpInstrumentation: true });
