@@ -215,7 +215,8 @@
   extracted (`gen_ai.response` was written regardless for Bedrock, Groq, Mistral and
   SambaNova); with capture on, every chat span carries its prompt and completion,
   streamed calls included; `gen_ai.operation.name` on every model-call span; Anthropic
-  spans carry the response id, model and finish reason.
+  spans carry the response id, model and finish reason; `anthropic.messages.stream` is
+  counted in `gen_ai.requests` and carries the endpoint and request parameters.
 - OpenAI-compatible vendors are recognised by host or subdomain, not by the domain
   appearing anywhere in the base URL.
 - Tokens the provider reports are read and priced: Gemini thinking and cached tokens,
@@ -224,6 +225,8 @@
 - Embeddings through every OpenAI-compatible vendor (`<vendor>.embeddings`) and Groq
   (`groq.embeddings`) are traced; a Responses call through a vendor is `openai.responses`
   with the vendor as `gen_ai.system`.
+- Azure AI Inference (`@azure-rest/ai-inference`): `azure.ai.inference.chat` and
+  `azure.ai.inference.embeddings`, observed in the Azure pipeline.
 
 ### Fixed
 - On Node 18, `instrument()` in an ES-module application could end the process with an

@@ -101,6 +101,7 @@
     "@aws-sdk/client-bedrock-agent-runtime": "*",
     "@aws-sdk/client-bedrock-runtime": "*",
     "@aws-sdk/client-s3": "*",
+    "@azure-rest/ai-inference": "*",
     "@elastic/elasticsearch": "*",
     "@elevenlabs/elevenlabs-js": "*",
     "@google-cloud/vertexai": "*",
@@ -146,6 +147,9 @@
       "optional": true
     },
     "@aws-sdk/client-s3": {
+      "optional": true
+    },
+    "@azure-rest/ai-inference": {
       "optional": true
     },
     "@elastic/elasticsearch": {

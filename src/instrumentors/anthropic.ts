@@ -16,7 +16,7 @@
  * Like the reference, this records no response id, finish reason or tool-call
  * attributes for Anthropic, and no `gen_ai.operation.name`.
  */
-import { context, trace, type Attributes, type Span } from '@opentelemetry/api';
+import { context, trace, type Attributes, type AttributeValue, type Span } from '@opentelemetry/api';
 import type { OTelConfig } from '../config';
 import { logger } from '../logger';
 import { pyStr, pyTruncate } from '../pycompat';
@@ -27,6 +27,8 @@ import {
   epochSeconds,
   findBaseUrlClaim,
   StreamTiming,
+  requestParameterAttributes,
+  serverAttributes,
   type Params,
   type StreamCall,
   type UsageDict,
@@ -177,7 +179,13 @@ export class AnthropicInstrumentor extends BaseInstrumentor {
           if (value === undefined || value === null) continue;
           attributes[key] = typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? value : pyStr(value);
         }
+        // The endpoint and request parameters every other span gets; the reference's stream span has neither.
+        for (const derived of [serverAttributes(this), requestParameterAttributes(params)]) {
+          for (const [key, value] of Object.entries(derived)) if (!(key in attributes)) attributes[key] = value as AttributeValue;
+        }
         call = instrumentor.startStreamCall('anthropic.messages.stream', attributes, String(params.model ?? 'unknown'));
+        // Counted like any other call (the reference does not count it).
+        instrumentor.metrics.counters.requests.add(1, { operation: 'anthropic.messages.stream' });
       } catch (error) {
         // Never break the caller's call.
         logger.debug(`Could not start span for anthropic.messages.stream: ${String(error)}`);

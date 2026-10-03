@@ -22,6 +22,7 @@ import {
   OpenRouterInstrumentor,
   SambaNovaInstrumentor,
 } from './openai-compatible';
+import { AzureAIInferenceInstrumentor } from './azure-ai-inference';
 import { loadModuleCopies } from './patch';
 import { setModuleLoader } from './patching';
 import { registerInstrumentor, type Instrumentor } from './registry';
@@ -41,6 +42,7 @@ registerInstrumentor('hyperbolic', () => new HyperbolicInstrumentor());
 registerInstrumentor('sambanova', () => new SambaNovaInstrumentor());
 registerInstrumentor('anyscale', () => new AnyscaleInstrumentor());
 registerInstrumentor('groq', () => new GroqInstrumentor());
+registerInstrumentor('azure.ai.inference', () => new AzureAIInferenceInstrumentor());
 registerInstrumentor('together', () => new TogetherInstrumentor());
 registerInstrumentor('mistralai', () => new MistralInstrumentor());
 registerInstrumentor('cohere', () => new CohereInstrumentor());

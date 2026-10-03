@@ -285,6 +285,8 @@ describe('Anthropic instrumentor', () => {
       expect(final.usage.output_tokens).toBe(9);
 
       await eventually(() => expect(harness.spans()).toHaveLength(1));
+      // Counted like any other call; the reference does not count it.
+      expect((await harness.metric('gen_ai.requests'))?.points).toEqual([{ attributes: { operation: 'anthropic.messages.stream' }, value: 1 }]);
       // Exactly one span: the helper's inner create() call is not traced a second time.
       const span = harness.span('anthropic.messages.stream');
       expect(span.status.code).toBe(SpanStatusCode.OK);
@@ -293,6 +295,9 @@ describe('Anthropic instrumentor', () => {
         'gen_ai.provider.name': 'anthropic',
         'gen_ai.request.model': MODEL,
         'gen_ai.request.message_count': 1,
+        // Not on the reference's stream span (SDK_ADDITIONS.md section 6): the endpoint and the operation.
+        'server.address': '127.0.0.1',
+        'gen_ai.operation.name': 'chat',
         'gen_ai.streaming.token_count': 7,
         'gen_ai.usage.input_tokens': 25,
         'gen_ai.usage.output_tokens': 9,
@@ -303,8 +308,6 @@ describe('Anthropic instrumentor', () => {
         calculator.calculateCost(MODEL, { prompt_tokens: 25, completion_tokens: 9, total_tokens: 34 }, 'chat'),
       );
       expect(span.attributes['gen_ai.server.ttft']).toBeGreaterThan(0);
-      // The reference does not count messages.stream() in gen_ai.requests.
-      expect(await harness.metric('gen_ai.requests')).toBeUndefined();
     });
 
     it('iteration and event listeners still work', async () => {
