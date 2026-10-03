@@ -209,6 +209,22 @@
   with a JSON summary of what the SDK measured. Tested against mocks; run against a local
   Ollama.
 
+### Changed
+- Content and span shape are the same for every provider (SDK_ADDITIONS.md sections 5 to
+  7): no content-bearing attribute without content capture, whatever an instrumentor
+  extracted (`gen_ai.response` was written regardless for Bedrock, Groq, Mistral and
+  SambaNova); with capture on, every chat span carries its prompt and completion,
+  streamed calls included; `gen_ai.operation.name` on every model-call span; Anthropic
+  spans carry the response id, model and finish reason.
+- OpenAI-compatible vendors are recognised by host or subdomain, not by the domain
+  appearing anywhere in the base URL.
+- Tokens the provider reports are read and priced: Gemini thinking and cached tokens,
+  Bedrock Converse cache tokens, Bedrock's token-count response headers, the streamed
+  Responses API's final event.
+- Embeddings through every OpenAI-compatible vendor (`<vendor>.embeddings`) and Groq
+  (`groq.embeddings`) are traced; a Responses call through a vendor is `openai.responses`
+  with the vendor as `gen_ai.system`.
+
 ### Fixed
 - On Node 18, `instrument()` in an ES-module application could end the process with an
   unhandled `ReferenceError: File is not defined` when an installed client library needs a

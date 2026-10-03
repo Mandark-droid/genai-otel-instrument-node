@@ -211,7 +211,7 @@ describe('Sarvam instrumentor', () => {
   const noRetry = { maxRetries: 0 };
 
   it('chat.completions: tokens, cost, response text', async () => {
-    harness = await startHarness({ enabledInstrumentors: ['sarvamai'] });
+    harness = await startHarness({ enabledInstrumentors: ['sarvamai'], enableContentCapture: true });
     llm.reply({
       json: {
         id: 'sarvam-chat-0001',

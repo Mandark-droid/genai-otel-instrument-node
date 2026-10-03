@@ -50,21 +50,29 @@ describe('Groq instrumentor', () => {
       'gen_ai.usage.output_tokens': 9,
       'gen_ai.usage.total_tokens': 28,
       'gen_ai.usage.cost.total': getDefaultCostCalculator().calculateCost('gpt-4o-mini', USAGE, 'chat'),
-      // The reference records the response text on every span.
-      'gen_ai.response': 'The capital of France is Paris.',
+      // Not in the reference's Groq spans; every model call names its operation here.
+      'gen_ai.operation.name': 'chat',
     });
-    // Prompt text is recorded only with content capture on.
+    // Neither prompt nor response text without content capture; the reference records
+    // the response text on every span (SDK_ADDITIONS.md section 5).
     expect('gen_ai.request.first_message' in span.attributes).toBe(false);
-    // The reference Groq wrapper sets no operation name.
-    expect('gen_ai.operation.name' in span.attributes).toBe(false);
+    expect('gen_ai.response' in span.attributes).toBe(false);
     expect((await harness.metric('gen_ai.requests'))?.points.map((point) => point.attributes)).toEqual([{ operation: 'groq.chat.completions' }]);
   });
 
-  it('with content capture on, the first message is recorded', async () => {
+  it('embeddings: `groq.embeddings` (SDK_ADDITIONS.md section 7; the reference traces none)', async () => {
+    harness = await startHarness({ enabledInstrumentors: ['groq'] });
+    llm.reply({ fixture: 'openai/embeddings.float.json' });
+    await client().embeddings.create({ model: 'nomic-embed-text-v1_5', input: 'hello' });
+    expect(harness.span('groq.embeddings').attributes).toMatchObject({ 'gen_ai.system': 'groq', 'gen_ai.operation.name': 'embeddings', 'gen_ai.request.model': 'nomic-embed-text-v1_5' });
+  });
+
+  it('with content capture on, the first message and the response text are recorded', async () => {
     harness = await startHarness({ enabledInstrumentors: ['groq'], enableContentCapture: true });
     llm.reply({ fixture: 'openai/chat.completion.json' });
     await client().chat.completions.create({ model: 'gpt-4o-mini', messages: MESSAGES });
     expect(String(harness.span('groq.chat.completions').attributes['gen_ai.request.first_message'])).toContain('capital of France');
+    expect(harness.span('groq.chat.completions').attributes['gen_ai.response']).toBe('The capital of France is Paris.');
   });
 
   it('streaming: time to first token, tokens from the final chunk', async () => {

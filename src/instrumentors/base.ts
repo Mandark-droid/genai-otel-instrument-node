@@ -38,6 +38,7 @@ import { pyJsonDumps, pyStr, pyTruncate } from '../pycompat';
 import { AGENT_OPERATION_MARKERS, ATTR, genaiSemconvModes, SemanticConvention as SC, TOKEN_MODALITIES } from '../semconv';
 import { activeEvaluation, PolicyViolationError, promptForEvaluation, rememberTexts, responseForEvaluation } from '../evaluation/engine';
 import { llamacppLatencyAttributes } from '../engine-latency';
+import { chunkText, completionText, ensureContent, StreamText, withoutContent } from './content';
 import { getServerMetrics } from '../server-metrics';
 import { contextWithSessionId } from '../session';
 import { stateSlot } from '../state';
@@ -75,11 +76,26 @@ export function clearBaseUrlClaims(): void {
   claims().clear();
 }
 
+/**
+ * Whether `baseUrl` points at `domain`: its host is the domain or a subdomain
+ * of it. The reference looks for the domain anywhere in the URL, which also
+ * claims `https://gateway.example.com/openrouter.ai/v1`.
+ */
+export function hostMatches(baseUrl: unknown, domain: string): boolean {
+  if (!baseUrl) return false;
+  let host: string;
+  try {
+    host = new URL(String(baseUrl)).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  const wanted = domain.toLowerCase();
+  return host === wanted || host.endsWith(`.${wanted}`);
+}
+
 /** The name of the dedicated instrumentor claiming `baseUrl`, or undefined. */
 export function findBaseUrlClaim(baseUrl: unknown): string | undefined {
-  if (!baseUrl) return undefined;
-  const url = String(baseUrl).toLowerCase();
-  for (const [domain, name] of claims()) if (url.includes(domain)) return name;
+  for (const [domain, name] of claims()) if (hostMatches(baseUrl, domain)) return name;
   return undefined;
 }
 
@@ -242,6 +258,13 @@ function spanAttributes(span: Span): Attributes {
 // Streaming
 // ---------------------------------------------------------------------------
 
+/** The operation of a model call the instrumentor did not name, from its request type or span name. */
+function operationFor(spanName: string, requestType: unknown): string | undefined {
+  if (requestType === 'embedding' || /embed/i.test(spanName)) return 'embeddings';
+  if (requestType === 'chat' || /(chat|complet|messages|generate|converse|invoke_model)/i.test(spanName)) return 'chat';
+  return undefined;
+}
+
 /** Latency bookkeeping for one streamed response. */
 export class StreamTiming {
   /** null until the first chunk actually arrives. */
@@ -254,6 +277,8 @@ export class StreamTiming {
    * events. Stays null for providers that report it on the final chunk.
    */
   usage: UsageDict | null = null;
+  /** The completion as it streams; only with content capture on. */
+  text: StreamText | undefined;
 
   constructor(readonly startTime: number) {
     this.lastChunkTime = startTime;
@@ -361,6 +386,22 @@ export abstract class BaseInstrumentor implements Instrumentor {
 
   /** Response attributes (id, model, finish reasons, tool calls). */
   protected extractResponseAttributes?(result: unknown): Record<string, unknown>;
+
+  /** The completion text of a buffered response, for content capture. */
+  protected completionTextForContent(result: unknown): string | undefined {
+    return completionText(result);
+  }
+
+  /** The text one streamed chunk adds to the completion, for content capture. */
+  protected streamChunkTextForContent(chunk: unknown): string | undefined {
+    return chunkText(chunk);
+  }
+
+  /** Bound a captured text to `contentMaxLength` (0: unlimited). */
+  protected capText(text: string): string {
+    const maxLength = this.config?.contentMaxLength ?? 200;
+    return maxLength > 0 ? pyTruncate(text, maxLength) : text;
+  }
 
   /** The response text the evaluation reads. The reference reads the OpenAI shape only; an instrumentor may know better. */
   protected responseTextForEvaluation(result: unknown): string | undefined {
@@ -533,7 +574,14 @@ export abstract class BaseInstrumentor implements Instrumentor {
     } catch (error) {
       logger.debug(`Could not derive span attributes for '${spanName}': ${String(error)}`);
     }
-    return initial;
+    // Every model-call span names its operation, also where the reference leaves it out
+    // (Groq, Mistral, hand-built spans): the platform selects single model requests by it.
+    if (initial[ATTR.GEN_AI_OPERATION_NAME] === undefined) {
+      const operation = operationFor(spanName, initial[ATTR.GEN_AI_REQUEST_TYPE]);
+      if (operation) initial[ATTR.GEN_AI_OPERATION_NAME] = operation;
+    }
+    // Content reaches a span only with content capture on, whatever was extracted.
+    return this.config && !this.config.enableContentCapture ? withoutContent(initial) : initial;
   }
 
   private applySessionAndUser(span: Span, instance: unknown, args: unknown[], params: Params): void {
@@ -996,7 +1044,8 @@ export abstract class BaseInstrumentor implements Instrumentor {
     }
 
     try {
-      const responseAttributes = this.extractResponseAttributes?.(result);
+      let responseAttributes = this.extractResponseAttributes?.(result);
+      if (responseAttributes && config && !config.enableContentCapture) responseAttributes = withoutContent(responseAttributes);
       if (responseAttributes) {
         for (const [key, value] of Object.entries(this.withProviderAliases(responseAttributes))) {
           if (value === undefined || value === null) continue;
@@ -1011,6 +1060,10 @@ export abstract class BaseInstrumentor implements Instrumentor {
     try {
       if (config?.enableContentCapture) {
         this.addContentEvents?.(span, result, params);
+        // Every provider the same: prompt and completion, where the instrumentor wrote none.
+        if (!/embed/.test(String(spanAttributes(span)[ATTR.GEN_AI_OPERATION_NAME] ?? ''))) {
+          ensureContent(span, params, this.completionTextForContent(result), (text) => this.capText(text));
+        }
         const written = spanAttributes(span);
         if (written[ATTR.GEN_AI_REQUEST_TYPE] === 'embedding' && !written[ATTR.EMBEDDING_TEXT]) {
           this.addGenericEmbeddingContent(span, result, params);
@@ -1209,6 +1262,7 @@ export abstract class BaseInstrumentor implements Instrumentor {
   private installStreamMeasurement(call: Call, result: unknown): boolean {
     if (!isAsyncIterable(result)) return false;
     const timing = new StreamTiming(call.startTime);
+    if (this.config?.enableContentCapture) timing.text = new StreamText(this.config.contentMaxLength);
     const stream = result as unknown as Record<PropertyKey, unknown>;
     // The measuring iterator holds the stream object - deliberately. While a
     // reader holds the iterator the stream must stay alive, or the finalizer
@@ -1322,6 +1376,8 @@ export abstract class BaseInstrumentor implements Instrumentor {
       }
       timing.lastChunkTime = current;
       timing.lastChunk = chunk;
+      // With content capture on, the completion is assembled as it streams; off, nothing is kept.
+      if (timing.text) timing.text.add(this.streamChunkTextForContent(chunk));
     } catch (error) {
       logger.debug(`Failed to observe a streamed chunk: ${String(error)}`);
     }
@@ -1404,6 +1460,14 @@ export abstract class BaseInstrumentor implements Instrumentor {
 
       if (completed) {
         this.recordTimePerOutputToken(span, spanName, timing.ttft, duration, outputTokens, model);
+        // Content capture on: the assembled completion, as a buffered call carries it.
+        if (timing.text && 'params' in call && !/embed/.test(String(spanAttributes(span)[ATTR.GEN_AI_OPERATION_NAME] ?? ''))) {
+          try {
+            ensureContent(span, call.params, timing.text.value, (text) => this.capText(text));
+          } catch (error) {
+            logger.debug(`Failed to add streamed content for span '${spanName}': ${String(error)}`);
+          }
+        }
         span.setStatus({ code: SpanStatusCode.OK });
       } else if (outcome.kind === 'cancelled') {
         metrics.counters.errors.add(1, { operation: spanName, error_type: STREAM_CANCELLED });

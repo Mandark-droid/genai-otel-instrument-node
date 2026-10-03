@@ -36,9 +36,14 @@ describe('OpenAI-compatible providers', () => {
     }
   });
 
-  /** A client whose base URL carries the provider's domain and still reaches the mock. */
+  /** Send to the mock what was addressed to `host`: the client's base URL is the provider's own. */
+  const toMock = (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+    const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url);
+    return fetch(`${llm.url}${url.pathname}${url.search}`, init);
+  };
+  /** A client at the provider's host that still reaches the mock. */
   const openaiAt = (domain: string): OpenAI =>
-    new OpenAI({ apiKey: 'sk-test-not-a-real-key', baseURL: `${llm.url}/${domain}/v1`, maxRetries: 0 });
+    new OpenAI({ apiKey: 'sk-test-not-a-real-key', baseURL: `https://${domain}/v1`, maxRetries: 0, fetch: toMock });
   const plainOpenAI = (): OpenAI => new OpenAI({ apiKey: 'sk-test-not-a-real-key', baseURL: `${llm.url}/v1`, maxRetries: 0 });
 
   it('every name is registered', async () => {
@@ -167,7 +172,7 @@ describe('OpenAI-compatible providers', () => {
     it('through the Anthropic client: Anthropic usage names, cache tokens, stop reason', async () => {
       harness = await startHarness({ enabledInstrumentors: ['openai', 'cometapi', 'anthropic'] });
       llm.reply({ fixture: 'anthropic/message.json' });
-      const client = new Anthropic({ apiKey: 'sk-ant-test-not-a-real-key', baseURL: `${llm.url}/api.cometapi.com`, maxRetries: 0 });
+      const client = new Anthropic({ apiKey: 'sk-ant-test-not-a-real-key', baseURL: 'https://api.cometapi.com', maxRetries: 0, fetch: toMock });
       await client.messages.create({ model: 'claude-sonnet-4-5', max_tokens: 64, messages: MESSAGES });
       expect(harness.spans().map((span) => span.name)).toEqual(['cometapi.messages.create']);
       const attributes = harness.span('cometapi.messages.create').attributes;
@@ -206,6 +211,28 @@ describe('OpenAI-compatible providers', () => {
         'gen_ai.usage.total_tokens': 28,
         'gen_ai.usage.cost.total': getDefaultCostCalculator().calculateCost('gpt-4o-mini', USAGE, 'chat'),
       });
+    });
+  });
+
+  describe.each([
+    ['hyperbolic', 'api.hyperbolic.xyz'],
+    ['sambanova', 'api.sambanova.ai'],
+    ['openrouter', 'openrouter.ai'],
+  ])('%s, beyond chat (SDK_ADDITIONS.md section 7)', (name, domain) => {
+    it('embeddings: one span, `<vendor>.embeddings`, under the vendor', async () => {
+      harness = await startHarness({ enabledInstrumentors: ['openai', name] });
+      llm.reply({ fixture: 'openai/embeddings.float.json' });
+      await openaiAt(domain).embeddings.create({ model: 'text-embedding-3-small', input: 'hello' });
+      expect(harness.spans().map((span) => span.name)).toEqual([`${name}.embeddings`]);
+      expect(harness.span(`${name}.embeddings`).attributes).toMatchObject({ 'gen_ai.system': name, 'gen_ai.operation.name': 'embeddings' });
+    });
+
+    it('the Responses API: one span, `openai.responses`, with the vendor as the system', async () => {
+      harness = await startHarness({ enabledInstrumentors: ['openai', name] });
+      llm.reply({ fixture: 'openai/responses.json' });
+      await openaiAt(domain).responses.create({ model: 'gpt-4o-mini', input: 'Capital of France?' });
+      expect(harness.spans().map((span) => span.name)).toEqual(['openai.responses']);
+      expect(harness.span('openai.responses').attributes).toMatchObject({ 'gen_ai.system': name, 'gen_ai.usage.total_tokens': 62 });
     });
   });
 

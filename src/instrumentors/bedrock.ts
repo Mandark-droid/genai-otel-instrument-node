@@ -49,7 +49,54 @@ function converseUsage(usage: unknown): UsageDict | null {
   if (!isObject(usage) || (!('inputTokens' in usage) && !('outputTokens' in usage))) return null;
   const input = Number(usage.inputTokens || 0);
   const output = Number(usage.outputTokens || 0);
-  return { prompt_tokens: input, completion_tokens: output, total_tokens: Number(usage.totalTokens ?? input + output) };
+  const mapped: UsageDict = { prompt_tokens: input, completion_tokens: output, total_tokens: Number(usage.totalTokens ?? input + output) };
+  // Prompt caching, reported as Anthropic does: outside `inputTokens`. The reference reads neither.
+  if (Number(usage.cacheReadInputTokens) > 0) mapped.cache_read_input_tokens = Number(usage.cacheReadInputTokens);
+  if (Number(usage.cacheWriteInputTokens) > 0) mapped.cache_creation_input_tokens = Number(usage.cacheWriteInputTokens);
+  return mapped;
+}
+
+/**
+ * Bedrock reports the token counts of an InvokeModel call in response headers,
+ * whatever the model's body says. They are read through a middleware on the
+ * command - an observer: the output the application gets is the same object.
+ */
+const headerCounts = new WeakMap<object, UsageDict>();
+const watchedCommands = new WeakSet<object>();
+
+interface MiddlewareCommand {
+  middlewareStack?: { add(middleware: unknown, options: Record<string, unknown>): void };
+}
+
+function captureTokenHeaders(command: unknown): void {
+  if (!isObject(command) || watchedCommands.has(command)) return;
+  const stack = (command as MiddlewareCommand).middlewareStack;
+  if (!stack || typeof stack.add !== 'function') return;
+  watchedCommands.add(command);
+  try {
+    stack.add(
+      (next: (args: unknown) => Promise<{ output?: unknown; response?: { headers?: Record<string, string> } }>) =>
+        async (args: unknown) => {
+          const outcome = await next(args);
+          try {
+            const headers = outcome.response?.headers ?? {};
+            const input = Number(headers['x-amzn-bedrock-input-token-count']);
+            const output = Number(headers['x-amzn-bedrock-output-token-count']);
+            if (isObject(outcome.output) && (Number.isFinite(input) || Number.isFinite(output))) {
+              const prompt = Number.isFinite(input) ? input : 0;
+              const completion = Number.isFinite(output) ? output : 0;
+              headerCounts.set(outcome.output, { prompt_tokens: prompt, completion_tokens: completion, total_tokens: prompt + completion });
+            }
+          } catch {
+            // reading headers must never disturb the call
+          }
+          return outcome;
+        },
+      { step: 'deserialize', priority: 'high', name: 'genaiOtelBedrockTokenHeaders', override: true },
+    );
+  } catch {
+    // a stack that refuses the middleware: no header counts for this call
+  }
 }
 
 /**
@@ -100,8 +147,10 @@ export class BedrockInstrumentor extends OpenAIShapeInstrumentor {
         // it here defines it on the Bedrock runtime client alone.
         holder: (client as { prototype: object }).prototype,
         method: 'send',
-        attributes: (_instance, args, params) =>
-          commandName(args[0]).startsWith('Converse') ? this.converseAttributes(params) : this.invokeAttributes(params),
+        attributes: (_instance, args, params) => {
+          if (commandName(args[0]) === 'InvokeModelCommand') captureTokenHeaders(args[0]);
+          return commandName(args[0]).startsWith('Converse') ? this.converseAttributes(params) : this.invokeAttributes(params);
+        },
         options: {
           params: (args) => (isObject(args[0]) && isObject(args[0].input) ? args[0].input : {}),
           spanName: (_params, args) => SPAN_NAMES[commandName(args[0])] ?? 'aws.bedrock.send',
@@ -186,7 +235,8 @@ export class BedrockInstrumentor extends OpenAIShapeInstrumentor {
     const converse = converseUsage(result.usage) ?? (isObject(result.metadata) ? converseUsage(result.metadata.usage) : null);
     if (converse) return converse;
     const body = parseBody(isObject(result.chunk) ? result.chunk.bytes : result.body);
-    return body ? bodyUsage(body) : null;
+    // The body's own counts first; the response headers when it has none.
+    return (body ? bodyUsage(body) : null) ?? headerCounts.get(result) ?? null;
   }
 
   protected override extractFinishReason(result: unknown): string | null {

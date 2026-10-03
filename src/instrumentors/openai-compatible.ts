@@ -18,7 +18,7 @@ import type { Span } from '@opentelemetry/api';
 import type { OTelConfig } from '../config';
 import { logger } from '../logger';
 import { pyStr } from '../pycompat';
-import { clientBaseUrl, registerBaseUrlClaim, type Params, type UsageDict } from './base';
+import { clientBaseUrl, hostMatches, registerBaseUrlClaim, type Params, type UsageDict } from './base';
 import {
   BASIC_PARAMS,
   basicUsage,
@@ -44,7 +44,8 @@ abstract class ClaimingInstrumentor extends OpenAIShapeInstrumentor {
   protected abstract readonly claimDomain: string;
   protected abstract readonly system: string;
   protected readonly packages: readonly string[] = ['openai'];
-  protected readonly embeddings: boolean = false;
+  /** Embeddings through the vendor get `<vendor>.embeddings` (SDK_ADDITIONS.md section 7). */
+  protected readonly embeddings: boolean = true;
   protected abstract readonly response: ResponseAttributeOptions;
 
   protected override get owner(): string {
@@ -82,8 +83,7 @@ abstract class ClaimingInstrumentor extends OpenAIShapeInstrumentor {
 
   /** Only clients pointed at the provider are ours. */
   protected override shouldBypass(instance: unknown): boolean {
-    const baseUrl = clientBaseUrl(instance);
-    return !baseUrl || !String(baseUrl).toLowerCase().includes(this.claimDomain);
+    return !hostMatches(clientBaseUrl(instance), this.claimDomain);
   }
 
   protected override extractResponseAttributes(result: unknown): Obj {
@@ -99,7 +99,6 @@ export class OpenRouterInstrumentor extends ClaimingInstrumentor {
   protected readonly label = 'OpenRouter';
   protected readonly claimDomain = 'openrouter.ai';
   protected readonly system = 'openrouter';
-  protected override readonly embeddings = true;
   protected readonly response = { id: true, model: true, finishReasons: true, toolCalls: true, embeddings: true };
 
   protected chatAttributes(params: Params): Obj {
@@ -127,7 +126,6 @@ export class CometAPIInstrumentor extends ClaimingInstrumentor {
   protected readonly claimDomain = 'cometapi.com';
   protected readonly system = 'cometapi';
   protected override readonly packages = ['openai', '@anthropic-ai/sdk'];
-  protected override readonly embeddings = true;
   protected readonly response = { id: true, model: true, finishReasons: true, embeddings: true, stopReason: true };
 
   protected chatAttributes(params: Params): Obj {

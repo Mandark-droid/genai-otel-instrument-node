@@ -31,6 +31,7 @@ import {
   type StreamCall,
   type UsageDict,
 } from './base';
+import { StreamText } from './content';
 import { exportedClass, loadModuleCopies, unwrapMethod, wrapMethod } from './patch';
 
 type Obj = Record<string, unknown>;
@@ -140,6 +141,8 @@ export class AnthropicInstrumentor extends BaseInstrumentor {
     const messages = Array.isArray(params.messages) ? params.messages : [];
     attributes[ATTR.GEN_AI_SYSTEM] = 'anthropic';
     attributes[ATTR.GEN_AI_REQUEST_MODEL] = params.model ?? 'unknown';
+    // Not in the reference's Anthropic spans; every model call carries it here (SDK_ADDITIONS.md section 6).
+    attributes[ATTR.GEN_AI_OPERATION_NAME] = 'chat';
     attributes[ATTR.GEN_AI_REQUEST_MESSAGE_COUNT] = messages.length;
     const firstMessage = this.buildFirstMessage(messages);
     if (firstMessage) attributes[ATTR.GEN_AI_REQUEST_FIRST_MESSAGE] = firstMessage;
@@ -182,6 +185,9 @@ export class AnthropicInstrumentor extends BaseInstrumentor {
       }
 
       const timing = new StreamTiming(epochSeconds());
+      if (instrumentor.config?.enableContentCapture) timing.text = new StreamText(instrumentor.config.contentMaxLength);
+      // The request, for the content assembled from the stream.
+      Object.assign(call, { params: isObject(args[0]) ? args[0] : {} });
       let stream: unknown;
       instrumentor.insideStreamHelper += 1;
       try {
@@ -271,6 +277,19 @@ export class AnthropicInstrumentor extends BaseInstrumentor {
   private static tokenCount(usage: Obj, name: string): number {
     const value = usage[name];
     return typeof value === 'number' ? Math.trunc(value) : 0;
+  }
+
+  /** Response identity: not on the reference's Anthropic spans (SDK_ADDITIONS.md section 6). */
+  protected override extractResponseAttributes(result: unknown): Obj {
+    const attributes: Obj = {};
+    if (!isObject(result)) return attributes;
+    if (typeof result.id === 'string') attributes[ATTR.GEN_AI_RESPONSE_ID] = result.id;
+    if (typeof result.model === 'string') attributes[ATTR.GEN_AI_RESPONSE_MODEL] = result.model;
+    return attributes;
+  }
+
+  protected override extractFinishReason(result: unknown): string | null {
+    return isObject(result) && typeof result.stop_reason === 'string' && result.stop_reason ? result.stop_reason : null;
   }
 
   protected override extractUsage(result: unknown): UsageDict | null {

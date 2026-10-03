@@ -67,9 +67,15 @@ describe('Anthropic instrumentor', () => {
         'gen_ai.system': 'anthropic',
         'gen_ai.provider.name': 'anthropic',
         'gen_ai.request.model': MODEL,
+        'gen_ai.operation.name': 'chat',
         'gen_ai.request.message_count': 1,
         'server.address': '127.0.0.1',
         'server.port': llm.port,
+        // Not on the reference's Anthropic spans (SDK_ADDITIONS.md section 6, shared-core superset).
+        'gen_ai.response.id': expect.any(String),
+        'gen_ai.response.model': expect.any(String),
+        'gen_ai.response.finish_reasons': [expect.any(String)],
+        'gen_ai.response.finish_reason': expect.any(String),
         'gen_ai.usage.input_tokens': 25,
         'gen_ai.usage.prompt_tokens': 25,
         'gen_ai.usage.output_tokens': 12,
@@ -121,8 +127,10 @@ describe('Anthropic instrumentor', () => {
       expect(attributes['gen_ai.usage.cost.total']).toBe(
         calculator.calculateCost(MODEL, { prompt_tokens: 410, completion_tokens: 58 }, 'chat'),
       );
-      // The reference Anthropic instrumentor records no tool-call, finish-reason or response-id attributes.
-      expect(Object.keys(attributes).filter((key) => key.startsWith('llm.') || key.startsWith('gen_ai.response'))).toEqual([]);
+      // The reference records none of these; the response identity and finish reason are
+      // recorded here (SDK_ADDITIONS.md section 6). Tool-call attributes are not.
+      expect(attributes['gen_ai.response.finish_reasons']).toEqual(['tool_use']);
+      expect(Object.keys(attributes).filter((key) => key.startsWith('llm.'))).toEqual([]);
     });
 
     it('a provider error ends the span with ERROR status and no cost', async () => {

@@ -89,7 +89,7 @@ const client = (): BedrockRuntimeClient => new BedrockRuntimeClient(config());
 
 describe('Bedrock instrumentor', () => {
   it('Converse: request config, usage, stop reason, response text, tool calls, cost', async () => {
-    harness = await startHarness({ enabledInstrumentors: ['boto3'] });
+    harness = await startHarness({ enabledInstrumentors: ['boto3'], enableContentCapture: true });
     llm.reply({
       json: {
         output: {
@@ -175,7 +175,7 @@ describe('Bedrock instrumentor', () => {
   });
 
   it('InvokeModel: the body is read without disturbing it; an Anthropic body carries usage and text', async () => {
-    harness = await startHarness({ enabledInstrumentors: ['boto3'] });
+    harness = await startHarness({ enabledInstrumentors: ['boto3'], enableContentCapture: true });
     llm.reply({
       json: { id: 'msg_1', type: 'message', role: 'assistant', content: [{ type: 'text', text: 'Paris.' }], stop_reason: 'end_turn', usage: { input_tokens: 12, output_tokens: 3 } },
     });

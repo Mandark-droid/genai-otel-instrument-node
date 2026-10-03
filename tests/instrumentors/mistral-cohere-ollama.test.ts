@@ -37,7 +37,7 @@ describe('Mistral instrumentor', () => {
   const client = (): Mistral => new Mistral({ apiKey: 'mistral-test-not-a-real-key', serverURL: llm.url, retryConfig: { strategy: 'none' } });
 
   it('chat.complete: the span is named with the model, as in the reference; tokens, cost, response text', async () => {
-    harness = await startHarness({ enabledInstrumentors: ['mistralai'] });
+    harness = await startHarness({ enabledInstrumentors: ['mistralai'], enableContentCapture: true });
     llm.reply({ fixture: 'mistral/chat.completion.json' });
     const response = await client().chat.complete({ model: 'mistral-small-latest', messages: MESSAGES, temperature: 0.2, maxTokens: 64 });
     expect(response.choices[0]?.message?.content).toBe('The capital of France is Paris.');
@@ -115,7 +115,7 @@ describe('Cohere instrumentor', () => {
   const noRetry = { maxRetries: 0 };
 
   it('generate: the reference span, billed tokens, cost, response text', async () => {
-    harness = await startHarness({ enabledInstrumentors: ['cohere'] });
+    harness = await startHarness({ enabledInstrumentors: ['cohere'], enableContentCapture: true });
     llm.reply({ fixture: 'cohere/generate.json' });
     await v1().generate({ model: 'command', prompt: 'What is the capital of France?' }, noRetry);
     expect(harness.span('cohere.generate').attributes).toMatchObject({

@@ -22,11 +22,20 @@ import type { PatchTarget } from './patching';
 function usageMetadata(result: unknown): UsageDict | null {
   const usage = pick(result, 'usageMetadata', 'usage_metadata');
   if (!isObject(usage)) return null;
-  return {
+  const candidates = Number(pick(usage, 'candidatesTokenCount', 'candidates_token_count') ?? 0);
+  // Thinking tokens are billed as output and are not in `candidatesTokenCount`:
+  // they are output tokens and reasoning tokens (the reference reads neither).
+  const thoughts = Number(pick(usage, 'thoughtsTokenCount', 'thoughts_token_count') ?? 0);
+  const mapped: UsageDict = {
     prompt_tokens: pick(usage, 'promptTokenCount', 'prompt_token_count') ?? 0,
-    completion_tokens: pick(usage, 'candidatesTokenCount', 'candidates_token_count') ?? 0,
+    completion_tokens: candidates + thoughts,
     total_tokens: pick(usage, 'totalTokenCount', 'total_token_count') ?? 0,
   };
+  if (thoughts > 0) mapped.completion_tokens_details = { reasoning_tokens: thoughts };
+  // Context-cache hits are part of the prompt count, as OpenAI's cached tokens are.
+  const cached = Number(pick(usage, 'cachedContentTokenCount', 'cached_content_token_count') ?? 0);
+  if (cached > 0) mapped.cache_read_input_tokens = cached;
+  return mapped;
 }
 
 function candidateAttributes(result: unknown): Obj {

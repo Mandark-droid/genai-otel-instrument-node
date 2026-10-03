@@ -127,6 +127,17 @@ describe('helpers', () => {
     expect(findBaseUrlClaim('https://api.openai.com/v1')).toBeUndefined();
     expect(findBaseUrlClaim(undefined)).toBeUndefined();
   });
+
+  it('matches the host or a subdomain of it, not the domain written anywhere in the URL', () => {
+    registerBaseUrlClaim('openrouter.ai', 'openrouter');
+    expect(findBaseUrlClaim('https://api.openrouter.ai/v1')).toBe('openrouter');
+    expect(findBaseUrlClaim('http://openrouter.ai:8080/v1')).toBe('openrouter');
+    // The reference matches these too (substring anywhere); they are not OpenRouter.
+    expect(findBaseUrlClaim('https://gateway.example.com/openrouter.ai/v1')).toBeUndefined();
+    expect(findBaseUrlClaim('https://openrouter.ai.example.com/v1')).toBeUndefined();
+    expect(findBaseUrlClaim('https://notopenrouter.ai/v1')).toBeUndefined();
+    expect(findBaseUrlClaim('not a url')).toBeUndefined();
+  });
 });
 
 describe('first message and provider aliases', () => {

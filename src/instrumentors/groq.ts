@@ -17,13 +17,20 @@ export class GroqInstrumentor extends OpenAIShapeInstrumentor {
   protected readonly packages = ['groq-sdk'];
 
   protected targets(module: unknown): PatchTarget[] {
-    const client = exportedClass(module, 'Groq') as { Chat?: { Completions?: { prototype?: object } } } | undefined;
+    const client = exportedClass(module, 'Groq') as { Chat?: { Completions?: { prototype?: object } }; Embeddings?: { prototype?: object } } | undefined;
     return [
       {
         holder: client?.Chat?.Completions?.prototype,
         method: 'create',
         spanName: 'groq.chat.completions',
         attributes: (_instance, _args, params) => this.requestAttributes(params),
+      },
+      {
+        // Not traced by the reference; named by SDK_ADDITIONS.md section 7.
+        holder: client?.Embeddings?.prototype,
+        method: 'create',
+        spanName: 'groq.embeddings',
+        attributes: (_instance, _args, params) => this.embeddingRequestAttributes(params, 'groq'),
       },
     ];
   }

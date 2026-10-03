@@ -59,6 +59,7 @@ function responsesContentToText(content: unknown): string {
 export class OpenAIInstrumentor extends BaseInstrumentor {
   private patched: [object, string][] = [];
   private stopListening: (() => void) | undefined;
+  private readonly responsesPrototypes = new WeakSet<object>();
 
   /**
    * Patch every copy of `openai` that can be loaded. The CommonJS build is
@@ -109,8 +110,21 @@ export class OpenAIInstrumentor extends BaseInstrumentor {
         // the lookup that selected the context is invisible.
         [client.Embeddings?.prototype, 'create', 'openai.embeddings', (_i, _a, params) => this.embeddingAttributes(params)],
         // The Responses API is the default path for the newer models.
-        [client.Responses?.prototype, 'create', 'openai.responses', (_i, _a, params) => this.responsesAttributes(params)],
+        // Through an aggregator too: the span keeps this name and carries the vendor as its system
+        // (SDK_ADDITIONS.md section 7), as no vendor instrumentor traces the Responses API.
+        [
+          client.Responses?.prototype,
+          'create',
+          'openai.responses',
+          (instance, _a, params) => {
+            const attributes = this.responsesAttributes(params);
+            const vendor = findBaseUrlClaim(clientBaseUrl(instance));
+            if (vendor) attributes[ATTR.GEN_AI_SYSTEM] = vendor;
+            return attributes;
+          },
+        ],
       ];
+      if (client.Responses?.prototype) this.responsesPrototypes.add(client.Responses.prototype);
       let found = false;
       for (const [prototype, method, spanName, extract] of targets) {
         if (!prototype) continue;
@@ -132,6 +146,7 @@ export class OpenAIInstrumentor extends BaseInstrumentor {
    * double-count tokens and cost.
    */
   protected override shouldBypass(instance: unknown): boolean {
+    if (typeof instance === 'object' && instance !== null && this.responsesPrototypes.has(Object.getPrototypeOf(instance) as object)) return false;
     const claimed = findBaseUrlClaim(clientBaseUrl(instance));
     if (claimed) logger.debug(`Skipping generic OpenAI instrumentation for client handled by the '${claimed}' instrumentor`);
     return claimed !== undefined;
@@ -256,6 +271,9 @@ export class OpenAIInstrumentor extends BaseInstrumentor {
   // -------------------------------------------------------------------------
 
   protected override extractUsage(result: unknown): UsageDict | null {
+    // A streamed Responses call reports its usage on the final event, inside
+    // `response` (the reference reads only `event.usage`, and so records none).
+    if (isObject(result) && result.type === 'response.completed' && isObject(result.response)) return this.extractUsage(result.response);
     if (!isObject(result) || !isObject(result.usage)) return null;
     const usage = result.usage;
 
