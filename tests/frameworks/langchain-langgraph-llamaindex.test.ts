@@ -115,7 +115,8 @@ describe('LangChain', () => {
     let text = '';
     for await (const chunk of await new ChatOpenAIStandIn({}).stream([new HumanMessage('hi')])) text += String(chunk.content);
     expect(text).toBe('Paris.');
-    const span = harness.span('langchain.chat_model.stream');
+    const span = harness.span('langchain.chat_model.invoke');
+    expect(span.attributes['gen_ai.request.stream']).toBe(true);
     expect(span.status.code).toBe(SpanStatusCode.OK);
     expect(span.attributes['gen_ai.usage.total_tokens']).toBe(28);
     expect(span.attributes['gen_ai.server.time_to_first_token']).toBeGreaterThan(0);

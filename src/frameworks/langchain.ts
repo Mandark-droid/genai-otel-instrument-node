@@ -101,8 +101,9 @@ export class LangChainInstrumentor extends FrameworkInstrumentor {
         // `stream()` runs through this generator.
         holder: prototype,
         method: '_streamIterator',
-        spanName: 'langchain.chat_model.stream',
-        attributes: (instance, args) => this.chatAttributes(instance, args, 'stream'),
+        // Streaming does not change the span name (SDK_ADDITIONS.md section 7); `gen_ai.request.stream` says it.
+        spanName: 'langchain.chat_model.invoke',
+        attributes: (instance, args) => ({ ...this.chatAttributes(instance, args, 'stream'), [ATTR.GEN_AI_REQUEST_STREAM]: true }),
         options: { params: () => ({}), streaming: true },
       },
     ];

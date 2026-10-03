@@ -26,6 +26,9 @@ import { KafkaInstrumentor } from '../../src/datastores/messaging';
 import { extractScores } from '../../src/datastores/vector';
 import { searchOperation } from '../../src/datastores/search';
 import { startHarness, type Harness } from '../helpers/harness';
+
+// tests/setup.ts switches datastore instrumentation off for the other tests.
+process.env.GENAI_ENABLE_MCP_INSTRUMENTATION = 'true';
 import { startMockLlm, type MockLlm } from '../helpers/mock-llm';
 
 const require = createRequire(import.meta.url);

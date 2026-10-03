@@ -227,6 +227,14 @@
   with the vendor as `gen_ai.system`.
 - Azure AI Inference (`@azure-rest/ai-inference`): `azure.ai.inference.chat` and
   `azure.ai.inference.embeddings`, observed in the Azure pipeline.
+- One model call, one usage record (SDK_ADDITIONS.md section 8): a framework span over a
+  provider call this SDK also traces records no tokens, cost or token and cost metrics,
+  and carries `gen_ai.usage.recorded_by = "descendant"`; the provider span records the
+  call once. Not guaranteed in the browser and React Native (no asynchronous context).
+- A streamed result is read in the context of the call that returned it, so model calls
+  made by a framework's streaming generator are children of the framework's span.
+- The LangChain streaming span is `langchain.chat_model.invoke` with
+  `gen_ai.request.stream = true` (was `langchain.chat_model.stream`; section 7).
 
 ### Fixed
 - On Node 18, `instrument()` in an ES-module application could end the process with an

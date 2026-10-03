@@ -16,6 +16,7 @@
  */
 import type { Attributes } from '@opentelemetry/api';
 import type { ReadableSpan, Span, SpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { usageRecordedBelow } from '../usage-holders';
 import { logger } from '../logger';
 import type { CostCalculator } from './calculator';
 import { getDefaultCostCalculator } from './default';
@@ -90,6 +91,8 @@ export class CostEnrichmentSpanProcessor implements SpanProcessor {
     // with no price). Second-guessing them here would put a cost back.
     if (span.instrumentationScope?.name === BASE_TRACER_NAME) return;
     if (this.skip?.(span)) return;
+    // A span whose call was recorded beneath it is not priced again (SDK_ADDITIONS.md section 8).
+    if (usageRecordedBelow(span)) return;
 
     const model =
       attributes['gen_ai.request.model'] || attributes['llm.model_name'] || attributes['embedding.model_name'];

@@ -26,6 +26,7 @@ import {
   trace,
   type Attributes,
   type AttributeValue,
+  type Context,
   type Span,
   type Tracer,
 } from '@opentelemetry/api';
@@ -42,6 +43,7 @@ import { chunkText, completionText, ensureContent, StreamText, withoutContent } 
 import { getServerMetrics } from '../server-metrics';
 import { contextWithSessionId } from '../session';
 import { stateSlot } from '../state';
+import { holders, USAGE_HOLDERS, USAGE_RECORDED_BY, usageRecordedBelow, type UsageHolder } from '../usage-holders';
 import type { Instrumentor } from './registry';
 
 /** Instrumentation scope of the spans, as in the Python library. */
@@ -258,6 +260,10 @@ function spanAttributes(span: Span): Attributes {
 // Streaming
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// One model call, one usage record (SDK_ADDITIONS.md section 8)
+// ---------------------------------------------------------------------------
+
 /** The operation of a model call the instrumentor did not name, from its request type or span name. */
 function operationFor(spanName: string, requestType: unknown): string | undefined {
   if (requestType === 'embedding' || /embed/i.test(spanName)) return 'embeddings';
@@ -355,6 +361,10 @@ interface Call {
   failed?: boolean;
   /** Counted among the requests in flight. */
   counted?: boolean;
+  /** Marked in flight under the usage holders of the spans above it. */
+  holdersHeld?: boolean;
+  /** The context the call runs in; a stream is read in it too. */
+  context?: Context;
 }
 
 // ---------------------------------------------------------------------------
@@ -654,6 +664,15 @@ export abstract class BaseInstrumentor implements Instrumentor {
             model: String(params.model ?? initial[ATTR.GEN_AI_REQUEST_MODEL] ?? 'unknown'),
             done: false,
           };
+          // A usage holder for this span, under those of the spans it runs in.
+          {
+            const above = (ctx.getValue(USAGE_HOLDERS) as UsageHolder[] | undefined) ?? [];
+            const holder: UsageHolder = { descendantRecorded: false, inFlight: 0 };
+            holders().set(span, { holder, above });
+            for (const enclosing of above) enclosing.inFlight += 1;
+            call.holdersHeld = true;
+            ctx = ctx.setValue(USAGE_HOLDERS, [...above, holder]);
+          }
           // One more request in flight, until the span ends.
           const server = getServerMetrics();
           if (server) {
@@ -676,6 +695,7 @@ export abstract class BaseInstrumentor implements Instrumentor {
         }
 
         const active = call;
+        active.context = ctx;
         // Evaluation: the prompt is checked before the provider is called when a
         // policy blocks, and handed to the span's evaluation either way.
         const evaluation = activeEvaluation();
@@ -755,8 +775,31 @@ export abstract class BaseInstrumentor implements Instrumentor {
     call.done = true;
     this.finishAgentBudget(call);
     this.requestFinished(call);
+    this.releaseHolders(call);
     this.endSpan(call.span, call.evaluated === true && !call.failed);
     return true;
+  }
+
+  /** This call is no longer in flight under the spans above it. Once per call. */
+  private releaseHolders(call: { span: Span; holdersHeld?: boolean }): void {
+    if (!call.holdersHeld) return;
+    call.holdersHeld = false;
+    for (const enclosing of holders().get(call.span)?.above ?? []) enclosing.inFlight = Math.max(0, enclosing.inFlight - 1);
+  }
+
+  /** Usage was recorded on `span`: the spans above it must not record it again. */
+  private markUsageRecorded(span: Span): void {
+    for (const enclosing of holders().get(span)?.above ?? []) enclosing.descendantRecorded = true;
+  }
+
+  /**
+   * Whether `span` may record usage: not when a span beneath it recorded, or is
+   * still recording, the same call. It then says so on the span.
+   */
+  private mayRecordUsage(span: Span): boolean {
+    if (!usageRecordedBelow(span)) return true;
+    span.setAttribute(USAGE_RECORDED_BY, 'descendant');
+    return false;
   }
 
   /** The request is no longer in flight. Once per call, whichever path ends it. */
@@ -1083,9 +1126,10 @@ export abstract class BaseInstrumentor implements Instrumentor {
           estimated = true;
         }
       }
-      if (usage && typeof usage === 'object') {
+      if (usage && typeof usage === 'object' && this.mayRecordUsage(span)) {
         if (estimated) span.setAttribute(ATTR.GEN_AI_USAGE_TOKEN_COUNT_ESTIMATED, true);
         this.recordUsage(span, spanName, usage, { recordTokenHistograms, recordGranular, deprecation: true });
+        this.markUsageRecorded(span);
       }
     } catch (error) {
       logger.warn(`Failed to extract or record usage metrics for span '${spanName}': ${String(error)}`);
@@ -1281,7 +1325,9 @@ export abstract class BaseInstrumentor implements Instrumentor {
         async next(...args: [] | [unknown]): Promise<IteratorResult<unknown>> {
           let step: IteratorResult<unknown>;
           try {
-            step = await iterator.next(...args);
+            // In the call's context: a framework's generator body makes its model calls
+            // here, and they belong under the framework's span.
+            step = await (call.context ? context.with(call.context, () => iterator.next(...args)) : iterator.next(...args));
           } catch (error) {
             instrumentor.finishStream(call, timing, { kind: 'error', error });
             throw error;
@@ -1444,7 +1490,8 @@ export abstract class BaseInstrumentor implements Instrumentor {
       try {
         let usage = timing.usage;
         if (usage === null && timing.lastChunk !== undefined) usage = this.extractUsage(timing.lastChunk);
-        if (usage && typeof usage === 'object') {
+        if (usage && typeof usage === 'object' && this.mayRecordUsage(span)) {
+          this.markUsageRecorded(span);
           outputTokens = usage.completion_tokens ?? 0;
           // The streaming path records the token histograms unconditionally.
           this.recordTokens(span, spanName, usage, model, true);
@@ -1483,6 +1530,7 @@ export abstract class BaseInstrumentor implements Instrumentor {
     } finally {
       this.finishAgentBudget(call);
       this.requestFinished(call as { counted?: boolean });
+      this.releaseHolders(call as { span: Span; holdersHeld?: boolean });
       this.endSpan(span, outcome.kind === 'completed' && (call as { evaluated?: boolean }).evaluated === true);
     }
   }

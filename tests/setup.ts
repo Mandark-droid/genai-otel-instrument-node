@@ -20,3 +20,8 @@ process.env.GENAI_ENABLE_OLLAMA_SERVER_METRICS = 'false';
 // GPU metrics are on by default and read `nvidia-smi`. This machine has a GPU;
 // a test must not depend on that. Tests of GPU metrics supply their own source.
 setGpuSource(() => undefined);
+
+// Datastore instrumentation is on by default and, in an ES-module process such as a
+// test worker, imports every installed datastore client at start. Tests that are not
+// about datastores do not need that; the datastore tests switch it back on.
+process.env.GENAI_ENABLE_MCP_INSTRUMENTATION = 'false';

@@ -14,6 +14,9 @@ import { createClient } from 'redis';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { estimatePayloadSize } from '../../src/datastores/payload';
 import { startHarness, type Harness } from '../helpers/harness';
+
+// tests/setup.ts switches datastore instrumentation off for the other tests.
+process.env.GENAI_ENABLE_MCP_INSTRUMENTATION = 'true';
 import { startPgServer, startRedisServer, type WireServer } from '../helpers/wire-servers';
 
 let harness: Harness;
