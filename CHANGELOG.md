@@ -159,6 +159,11 @@
   used when no scorer is given in code. A judge that fails or answers with no score writes
   nothing. Allowed when air-gapped.
 
+- `GENAI_TOXICITY_ONNX_MODEL` and the optional add-on `@traceverse/genai-otel-instrument-onnx`
+  (`onnx/`): a Detoxify-style toxicity classifier run in-process by ONNX Runtime 1.30.0, with
+  a BERT WordPiece tokenizer checked against Hugging Face's. The core never depends on ONNX
+  Runtime and imports the add-on only when the variable is set (SDK_ADDITIONS.md section 12).
+
 ### Changed
 - A wrapped call now returns the very promise the client library returned, observed on a
   side branch, instead of a promise derived from it. Clients that return a promise

@@ -15,6 +15,7 @@ Read `CLAUDE.md` first: the rules there are not negotiable.
 | `npm run generate` | Regenerate `src/semconv.generated.ts` from `contract/semconv.json` (runs automatically before test, typecheck, lint and build) |
 | `npm run smoke` | The built package: loads in both module formats; an application that never mentions it is traced through both zero-code hooks |
 | `npm run compat` | The built package against each supported major of `openai` and `@anthropic-ai/sdk` (installs them into a temporary directory) |
+| `cd onnx && ONNXRUNTIME_NODE_INSTALL_CUDA=skip npm ci`, then `npx vitest run --config onnx/vitest.config.mts` | The optional ONNX toxicity add-on (`onnx/`), a package of its own with its own lock file (also npm 10). `npm run typecheck` covers it once its dependencies are installed. Its own CI job; the core's jobs never install ONNX Runtime |
 
 The test toolchain and the SDK versions this repository develops against need Node 22 or
 later. The package itself supports Node 18.19: CI builds it and runs `npm run smoke` and

@@ -43,6 +43,7 @@ import { NvidiaSmiSource } from './gpu/nvidia-smi';
 import { mediaIdle } from './media/emit';
 import './media/node-stores';
 import { httpToxicityJudge } from './evaluation/http-judge';
+import { onnxToxicityJudge } from './evaluation/onnx-addon';
 import { toxicityWaitSeconds } from './evaluation/engine';
 import { currentGauges } from './gauge-temporality';
 import { initializeServerMetrics, resetServerMetrics, setVramDetector, startEndpointPollers, type PrometheusServerMetricsPoller } from './server-metrics';
@@ -423,10 +424,18 @@ function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumen
   try {
     const evaluation = evaluationConfigsFrom(config);
     if (evaluation) {
-      // An on-prem judge (SDK_ADDITIONS.md section 12), after any scorer given in code. Its request
-      // is bounded by the time a span waits for a score.
-      const judgeUrl = process.env.GENAI_TOXICITY_JUDGE_URL;
-      const judge = evaluation.toxicity?.enabled && judgeUrl ? httpToxicityJudge(judgeUrl, toxicityWaitSeconds()) : undefined;
+      // After any scorer given in code (SDK_ADDITIONS.md section 12): the operator's HTTP judge,
+      // its request bounded by the time a span waits for a score; else a local ONNX model through
+      // the optional add-on.
+      const judgeUrl = process.env.GENAI_TOXICITY_JUDGE_URL?.trim();
+      const onnxModel = process.env.GENAI_TOXICITY_ONNX_MODEL?.trim();
+      const judge = !evaluation.toxicity?.enabled
+        ? undefined
+        : judgeUrl
+          ? httpToxicityJudge(judgeUrl, toxicityWaitSeconds())
+          : onnxModel
+            ? onnxToxicityJudge(onnxModel)
+            : undefined;
       const engine = new EvaluationEngine(evaluation, { fallbackToxicityScorer: judge });
       setActiveEvaluation(engine);
       spanProcessors.push(new EvaluationSpanProcessor(engine));

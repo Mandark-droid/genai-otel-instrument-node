@@ -55,3 +55,25 @@ jobs:
       - run: npm run build
       - run: node scripts/dist-smoke.cjs
       - run: node scripts/sdk-compat.cjs
+
+  onnx:
+    # The optional ONNX toxicity add-on (onnx/): a package of its own, so the core's
+    # jobs never install ONNX Runtime. Its tests run the real runtime on a toy model,
+    # and once through the core SDK end to end.
+    runs-on: ubuntu-latest
+    env:
+      # The CPU runtime only: no CUDA download at install time.
+      ONNXRUNTIME_NODE_INSTALL_CUDA: skip
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm ci
+        working-directory: onnx
+      - run: npm run typecheck
+      - run: npx vitest run --config onnx/vitest.config.mts
+      - run: npm run build
+        working-directory: onnx

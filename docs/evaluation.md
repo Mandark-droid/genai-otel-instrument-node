@@ -93,6 +93,19 @@ SDK's own and is never traced or counted as the application's traffic, even with
 with `GENAI_AIR_GAPPED`, which forbids downloading models and assets at run time. A scorer
 given in code (below) wins over the URL.
 
+### A local model: `GENAI_TOXICITY_ONNX_MODEL`
+
+With the optional add-on `@traceverse/genai-otel-instrument-onnx` installed next to this
+package, `GENAI_TOXICITY_ONNX_MODEL` names a directory holding a Detoxify-style ONNX
+classifier (`model.onnx`, `vocab.txt`, optionally `config.json`), scored in-process by ONNX
+Runtime. This package never depends on ONNX Runtime: the add-on is imported on the first
+score, only when the variable is set. Not installed, or a model it cannot load: one warning,
+and toxicity is not measured. A local file is not a download, so it works air-gapped. See
+[onnx/README.md](../onnx/README.md). Node only.
+
+Precedence: a scorer given in code, then `GENAI_TOXICITY_JUDGE_URL`, then
+`GENAI_TOXICITY_ONNX_MODEL`.
+
 ### A scorer in code
 
 A scorer is a function from text to a score between 0 and 1 per category
@@ -116,8 +129,7 @@ setToxicityScorer(async (text, categories) => {
 instrument();
 ```
 
-A local model works the same way (an `onnxruntime-node` session run inside the function).
-Neither is a dependency of this package, and neither was run from this repository.
+Any other backend works the same way, inside the function.
 
 | | |
 |---|---|

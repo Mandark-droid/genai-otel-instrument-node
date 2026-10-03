@@ -73,7 +73,7 @@
     "prebuild": "npm run generate",
     "build": "tsup",
     "pretypecheck": "npm run generate",
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p examples/tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p examples/tsconfig.json && node scripts/typecheck-onnx.mjs",
     "prelint": "npm run generate",
     "lint": "eslint .",
     "pretest": "npm run generate",
