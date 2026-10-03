@@ -148,3 +148,37 @@ describe('instrument() applies the histogram views', () => {
     expect((await collect(reader)).find((metric) => metric.name === 'gen_ai.requests')?.points[0]?.value).toBe(1);
   });
 });
+
+describe('gauges report what is observed now (SDK_ADDITIONS.md section 12)', () => {
+  // Under cumulative temporality the OpenTelemetry JS SDK merges every collection
+  // into the last, so an attribute set observed once - a model that has since
+  // unloaded - is exported forever. A gauge has no temporality on the wire.
+  it('the exporter is asked for DELTA for gauges only; everything else keeps its own choice', async () => {
+    const { AggregationTemporality, InMemoryMetricExporter, InstrumentType } = await import('@opentelemetry/sdk-metrics');
+    const { currentGauges } = await import('../../src/gauge-temporality');
+    const exporter = currentGauges(new InMemoryMetricExporter(AggregationTemporality.CUMULATIVE));
+    expect(exporter.selectAggregationTemporality?.(InstrumentType.OBSERVABLE_GAUGE)).toBe(AggregationTemporality.DELTA);
+    expect(exporter.selectAggregationTemporality?.(InstrumentType.GAUGE)).toBe(AggregationTemporality.DELTA);
+    expect(exporter.selectAggregationTemporality?.(InstrumentType.COUNTER)).toBe(AggregationTemporality.CUMULATIVE);
+    expect(exporter.selectAggregationTemporality?.(InstrumentType.HISTOGRAM)).toBe(AggregationTemporality.CUMULATIVE);
+  });
+
+  it('an attribute set no longer observed is no longer exported', async () => {
+    const { currentGaugesSelector } = await import('../../src/gauge-temporality');
+    const { MeterProvider } = await import('@opentelemetry/sdk-metrics');
+    const reader = new ManualMetricReader({ aggregationTemporalitySelector: currentGaugesSelector() });
+    const provider = new MeterProvider({ readers: [reader] });
+    let models = ['a', 'b'];
+    provider
+      .getMeter('test')
+      .createObservableGauge('g')
+      .addCallback((result) => {
+        for (const model of models) result.observe(1, { model });
+      });
+    const observed = async (): Promise<unknown[]> => (await collect(reader)).find((metric) => metric.name === 'g')?.points.map((point) => point.attributes.model) ?? [];
+    expect(await observed()).toEqual(['a', 'b']);
+    models = ['b'];
+    expect(await observed()).toEqual(['b']);
+    await provider.shutdown();
+  });
+});

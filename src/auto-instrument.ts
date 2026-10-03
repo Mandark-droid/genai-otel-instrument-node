@@ -42,7 +42,8 @@ import { GpuMetricsCollector, gpuSourceFactory } from './gpu/collector';
 import { NvidiaSmiSource } from './gpu/nvidia-smi';
 import { mediaIdle } from './media/emit';
 import './media/node-stores';
-import { initializeServerMetrics, resetServerMetrics, setVramDetector } from './server-metrics';
+import { currentGauges } from './gauge-temporality';
+import { initializeServerMetrics, resetServerMetrics, setVramDetector, startEndpointPollers, type PrometheusServerMetricsPoller } from './server-metrics';
 import { resetPricingMissingCounter } from './cost/pricing-missing';
 // Registers the shipped instrumentors.
 import './instrumentors';
@@ -90,6 +91,8 @@ interface ActiveState {
   onBeforeExit: (() => void) | undefined;
   onSigterm: (() => void) | undefined;
   gpu?: GpuMetricsCollector | undefined;
+  /** vLLM / llama.cpp endpoints from GENAI_SERVER_METRICS_ENDPOINTS. */
+  enginePollers?: PrometheusServerMetricsPoller[];
 }
 
 /**
@@ -479,7 +482,8 @@ function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumen
   // Histogram bucket boundaries are set by Views, as in the reference implementation.
   const views = metricViews();
   const readers: IMetricReader[] = [
-    new PeriodicExportingMetricReader({ exporter: metricExporter, ...metricIntervals() }),
+    // Gauges report what is observed now; see gauge-temporality.ts.
+    new PeriodicExportingMetricReader({ exporter: currentGauges(metricExporter), ...metricIntervals() }),
     ...(options.metricReaders ?? []),
   ];
   const meterProvider = new MeterProvider({ resource, readers, views });
@@ -508,7 +512,8 @@ function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumen
   resetMeterBoundState();
   try {
     // KV cache, request queue: values arrive from the instrumented calls and the pollers.
-    initializeServerMetrics();
+    initializeServerMetrics(undefined, config.enableConcurrencyMetrics);
+    state.enginePollers = startEndpointPollers(process.env.GENAI_SERVER_METRICS_ENDPOINTS);
   } catch (error) {
     logger.error(`Failed to initialize server metrics: ${String(error)}`);
     if (config.failOnError) throw error;
@@ -598,6 +603,7 @@ export async function uninstrument(timeoutSeconds = 5.0): Promise<void> {
   if (state.onBeforeExit) process.removeListener('beforeExit', state.onBeforeExit);
   if (state.onSigterm) process.removeListener('SIGTERM', state.onSigterm);
   state.gpu?.stop();
+  for (const poller of state.enginePollers ?? []) poller.stop();
 
   // Last in, first out: an instrumentor that wrapped a method on top of another's comes off first.
   for (const instrumentor of [...state.instrumentors].reverse()) {

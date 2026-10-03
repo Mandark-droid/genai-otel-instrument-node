@@ -151,6 +151,10 @@
 - A second, browser-like (happy-dom) test project runs the config, cost,
   semantic-convention and metric contract tests and the new entries' tests.
 
+- `GENAI_SERVER_METRICS_ENDPOINTS`: vLLM and llama.cpp `/metrics` polled for KV-cache usage,
+  waiting requests and (vLLM) the prefix cache, `gen_ai.server.prefix_cache.queries` /
+  `.hits` (SDK_ADDITIONS.md sections 12, 13). `PrometheusServerMetricsPoller` is exported.
+
 ### Changed
 - A wrapped call now returns the very promise the client library returned, observed on a
   side branch, instead of a promise derived from it. Clients that return a promise
@@ -210,6 +214,13 @@
   Ollama.
 
 ### Changed
+- Server metrics say where they come from (SDK_ADDITIONS.md section 12):
+  `server_metrics_source="engine"` for what a poller read, `"client"` for this SDK's own
+  calls in flight (`GENAI_ENABLE_CONCURRENCY_METRICS`, now read), no label for values the
+  application sets. The Ollama poller replaces its figures on every poll, and forgets them
+  when Ollama cannot be read.
+- Gauges are read with delta temporality, so a series nobody observes any more (an unloaded
+  model, a stopped GPU collector) is no longer exported at its last value.
 - Parity matrix: the server concurrency gauge, the Ollama server-metrics poller and the
   vLLM / llama.cpp rows describe what shipped; a stale duplicate `bedrock_agents` row is
   gone. `docs/plans/phase-4.md` records what was built, by commit.

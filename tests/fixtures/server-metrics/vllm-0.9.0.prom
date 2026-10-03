@@ -1,0 +1,21 @@
+# HELP vllm:num_requests_running Number of requests in model execution batches.
+# TYPE vllm:num_requests_running gauge
+vllm:num_requests_running{engine="0",model_name="meta-llama/Llama-3.2-1B-Instruct"} 1.0
+# HELP vllm:num_requests_waiting Number of requests waiting to be processed.
+# TYPE vllm:num_requests_waiting gauge
+vllm:num_requests_waiting{engine="0",model_name="meta-llama/Llama-3.2-1B-Instruct"} 0.0
+# HELP vllm:gpu_cache_usage_perc GPU KV-cache usage. 1 means 100 percent usage.
+# TYPE vllm:gpu_cache_usage_perc gauge
+vllm:gpu_cache_usage_perc{engine="0",model_name="meta-llama/Llama-3.2-1B-Instruct"} 0.5
+# HELP vllm:gpu_prefix_cache_queries_total GPU prefix cache queries, in terms of number of queried tokens.
+# TYPE vllm:gpu_prefix_cache_queries_total counter
+vllm:gpu_prefix_cache_queries_total{engine="0",model_name="meta-llama/Llama-3.2-1B-Instruct"} 4096.0
+# HELP vllm:gpu_prefix_cache_queries_created GPU prefix cache queries, in terms of number of queried tokens.
+# TYPE vllm:gpu_prefix_cache_queries_created gauge
+vllm:gpu_prefix_cache_queries_created{engine="0",model_name="meta-llama/Llama-3.2-1B-Instruct"} 1.7493e+09
+# HELP vllm:gpu_prefix_cache_hits_total GPU prefix cache hits, in terms of number of cached tokens.
+# TYPE vllm:gpu_prefix_cache_hits_total counter
+vllm:gpu_prefix_cache_hits_total{engine="0",model_name="meta-llama/Llama-3.2-1B-Instruct"} 1024.0
+# HELP vllm:gpu_prefix_cache_hits_created GPU prefix cache hits, in terms of number of cached tokens.
+# TYPE vllm:gpu_prefix_cache_hits_created gauge
+vllm:gpu_prefix_cache_hits_created{engine="0",model_name="meta-llama/Llama-3.2-1B-Instruct"} 1.7493e+09

@@ -680,10 +680,10 @@ export abstract class BaseInstrumentor implements Instrumentor {
             call.holdersHeld = true;
             ctx = ctx.setValue(USAGE_HOLDERS, [...above, holder]);
           }
-          // One more request in flight, until the span ends.
+          // One more of this SDK's own calls in flight ("client", SDK_ADDITIONS.md section 12), until the span ends.
           const server = getServerMetrics();
           if (server) {
-            server.incrementRequestsRunning();
+            server.clientCallStarted();
             call.counted = true;
           }
           if (span.isRecording()) instrumentor.applySessionAndUser(span, this, args, params);
@@ -824,7 +824,7 @@ export abstract class BaseInstrumentor implements Instrumentor {
     if (!call.counted) return;
     call.counted = false;
     try {
-      getServerMetrics()?.decrementRequestsRunning();
+      getServerMetrics()?.clientCallEnded();
     } catch {
       // metrics must never break the call
     }

@@ -206,3 +206,80 @@ kind of chat call. With capture OFF nothing is assembled or kept.
   ECC on some cards) are absent for that device, never zero.
 - **Browser and React Native** have no access to power or utilisation: no GPU, energy,
   power-cost or CO2 metrics there at all.
+
+## 10. Third-party spans, names chosen in phase 3, and span kinds (decisions, 2026-10-03)
+
+- **Content guard for spans we did not create.** Frameworks that emit their own spans
+  write prompts and answers on them regardless of our content-capture setting (Genkit
+  `genkit:input` / `genkit:output`; OpenInference `input.value`, `output.value`,
+  `llm.input_messages.*`, `llm.output_messages.*`; Vercel AI SDK `ai.prompt*`,
+  `ai.response.text`, `ai.response.toolCalls`; LangChain4j / Spring AI observation
+  content attributes where enabled). Because `instrument()` installs the tracer provider
+  they export through our pipeline. Every SDK installs a content guard that, with content
+  capture OFF, removes these attributes (and the matching span events where the runtime
+  allows events to be removed) before export. Where removal is impossible (span events
+  in .NET), the SDK documents it and logs one warning when it sees such content.
+  The list lives in one place per SDK and is extended when a new framework is added.
+- **Span names for calls Python does not trace** (section 7 rule 5), now fixed for all:
+  `langchain4j.chat_model.chat`, `langchain4j.embedding_model.embed`,
+  `spring_ai.chat_model.call`, `spring_ai.embedding_model.call`,
+  `eino.<component>` (snake case), `genkit.generate`, `genkit.flow.<name>`,
+  `langchain.tool.<name>`, `mcp.server.call_tool {tool}` (the client keeps Python's
+  `mcp.call_tool {server}.{tool}`), `opensearch.<endpoint>` / `elasticsearch.<endpoint>`,
+  `qdrant.<rpc>` / `pinecone.<rpc>` / `milvus.<rpc>` for calls Python does not trace,
+  `weaviate.<resource>.<verb>`, `chroma.<action>`. Python's names are kept wherever they
+  exist.
+- **Span kind:** a span for a call that leaves the process (vector store, datastore,
+  MCP client, HTTP API) is `CLIENT`; an MCP server span is `SERVER`. Python uses
+  `INTERNAL` for most of these; this is a deliberate difference.
+- **Metric label `db.system`** is the database (`postgresql`, `mysql`), not the driver
+  name Python uses (`psycopg2`). Python's guessed 100 bytes per row for response size is
+  not ported: no measurement, no attribute.
+- **Session ids in E2E programs** use a random hex or UUID suffix, never a timestamp: the
+  platform's collector masks 13-19 digit runs as card numbers.
+
+## 11. More span names (lead, 2026-10-03, from the Node phase 4 report)
+
+Fixed for every SDK that has the call: `transformers.model.load`; `cactus.download`,
+`cactus.init`, `cactus.complete`, `cactus.embed`, `cactus.stt.transcribe`; `s3.<operation>`;
+`opensearch.<api>`; `aws.bedrock.send` (a Bedrock runtime command outside the four named
+ones). Python templates the contract's static scan missed - use them as Python writes them:
+`elevenlabs.text_to_speech.<method>`, `api.call.<method>.<host>`, `minio.<op>`,
+`rabbitmq.<op>`, `timescaledb.<op>`, `pinecone.index.<op>`, `mistralai.chat.complete <model>`
+and `mistralai.chat.stream <model>` (Python's own stream name, allowed by section 7 rule 1).
+
+**Single usage record in browser / React Native:** with no async context manager, only
+synchronous nesting is detected there; a framework span that awaits a provider call may
+still record usage alongside it. Each SDK documents where the guarantee holds.
+
+## 12. Evaluation and engine metrics (decisions, 2026-10-03, from the .NET phase 4 report)
+
+- **Evaluate without exporting content.** With content capture OFF, the SDK still runs the
+  rule-based detectors on its OWN calls' prompt and response (streamed answers included),
+  passing the text in-process only; it is never written to a span or exported. Python
+  evaluates only what is on the span, i.e. nothing when capture is off. Deliberate
+  difference.
+- **New variables, same name in every SDK:** `GENAI_TOXICITY_JUDGE_URL` (on-prem HTTP
+  toxicity judge), `GENAI_TOXICITY_ONNX_MODEL` (local ONNX model path; ship the ONNX
+  runtime as an optional add-on package, never a core dependency),
+  `GENAI_SERVER_METRICS_ENDPOINTS` (comma-separated vLLM / llama.cpp Prometheus endpoints
+  to scrape).
+- **Engine metrics describe the engine now.** Ollama KV-cache entries are replaced on every
+  poll; an unloaded model disappears instead of keeping a stale value (Python keeps it).
+  Engine pollers stamp their samples with `server_metrics_source="engine"`; the in-flight
+  count the SDK keeps for its own calls is `"client"` (a backend can store it). Values an application sets itself carry no label; the platform reads a missing label as unknown, never as either.
+- **Pre-call blocking is required where Python has it.** When a detector's
+  `*_BLOCK_ON_DETECTION` is on, the call is refused before it reaches the provider, with the
+  language's idiomatic error (a typed exception carrying detector, categories, score) and
+  the span ended as an error carrying Python's and Node's names: `evaluation.<detector>.prompt.blocked`, `evaluation.blocked`, `evaluation.blocked_reasons` (correction 2026-10-03: not `evaluation.<detector>.blocked`). No request, tokens or cost are recorded; `gen_ai.client.errors` counts it with `error_type=PolicyViolationError`.
+- **`evaluation.completed`** is set only when something was evaluated.
+- **Hallucination factual-claim group order** is dates, numbers, names, statistics (taken
+  from Python's source; not in eval_rules.json yet).
+- `weaviate.<rpc>` for Weaviate gRPC calls.
+
+## 13. Engine prefix cache (decision, 2026-10-04)
+
+- The vLLM endpoint poller (`GENAI_SERVER_METRICS_ENDPOINTS`) also reads vLLM's prefix-cache counters from `/metrics`: `vllm:prefix_cache_queries_total` and `vllm:prefix_cache_hits_total` (older vLLM: `vllm:gpu_prefix_cache_queries_total` / `vllm:gpu_prefix_cache_hits_total`), summed over the endpoint's label sets.
+- It reports them as two OBSERVABLE GAUGES (not counters: a counter gains a `_total` suffix in the Prometheus exporter and the platform would not match it): `gen_ai.server.prefix_cache.queries` and `gen_ai.server.prefix_cache.hits`, unit `{token}` (a curly-brace unit is dropped by the Prometheus translator, so the platform reads `gen_ai_server_prefix_cache_queries` / `_hits`), each with `server_metrics_source="engine"` and `model` when vLLM labels it, value = the engine's cumulative counter as read.
+- A server that does not export them (llama.cpp, Ollama, older vLLM without prefix caching) records nothing: absent, never 0. No hit percentage is computed in the SDK; the platform derives it.
+- Meter: the same `genai.server` meter as the other server metrics.

@@ -56,9 +56,11 @@ From power, between two samples:
 | A device with no power reading | No energy, cost or CO2 for it |
 | CPU and RAM energy | Not measured, so not reported. `gen_ai.energy.total` is GPU energy only, and says nothing else |
 
-One limit is the metrics SDK's: once a gauge has been given a value, the SDK keeps
-exporting that last value (cumulative temporality) even when nothing new is observed. A
-collector that stopped therefore shows as a flat line, not as a gap.
+A collector that stopped shows as a gap, not as a flat line: the exporter asks the
+metrics SDK for delta temporality for gauges (`src/gauge-temporality.ts`), so a gauge
+nobody observes any more is not exported. Under the SDK's default cumulative temporality
+it would go on exporting its last value. A gauge has no temporality on the wire, so nothing
+else changes.
 
 ## CO2 is a factor, not a reading of the grid
 

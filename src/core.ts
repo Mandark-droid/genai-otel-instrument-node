@@ -91,7 +91,14 @@ export {
   type ToxicityScorer,
 } from './evaluation';
 export { llamacppLatencyAttributes, vllmLatencyAttributes } from './engine-latency';
-export { getServerMetrics, OllamaServerMetricsPoller, ServerMetricsCollector, type OllamaPollerOptions } from './server-metrics';
+export {
+  getServerMetrics,
+  OllamaServerMetricsPoller,
+  PrometheusServerMetricsPoller,
+  ServerMetricsCollector,
+  type EnginePollerOptions,
+  type OllamaPollerOptions,
+} from './server-metrics';
 export { GpuMetricsCollector, setGpuSource, type GpuCollectorOptions, type GpuSample, type GpuSource } from './gpu/collector';
 export { buildCanonicalMessages, detectParts, offloadPart, setMediaRedactor, type ContentPart, type MediaConfig, type MediaRedactor, type MediaStore } from './media';
 export { HttpStore, registerMediaStore } from './media/stores';

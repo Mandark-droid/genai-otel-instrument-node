@@ -334,10 +334,9 @@ describe('GpuMetricsCollector', () => {
     expect(collector.running).toBe(false);
     expect(source.polls).toBe(4);
     expect(log.warn.mock.calls.filter(([m]) => String(m).includes('stopped'))).toHaveLength(1);
-    // The collector observes nothing any more. The metrics SDK keeps exporting the
-    // last value it was given for a gauge (cumulative temporality); that is the
-    // SDK's, and is documented rather than hidden.
+    // The collector observes nothing any more, and nothing is exported: a gap, not a flat line.
     expect(collector.observing).toBe(false);
+    expect(await points('gen_ai.gpu.utilization')).toBeUndefined();
   });
 
   it('polls on the configured interval until stopped', async () => {

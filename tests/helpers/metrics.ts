@@ -4,11 +4,18 @@ import {
   MeterProvider,
   MetricReader,
   type MetricData,
+  type MetricReaderOptions,
   type ViewOptions,
 } from '@opentelemetry/sdk-metrics';
+import { currentGaugesSelector } from '../../src/gauge-temporality';
 
 /** A reader collected on demand, for tests. */
+/** Reads on demand, with the temporality production asks for: gauges report what is observed now. */
 export class ManualMetricReader extends MetricReader {
+  constructor(options: MetricReaderOptions = {}) {
+    super({ aggregationTemporalitySelector: currentGaugesSelector(), ...options });
+  }
+
   protected override async onShutdown(): Promise<void> {}
   protected override async onForceFlush(): Promise<void> {}
 }

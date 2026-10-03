@@ -13,11 +13,10 @@
  * - a field a device does not report (`[N/A]`): that gauge has no point for it;
  * - no energy across a gap in the samples.
  *
- * One limit that is the metrics SDK's and not this collector's: while the
- * source is failing, and after collection has stopped, the collector observes
- * nothing - but under cumulative temporality the SDK goes on exporting the
- * last value a gauge was given. A stopped collector therefore shows as a flat
- * line, not as a gap.
+ * While the source is failing, and after collection has stopped, the collector
+ * observes nothing, and nothing is exported: gauges are read with delta
+ * temporality (see gauge-temporality.ts), so a stopped collector shows as a
+ * gap, not as a flat line at its last value.
  */
 import { metrics, type Counter, type Histogram, type Meter, type ObservableResult } from '@opentelemetry/api';
 import type { OTelConfig } from '../config';
