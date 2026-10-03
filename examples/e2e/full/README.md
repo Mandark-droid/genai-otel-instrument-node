@@ -15,7 +15,7 @@ reachable, `E2E_DATASTORE=qdrant` uses the Qdrant instrumentor instead.
 |---|---|
 | Against mocks | **Yes, here and in CI.** `tests/e2e/full.test.ts` runs this script as a child process against the built package, a mock model server, a mock Qdrant and a local OTLP receiver, and asserts on the OTLP bytes: one session, one trace, the spans of every step, each detector's attributes, the metrics |
 | Against a real model | **Yes, on the development machine**: a local Ollama with `qwen3.5:4b` and `embeddinggemma:300m`. Every model step ran, the tool was called, and the five rule-based detectors fired. There was **no collector** in those runs: nothing was exported. No Qdrant either: the Qdrant variant is tested against a mock only |
-| Against an OTLP backend | **No.** That is the lead's run. Nothing here has been verified on the platform |
+| Against an OTLP backend | **Yes, 2026-10-04**: the platform stored the SDK's totals, one session, the detector findings and the quality results. Evidence and findings: kept with the maintainers |
 
 ## Run it
 
