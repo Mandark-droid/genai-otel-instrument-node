@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { exportedClass, loadModuleCopies, unwrapMethod, wrapMethod } from '../../src/instrumentors/patch';
+import { exportedClass, loadEagerly, unwrapMethod, wrapMethod } from '../../src/instrumentors/patch';
 import { setLogger } from '../../src/logger';
 
 afterEach(() => setLogger(undefined));
@@ -71,9 +71,9 @@ describe('exportedClass', () => {
   });
 });
 
-describe('loadModuleCopies', () => {
+describe('Node 18: loadEagerly', () => {
   it('finds both builds of an installed SDK, as separate module objects', async () => {
-    const copies = loadModuleCopies('openai');
+    const copies = loadEagerly('openai');
     expect(copies.commonjs).toHaveLength(1);
     const esm = await copies.esm;
     expect(esm).toHaveLength(1);
@@ -87,7 +87,7 @@ describe('loadModuleCopies', () => {
   it('a package that is not installed yields nothing, quietly', async () => {
     const log = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
     setLogger(log);
-    const copies = loadModuleCopies('@traceverse/definitely-not-installed');
+    const copies = loadEagerly('@traceverse/definitely-not-installed');
     expect(copies.commonjs).toEqual([]);
     await expect(copies.esm).resolves.toEqual([]);
     expect(log.warn).not.toHaveBeenCalled();
@@ -96,7 +96,7 @@ describe('loadModuleCopies', () => {
   });
 
   it('a package with no ES-module build yields only the CommonJS one', async () => {
-    const copies = loadModuleCopies('@opentelemetry/api');
+    const copies = loadEagerly('@opentelemetry/api');
     expect(copies.commonjs).toHaveLength(1);
     await expect(copies.esm).resolves.toEqual([]);
   });
@@ -104,7 +104,7 @@ describe('loadModuleCopies', () => {
 
 describe('a package subpath', () => {
   it('yields the CommonJS file and, through the exports map, the ES-module one', async () => {
-    const copies = loadModuleCopies('@modelcontextprotocol/sdk/client/index.js');
+    const copies = loadEagerly('@modelcontextprotocol/sdk/client/index.js');
     expect(copies.commonjs.length).toBeGreaterThanOrEqual(1);
     const esm = await copies.esm;
     expect(esm.length).toBeGreaterThanOrEqual(1);
@@ -151,7 +151,7 @@ describe('two owners on one method', () => {
   });
 });
 
-describe('loadModuleCopies: a library that cannot run on this runtime', () => {
+describe('Node 18: loadEagerly: a library that cannot run on this runtime', () => {
   it('does not import the ES-module build when the CommonJS build threw while loading', async () => {
     const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs');
     const { tmpdir } = await import('node:os');
@@ -166,7 +166,7 @@ describe('loadModuleCopies: a library that cannot run on this runtime', () => {
     const before = process.cwd();
     process.chdir(root);
     try {
-      const copies = loadModuleCopies('broken-on-this-runtime');
+      const copies = loadEagerly('broken-on-this-runtime');
       expect(copies.commonjs).toEqual([]);
       expect(await copies.esm).toEqual([]);
       expect((globalThis as { __brokenEsmEvaluated?: boolean }).__brokenEsmEvaluated).toBeUndefined();
@@ -177,7 +177,7 @@ describe('loadModuleCopies: a library that cannot run on this runtime', () => {
   });
 });
 
-describe('loadModuleCopies: a library that must be loaded once', () => {
+describe('Node 18: loadEagerly: a library that must be loaded once', () => {
   // Some libraries (llamaindex) refuse to be loaded as CommonJS and as an ES
   // module in one process. For those, only the copy the application uses is loaded.
   async function withPackage(run: (root: string) => Promise<void>): Promise<void> {
@@ -210,7 +210,7 @@ describe('loadModuleCopies: a library that must be loaded once', () => {
     await withPackage(async (root) => {
       const { join } = await import('node:path');
       process.argv[1] = join(root, 'app.cjs');
-      const copies = loadModuleCopies('load-me-once', { single: true });
+      const copies = loadEagerly('load-me-once', { single: true });
       expect(copies.commonjs).toHaveLength(1);
       expect(await copies.esm).toEqual([]);
       expect(loads()).toEqual(['cjs']);
@@ -221,7 +221,7 @@ describe('loadModuleCopies: a library that must be loaded once', () => {
     await withPackage(async (root) => {
       const { join } = await import('node:path');
       process.argv[1] = join(root, 'app.mjs');
-      const copies = loadModuleCopies('load-me-once', { single: true });
+      const copies = loadEagerly('load-me-once', { single: true });
       expect(copies.commonjs).toEqual([]);
       expect(await copies.esm).toHaveLength(1);
       expect(loads()).toEqual(['esm']);
@@ -232,14 +232,14 @@ describe('loadModuleCopies: a library that must be loaded once', () => {
     await withPackage(async (root) => {
       const { join } = await import('node:path');
       process.argv[1] = join(root, 'app.cjs');
-      const copies = loadModuleCopies('load-me-once');
+      const copies = loadEagerly('load-me-once');
       await copies.esm;
       expect(loads()?.sort()).toEqual(['cjs', 'esm']);
     });
   });
 });
 
-describe('loadModuleCopies: a type-module package with a .cjs CommonJS build', () => {
+describe('Node 18: loadEagerly: a type-module package with a .cjs CommonJS build', () => {
   it('imports the ES-module build once and does not import the .cjs file as a second ES-module copy', async () => {
     const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs');
     const { tmpdir } = await import('node:os');
@@ -261,7 +261,7 @@ describe('loadModuleCopies: a type-module package with a .cjs CommonJS build', (
     const before = process.cwd();
     process.chdir(root);
     try {
-      const copies = loadModuleCopies('dual-type-module');
+      const copies = loadEagerly('dual-type-module');
       expect(copies.commonjs).toHaveLength(1);
       const esm = (await copies.esm) as { kind?: string }[];
       expect(esm.map((module) => module.kind)).toEqual(['esm']);

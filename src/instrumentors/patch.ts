@@ -6,9 +6,12 @@
  * `import('openai')` gives. Patching one silently leaves an application that
  * uses the other untraced, so both are located and both are patched.
  *
- * Methods are patched on the resource class prototype, which has two useful
- * consequences: a client constructed before `instrument()` ran is traced too,
- * and nothing depends on intercepting the module while it loads.
+ * Methods are patched on the resource class prototype, so a client constructed
+ * before `instrument()` ran is traced too.
+ *
+ * Nothing is loaded in order to be patched (Node 20 and later): a library is
+ * patched when the application loads it, or at once if it already has. An
+ * application does not pay for the libraries it has installed and never uses.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -118,6 +121,8 @@ export interface ModuleCopies {
   commonjs: unknown[];
   /** ES-module copies; resolves to [] when there are none. Never rejects. */
   esm: Promise<unknown[]>;
+  /** Hear of each CommonJS copy loaded from now on. Returns a function that stops listening. */
+  whenLoaded(listener: (module: unknown) => void): () => void;
 }
 
 /**
@@ -149,12 +154,143 @@ export function applicationIsEsModule(): boolean {
 /** `require()` refused because the package, or the entry asked for, is an ES module. */
 const REQUIRE_OF_ESM: ReadonlySet<string> = new Set(['ERR_REQUIRE_ESM', 'ERR_REQUIRE_ASYNC_MODULE', 'ERR_PACKAGE_PATH_NOT_EXPORTED']);
 
+// --- patching on load ----------------------------------------------------------------
+
+type LoadListener = (module: unknown) => void;
+
+/** Who wants to hear of a package being loaded: by the name the application requires, and by resolved file. */
+const byRequest = new Map<string, Set<LoadListener>>();
+const byFile = new Map<string, Set<LoadListener>>();
+let hookInstalled = false;
+
+/** Packages currently watched. For tests. */
+export function watchedPackageCount(): number {
+  return byRequest.size;
+}
+
+interface ModuleInternals {
+  _load: (request: string, parent: unknown, isMain: boolean) => unknown;
+}
+
 /**
- * Every loadable copy of a package: the CommonJS build synchronously, the
- * ES-module build asynchronously (a dynamic `import()` is the only way to reach
- * it). A package that is not installed yields nothing and logs at debug level.
+ * One hook on CommonJS loading, installed once. Every `require()` - and every
+ * ES-module `import` of a CommonJS package, which Node routes through the same
+ * function (checked on Node 18, 20, 22 and 24) - passes through it; a load of a
+ * watched package is announced after it completed. Nothing else is changed:
+ * the module the application gets is the one it would have got.
+ */
+function installLoadHook(): void {
+  if (hookInstalled) return;
+  const Module = createRequire(import.meta.url)('node:module') as ModuleInternals;
+  const original = Module._load;
+  Module._load = function load(this: unknown, request: string, _parent: unknown, _isMain: boolean): unknown {
+    // eslint-disable-next-line prefer-rest-params
+    const exported = original.apply(this, arguments as unknown as [string, unknown, boolean]);
+    if (byRequest.size > 0) {
+      const listeners = byRequest.get(request) ?? byFile.get(request);
+      if (listeners) {
+        for (const listener of [...listeners]) {
+          try {
+            listener(exported);
+          } catch (error) {
+            logger.debug(`Patching ${request} on load failed: ${String(error)}`);
+          }
+        }
+      }
+    }
+    return exported;
+  };
+  hookInstalled = true;
+}
+
+function listen(table: Map<string, Set<LoadListener>>, key: string, listener: LoadListener): () => void {
+  let set = table.get(key);
+  if (!set) table.set(key, (set = new Set()));
+  set.add(listener);
+  return () => {
+    const current = table.get(key);
+    if (!current) return;
+    current.delete(listener);
+    if (current.size === 0) table.delete(key);
+  };
+}
+
+/**
+ * Node 18 cannot be lazy safely: an ES-module import of a library that fails
+ * on it (anything built for a newer Node) surfaces as an unhandled rejection,
+ * and the CommonJS load done first is what tells such a library apart.
+ */
+const EAGER = Number(process.versions.node.split('.')[0]) < 20;
+
+/**
+ * The copies of a package this process has or will have, without loading any
+ * of them on Node 20 and later:
+ *
+ * - `commonjs`: the CommonJS copies the application already loaded;
+ * - `whenLoaded(listener)`: called with each CommonJS copy the application
+ *   loads from now on - by `require()`, or by an `import` of a CommonJS
+ *   package. Returns a function that stops listening;
+ * - `esm`: for an ES-module application, the package's ES-module build,
+ *   imported - an application that `import`s the package has it loaded
+ *   already, so this costs it nothing; a CommonJS application only reaches
+ *   that build through a dynamic `import()`, and it is not loaded for it.
+ *
+ * On Node 18 both builds are loaded at once, as before.
  */
 export function loadModuleCopies(name: string, options: { single?: boolean } = {}): ModuleCopies {
+  if (EAGER) return loadEagerly(name, options);
+  const commonjs: unknown[] = [];
+  const files = new Set<string>();
+  const esmUrls = new Set<string>();
+  const esmApplication = applicationIsEsModule();
+  for (const resolver of resolvers()) {
+    let resolved: string;
+    try {
+      resolved = resolver.resolve(name);
+    } catch {
+      continue;
+    }
+    files.add(resolved);
+    const cached = resolver.cache[resolved];
+    if (cached?.loaded && !commonjs.includes(cached.exports)) commonjs.push(cached.exports);
+    if (esmApplication) for (const entry of esmEntries(name, resolved)) esmUrls.add(pathToFileURL(entry).href);
+  }
+  if (files.size === 0) {
+    logger.debug(`${name} is not installed, instrumentation will be skipped`);
+    return { commonjs, esm: Promise.resolve([]), whenLoaded: () => () => undefined };
+  }
+  // `single`: a library that refuses to be loaded both ways; only the application's own copy.
+  const esm = options.single && !esmApplication ? Promise.resolve([]) : importAll(name, esmUrls);
+  return {
+    commonjs,
+    esm,
+    whenLoaded(listener) {
+      installLoadHook();
+      const disposers = [listen(byRequest, name, listener), ...[...files].map((file) => listen(byFile, file, listener))];
+      return () => {
+        for (const dispose of disposers) dispose();
+      };
+    },
+  };
+}
+
+function importAll(name: string, urls: Set<string>): Promise<unknown[]> {
+  return (async (): Promise<unknown[]> => {
+    const loaded: unknown[] = [];
+    for (const url of urls) {
+      try {
+        const module: unknown = await import(url);
+        if (!loaded.includes(module)) loaded.push(module);
+      } catch (error) {
+        logger.debug(`Could not load the ES-module build of ${name}: ${String(error)}`);
+      }
+    }
+    return loaded;
+  })();
+}
+
+/** Node 18: load every copy now. Exported for tests. */
+export function loadEagerly(name: string, options: { single?: boolean } = {}): ModuleCopies {
   const commonjs: unknown[] = [];
   const esmUrls = new Set<string>();
   // `single`: the library refuses to be loaded both ways in one process, so
@@ -190,21 +326,7 @@ export function loadModuleCopies(name: string, options: { single?: boolean } = {
     for (const entry of esmEntries(name, resolved)) esmUrls.add(pathToFileURL(entry).href);
   }
   if (commonjs.length === 0 && esmUrls.size === 0) logger.debug(`${name} is not installed, instrumentation will be skipped`);
-
-  const esm = (async (): Promise<unknown[]> => {
-    const loaded: unknown[] = [];
-    for (const url of esmUrls) {
-      try {
-        const module: unknown = await import(url);
-        if (!loaded.includes(module)) loaded.push(module);
-      } catch (error) {
-        logger.debug(`Could not load the ES-module build of ${name}: ${String(error)}`);
-      }
-    }
-    return loaded;
-  })();
-
-  return { commonjs, esm };
+  return { commonjs, esm: importAll(name, esmUrls), whenLoaded: () => () => undefined };
 }
 
 export { exportedClass, prototypeDefining, unwrapMethod, wrapMethod } from './wrap';

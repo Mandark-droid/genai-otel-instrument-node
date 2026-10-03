@@ -199,6 +199,11 @@
   (`gen_ai.energy.consumed`, `gen_ai.energy.total`), electricity cost (`gen_ai.power.cost`)
   and, with `GENAI_ENABLE_CO2_TRACKING`, CO2 (`gen_ai.co2.emissions`) from measured GPU
   power. A host with no GPU gets no GPU instrument at all. See `docs/gpu-energy.md`.
+- Start-up: on Node 20 and later a CommonJS client library is patched when the
+  application loads it instead of being loaded by `instrument()`. With every library of
+  this repository installed, `instrument()` in a CommonJS application went from 6.6 s to
+  40 ms. ES-module applications still import the ES-module builds
+  (`docs/configuration.md`, "Start-up cost").
 
 ### Fixed
 - On Node 18, `instrument()` in an ES-module application could end the process with an

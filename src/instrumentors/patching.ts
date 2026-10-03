@@ -15,6 +15,8 @@ type AnyFunction = (...args: never[]) => unknown;
 export interface LoadedCopies {
   commonjs: unknown[];
   esm: Promise<unknown[]>;
+  /** Hear of each copy loaded later; returns a function that stops listening. */
+  whenLoaded?: (listener: (module: unknown) => void) => () => void;
 }
 
 /**
@@ -58,6 +60,7 @@ export abstract class PatchingInstrumentor extends BaseInstrumentor {
   private patched: [object, string][] = [];
   /** instrument() has run (and uninstrument() has not): wrappers act. */
   private enabled = false;
+  private readonly stopListening: (() => void)[] = [];
 
   /**
    * The library refuses to be loaded as CommonJS and as an ES module in one
@@ -88,6 +91,8 @@ export abstract class PatchingInstrumentor extends BaseInstrumentor {
     for (const packageName of load ? this.packages : []) {
       const copies = (load as NonNullable<typeof load>)(packageName, { single: this.loadOnce });
       for (const module of copies.commonjs) this.patchModule(module, packageName);
+      const stop = copies.whenLoaded?.((module) => this.patchModule(module, packageName));
+      if (stop) this.stopListening.push(stop);
       pending.push(
         copies.esm.then((modules) => {
           for (const module of modules) this.patchModule(module, packageName);
@@ -110,6 +115,7 @@ export abstract class PatchingInstrumentor extends BaseInstrumentor {
   }
 
   uninstrument(): void {
+    for (const stop of this.stopListening.splice(0)) stop();
     for (const [holder, method] of this.patched) unwrapMethod(holder, method, this.owner);
     this.patched = [];
     // A wrapper buried under another instrumentor's cannot be removed; with

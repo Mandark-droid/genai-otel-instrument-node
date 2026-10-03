@@ -55,6 +55,7 @@ function defined(attributes: Record<string, string | undefined>): Record<string,
 
 export class AnthropicInstrumentor extends BaseInstrumentor {
   private patched: [object, string][] = [];
+  private stopListening: (() => void) | undefined;
   /** Above zero while the `stream()` helper is making its own `create()` call. */
   private insideStreamHelper = 0;
 
@@ -72,6 +73,8 @@ export class AnthropicInstrumentor extends BaseInstrumentor {
     this.setupConfig(config);
     const copies = loadModuleCopies('@anthropic-ai/sdk');
     for (const module of copies.commonjs) this.patchModule(module);
+    this.stopListening?.();
+    this.stopListening = copies.whenLoaded((module) => this.patchModule(module));
     return copies.esm.then((modules) => {
       for (const module of modules) this.patchModule(module);
     });
@@ -84,6 +87,8 @@ export class AnthropicInstrumentor extends BaseInstrumentor {
   }
 
   uninstrument(): void {
+    this.stopListening?.();
+    this.stopListening = undefined;
     for (const [target, name] of this.patched) unwrapMethod(target, name);
     this.patched = [];
     this.instrumented = false;

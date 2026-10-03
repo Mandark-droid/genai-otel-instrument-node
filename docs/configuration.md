@@ -30,12 +30,28 @@ both languages:
 
 ## Start-up cost
 
-`instrument()` loads every client library it instruments that is installed, to patch it -
-as the Python library imports every one it finds. With two or three libraries that is a
-few tens of milliseconds, and the application would load them anyway. In a project with
-many installed and few used, name the ones in use (`GENAI_ENABLED_INSTRUMENTORS=openai,anthropic`)
-and switch datastore instrumentation off if it is not wanted
-(`GENAI_ENABLE_MCP_INSTRUMENTATION=false`).
+On Node 20 and later, `instrument()` loads no CommonJS client library in order to patch it:
+a library is patched when the application loads it (`require`, or an `import` of a
+CommonJS package), or at once if it already has. An application does not pay for
+libraries it has installed and does not use.
+
+ES-module builds cannot be watched that way. In an **ES-module application** the
+ES-module build of every installed client library is imported; the ones the application
+already imports cost nothing more, the others are loaded. In a **CommonJS application**
+the ES-module builds are not touched: a library reached only through a dynamic `import()`
+is not traced there.
+
+Measured on the development machine with all 38 client libraries of this repository
+installed (none used), Node 24: CommonJS application, `instrument()` 40 ms; ES-module
+application, 2.3 s in `instrument()` and 1.1 s more until `instrumentorsReady()`. An
+application with a handful of libraries installed pays a small fraction of that. To pay
+nothing for libraries that are installed but unused, name the ones in use
+(`GENAI_ENABLED_INSTRUMENTORS=openai,anthropic`) and switch datastore instrumentation off
+if it is not wanted (`GENAI_ENABLE_MCP_INSTRUMENTATION=false`).
+
+On **Node 18** every installed library is loaded at `instrument()`, both builds, as
+before: an ES-module import of a library that cannot run on Node 18 (anything on `undici`
+7) ends the process there unless its CommonJS load is tried first.
 
 ## Variables in effect in this version
 

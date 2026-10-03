@@ -58,6 +58,7 @@ function responsesContentToText(content: unknown): string {
 
 export class OpenAIInstrumentor extends BaseInstrumentor {
   private patched: [object, string][] = [];
+  private stopListening: (() => void) | undefined;
 
   /**
    * Patch every copy of `openai` that can be loaded. The CommonJS build is
@@ -70,6 +71,8 @@ export class OpenAIInstrumentor extends BaseInstrumentor {
     this.setupConfig(config);
     const copies = loadModuleCopies('openai');
     for (const module of copies.commonjs) this.patchModule(module);
+    this.stopListening?.();
+    this.stopListening = copies.whenLoaded((module) => this.patchModule(module));
     return copies.esm.then((modules) => {
       for (const module of modules) this.patchModule(module);
     });
@@ -86,6 +89,8 @@ export class OpenAIInstrumentor extends BaseInstrumentor {
   }
 
   uninstrument(): void {
+    this.stopListening?.();
+    this.stopListening = undefined;
     for (const [target, name] of this.patched) unwrapMethod(target, name);
     this.patched = [];
     this.instrumented = false;
