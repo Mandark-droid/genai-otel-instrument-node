@@ -11,3 +11,10 @@ coverage/
 
 # generated from contract/*.json by scripts/generate-contract-code.mjs
 src/*.generated.ts
+
+# Agent instructions and tool state stay local; never published.
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+.claude/
+.mcp.json
