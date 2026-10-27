@@ -16,7 +16,7 @@ evaluation signals - in the same wire format as the Python library
 
 A backend must not be able to tell which language produced a span except by three
 resource attributes: `telemetry.sdk.language=nodejs`,
-`telemetry.distro.name=@traceverse/genai-otel-instrument-node`, `telemetry.distro.version`.
+`telemetry.distro.name=genai-otel-instrument-node`, `telemetry.distro.version`.
 
 ## Use
 
