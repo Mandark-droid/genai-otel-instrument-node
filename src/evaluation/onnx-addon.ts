@@ -1,7 +1,7 @@
 /**
  * `GENAI_TOXICITY_ONNX_MODEL` (contract/SDK_ADDITIONS.md section 12): toxicity
  * scored in-process by a Detoxify-style ONNX classifier, through the optional
- * add-on `@traceverse/genai-otel-instrument-onnx`. This package never depends
+ * add-on `genai-otel-instrument-node-onnx`. This package never depends
  * on ONNX Runtime: the add-on is imported on the first score, only when the
  * variable is set. Node only.
  *
@@ -13,7 +13,7 @@ import { logger } from '../logger';
 import { stateSlot } from '../state';
 import type { ToxicityScorer, ToxicityScores } from './detectors';
 
-export const ONNX_ADDON = '@traceverse/genai-otel-instrument-onnx';
+export const ONNX_ADDON = 'genai-otel-instrument-node-onnx';
 
 type AddonJudge = (text: string, categories: readonly string[]) => Promise<ToxicityScores>;
 export interface OnnxAddon {

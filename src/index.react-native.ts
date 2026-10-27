@@ -1,5 +1,5 @@
 /**
- * @traceverse/genai-otel-instrument - React Native entry.
+ * genai-otel-instrument-node - React Native entry.
  *
  * The same as the browser entry, with no DOM API either, and with a flush when
  * the app leaves the foreground: pass `appState: AppState` to `instrument()`.

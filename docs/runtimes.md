@@ -6,8 +6,8 @@ picks the entry through the package's conditional exports; nothing has to be con
 | Entry | Chosen by | File | What it has |
 |---|---|---|---|
 | Node | default (`import` / `require`) | `dist/index.mjs`, `dist/index.js` | everything: `instrument()` from the environment, the `register` hook, provider instrumentation by module patching, OTLP over http/protobuf or gRPC |
-| Browser | the `browser` condition, or `@traceverse/genai-otel-instrument/browser` | `dist/index.browser.mjs` (ES modules) | the core, an explicit `instrument({...})`, OTLP/HTTP JSON over `fetch`, `traceGenAiCall()` |
-| React Native | the `react-native` condition, or `@traceverse/genai-otel-instrument/react-native` | `dist/index.react-native.js` (CommonJS) | the same as the browser entry, no DOM API, plus a flush when the app leaves the foreground |
+| Browser | the `browser` condition, or `genai-otel-instrument-node/browser` | `dist/index.browser.mjs` (ES modules) | the core, an explicit `instrument({...})`, OTLP/HTTP JSON over `fetch`, `traceGenAiCall()` |
+| React Native | the `react-native` condition, or `genai-otel-instrument-node/react-native` | `dist/index.react-native.js` (CommonJS) | the same as the browser entry, no DOM API, plus a flush when the app leaves the foreground |
 
 The core is: configuration (`loadConfig`), the cost calculator and the vendored pricing
 table, the semantic-convention constants, the metric registry, and the base instrumentor.
@@ -17,7 +17,7 @@ data are bundled into the files above; nothing is read from disk or fetched at r
 ## Using it in a browser or a React Native app
 
 ```js
-import { instrument, traceGenAiCall, flushTelemetry } from '@traceverse/genai-otel-instrument';
+import { instrument, traceGenAiCall, flushTelemetry } from 'genai-otel-instrument-node';
 
 instrument({
   serviceName: 'support-chat-web',
@@ -121,13 +121,13 @@ Hand the library over once; it does not matter whether before or after `instrume
 ```js
 // Browser: transformers.js
 import * as transformers from '@huggingface/transformers';
-import { enableWebGpuFacts, instrumentTransformers } from '@traceverse/genai-otel-instrument';
+import { enableWebGpuFacts, instrumentTransformers } from 'genai-otel-instrument-node';
 instrumentTransformers(transformers);
 await enableWebGpuFacts();        // optional: adapter facts on model-load spans
 
 // React Native: cactus
 import { CactusLM, CactusSTT } from 'cactus-react-native';
-import { instrumentCactus } from '@traceverse/genai-otel-instrument';
+import { instrumentCactus } from 'genai-otel-instrument-node';
 instrumentCactus({ CactusLM, CactusSTT });
 ```
 

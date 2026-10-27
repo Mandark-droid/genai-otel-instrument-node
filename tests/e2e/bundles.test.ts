@@ -80,8 +80,8 @@ describe('conditional exports', () => {
     const result = spawnSync(process.execPath, [...flags, '-e', script], { cwd: resolve(__dirname, '../..'), encoding: 'utf8' });
     return `${result.stdout}${result.stderr}`.trim();
   };
-  const esm = "const m = await import('@traceverse/genai-otel-instrument'); console.log(typeof m.instrument, typeof m.traceGenAiCall, 'OpenAIInstrumentor' in m);";
-  const cjs = "const m = require('@traceverse/genai-otel-instrument'); console.log(typeof m.instrument, typeof m.traceGenAiCall, 'OpenAIInstrumentor' in m);";
+  const esm = "const m = await import('genai-otel-instrument-node'); console.log(typeof m.instrument, typeof m.traceGenAiCall, 'OpenAIInstrumentor' in m);";
+  const cjs = "const m = require('genai-otel-instrument-node'); console.log(typeof m.instrument, typeof m.traceGenAiCall, 'OpenAIInstrumentor' in m);";
 
   it('Node gets the Node entry by default', () => {
     expect(load(['--input-type=module'], esm)).toBe('function undefined true');
@@ -97,7 +97,7 @@ describe('conditional exports', () => {
   });
 
   it('both are also reachable by subpath', () => {
-    const script = "console.log(typeof require('@traceverse/genai-otel-instrument/react-native').traceGenAiCall);";
+    const script = "console.log(typeof require('genai-otel-instrument-node/react-native').traceGenAiCall);";
     expect(load([], script)).toBe('function');
   });
 });

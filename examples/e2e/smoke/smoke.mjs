@@ -33,7 +33,7 @@ import {
   uninstrument,
   VERSION,
   withSession,
-} from '@traceverse/genai-otel-instrument';
+} from 'genai-otel-instrument-node';
 
 /** @param {string} name */
 function required(name) {

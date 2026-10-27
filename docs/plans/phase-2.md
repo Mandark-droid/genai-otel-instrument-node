@@ -76,7 +76,7 @@ over, and class prototypes are patched:
 
 ```js
 import * as transformers from '@huggingface/transformers';
-import { instrument, instrumentTransformers } from '@traceverse/genai-otel-instrument';
+import { instrument, instrumentTransformers } from 'genai-otel-instrument-node';
 instrument({ serviceName: 'web-chat', endpoint: '...' });
 instrumentTransformers(transformers);
 ```

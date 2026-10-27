@@ -7,7 +7,7 @@
  *   CO_API_KEY=... OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node examples/cohere/chat.mjs
  */
 import { CohereClient, CohereClientV2 } from 'cohere-ai';
-import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from '@traceverse/genai-otel-instrument';
+import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from 'genai-otel-instrument-node';
 
 // Before the clients are created: the v2 client binds its methods when it is constructed.
 instrument({ serviceName: process.env.OTEL_SERVICE_NAME ?? 'example-cohere' });

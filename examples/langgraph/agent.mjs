@@ -13,7 +13,7 @@
 import { randomBytes } from 'node:crypto';
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import OpenAI from 'openai';
-import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from '@traceverse/genai-otel-instrument';
+import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from 'genai-otel-instrument-node';
 
 instrument({ serviceName: process.env.OTEL_SERVICE_NAME ?? 'example-langgraph' });
 await instrumentorsReady();

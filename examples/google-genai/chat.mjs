@@ -8,7 +8,7 @@
  *   GEMINI_API_KEY=... OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node examples/google-genai/chat.mjs
  */
 import { GoogleGenAI } from '@google/genai';
-import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from '@traceverse/genai-otel-instrument';
+import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from 'genai-otel-instrument-node';
 
 instrument({ serviceName: process.env.OTEL_SERVICE_NAME ?? 'example-google-genai' });
 await instrumentorsReady();

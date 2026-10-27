@@ -9,7 +9,7 @@
  */
 import { BedrockRuntimeClient, ConverseCommand, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { NodeHttpHandler } from '@smithy/node-http-handler';
-import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from '@traceverse/genai-otel-instrument';
+import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from 'genai-otel-instrument-node';
 
 instrument({ serviceName: process.env.OTEL_SERVICE_NAME ?? 'example-bedrock' });
 await instrumentorsReady();

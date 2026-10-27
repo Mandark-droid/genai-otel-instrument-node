@@ -2,7 +2,7 @@
   "name": "genai-sdk-example-browser-transformers",
   "private": true,
   "type": "module",
-  "description": "A chat page running a small model in the browser with transformers.js, traced with @traceverse/genai-otel-instrument",
+  "description": "A chat page running a small model in the browser with transformers.js, traced with genai-otel-instrument-node",
   "scripts": {
     "build": "node build.mjs",
     "serve": "node serve.mjs"

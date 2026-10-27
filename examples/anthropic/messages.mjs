@@ -8,7 +8,7 @@
  *   node examples/anthropic/messages.mjs
  */
 import Anthropic from '@anthropic-ai/sdk';
-import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from '@traceverse/genai-otel-instrument';
+import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from 'genai-otel-instrument-node';
 
 instrument({ serviceName: process.env.OTEL_SERVICE_NAME ?? 'example-anthropic' });
 await instrumentorsReady();

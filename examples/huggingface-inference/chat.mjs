@@ -9,7 +9,7 @@
  *   HF_TOKEN=hf_... OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node examples/huggingface-inference/chat.mjs
  */
 import { InferenceClient } from '@huggingface/inference';
-import { flushTelemetry, instrument, traceHuggingFaceClient, uninstrument } from '@traceverse/genai-otel-instrument';
+import { flushTelemetry, instrument, traceHuggingFaceClient, uninstrument } from 'genai-otel-instrument-node';
 
 instrument({ serviceName: process.env.OTEL_SERVICE_NAME ?? 'example-huggingface-inference' });
 

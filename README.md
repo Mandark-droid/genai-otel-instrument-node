@@ -5,14 +5,14 @@ token and cost attribution, and (in later phases) GPU / energy / CO2 metrics and
 evaluation signals - in the same wire format as the Python library
 `genai-otel-instrument`.
 
-**Private repository. Not published to any public registry.**
+**Pre-release.** Published on npm as `genai-otel-instrument-node` under the `next` tag (Apache-2.0).
 
 | | |
 |---|---|
-| Package | `@traceverse/genai-otel-instrument` |
+| Package | `genai-otel-instrument-node` |
 | Minimum runtime | Node 18.19 |
 | Reference implementation | `genai_otel_instrument` **v1.30.0** (pinned in `scripts/sync-from-python.mjs`) |
-| Status | Phase 1 (foundation). No `v0.1.0` tag until the end-to-end evidence exists - see `CLAUDE.md` rule 9. |
+| Status | Phase 1 (foundation), `0.1.0-alpha` pre-releases. No `v0.1.0` until the end-to-end evidence exists. |
 
 A backend must not be able to tell which language produced a span except by three
 resource attributes: `telemetry.sdk.language=nodejs`,
@@ -23,7 +23,7 @@ resource attributes: `telemetry.sdk.language=nodejs`,
 One line, before the first LLM call:
 
 ```ts
-import { instrument } from '@traceverse/genai-otel-instrument';
+import { instrument } from 'genai-otel-instrument-node';
 
 instrument({ serviceName: 'my-app', endpoint: 'http://collector:4318' });
 ```
@@ -32,10 +32,10 @@ Or with no code change at all:
 
 ```bash
 # CommonJS application
-node --require @traceverse/genai-otel-instrument/register app.js
+node --require genai-otel-instrument-node/register app.js
 
 # ES-module application
-node --import @traceverse/genai-otel-instrument/register app.mjs
+node --import genai-otel-instrument-node/register app.mjs
 ```
 
 Use the hook that matches the application's module format: the ES-module build of a client
@@ -54,7 +54,7 @@ but the telemetry.
 Before a short-lived process exits, drain what is queued:
 
 ```ts
-import { flushTelemetry, uninstrument } from '@traceverse/genai-otel-instrument';
+import { flushTelemetry, uninstrument } from 'genai-otel-instrument-node';
 
 await flushTelemetry(5); // seconds; resolves false if the collector did not take it
 await uninstrument();
@@ -66,7 +66,7 @@ The platform groups spans into a session by `session.id`. A run whose spans carr
 shows up as traces with no session. Say which session a piece of work belongs to:
 
 ```js
-import { withSession, setSession } from '@traceverse/genai-otel-instrument';
+import { withSession, setSession } from 'genai-otel-instrument-node';
 
 await withSession('chat-41', () => handle(request), { userId: 'u-17' }); // everything started inside
 setSession('chat-41');                                                   // or: everything from now on
@@ -106,7 +106,7 @@ it over explicitly:
 
 ```ts
 import OpenAI from 'openai';
-import { loadConfig, OpenAIInstrumentor } from '@traceverse/genai-otel-instrument';
+import { loadConfig, OpenAIInstrumentor } from 'genai-otel-instrument-node';
 
 new OpenAIInstrumentor().instrumentModule({ OpenAI }, loadConfig());
 ```

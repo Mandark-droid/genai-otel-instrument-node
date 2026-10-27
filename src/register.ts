@@ -1,7 +1,7 @@
 /**
  * Zero-code entry point for CommonJS applications:
  *
- *     node --require @traceverse/genai-otel-instrument/register app.js
+ *     node --require genai-otel-instrument-node/register app.js
  *
  * Configuration comes from the environment (OTEL_SERVICE_NAME,
  * OTEL_EXPORTER_OTLP_ENDPOINT, GENAI_*). A failure here is logged and the

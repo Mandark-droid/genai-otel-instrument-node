@@ -28,7 +28,7 @@ await build({
   sourcemap: true,
   // Inside this repository the SDK is the build two directories up; an
   // application installs the package and needs no alias.
-  alias: { '@traceverse/genai-otel-instrument': sdk },
+  alias: { 'genai-otel-instrument-node': sdk },
   nodePaths: [resolve(here, '../../node_modules')],
   logLevel: 'info',
 });

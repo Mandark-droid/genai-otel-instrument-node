@@ -1,6 +1,6 @@
 /**
  * GENAI_TOXICITY_ONNX_MODEL (contract/SDK_ADDITIONS.md section 12): toxicity
- * scored in-process by the optional add-on @traceverse/genai-otel-instrument-onnx.
+ * scored in-process by the optional add-on genai-otel-instrument-node-onnx.
  * The core never depends on ONNX Runtime: the add-on is imported only when the
  * variable is set. Here the add-on is a stand-in; onnx/tests run the real one
  * through this same path.
@@ -82,7 +82,7 @@ describe('GENAI_TOXICITY_ONNX_MODEL', () => {
 
   it('the add-on not installed: one warning naming it, and toxicity is not measured', async () => {
     setOnnxAddonLoader(async () => {
-      throw Object.assign(new Error("Cannot find package '@traceverse/genai-otel-instrument-onnx'"), { code: 'ERR_MODULE_NOT_FOUND' });
+      throw Object.assign(new Error("Cannot find package 'genai-otel-instrument-node-onnx'"), { code: 'ERR_MODULE_NOT_FOUND' });
     });
     process.env.GENAI_TOXICITY_ONNX_MODEL = '/models/detoxify-original-onnx';
     harness = await startHarness({ enabledInstrumentors: ['openai'], enableToxicityDetection: true });
@@ -93,7 +93,7 @@ describe('GENAI_TOXICITY_ONNX_MODEL', () => {
     }
     await eventually(() => expect(harness?.spans()).toHaveLength(2), 5000);
     for (const span of harness.spans()) expect(toxicityKeys(span.attributes)).toEqual([]);
-    const warnings = log.warn.mock.calls.map(([message]) => String(message)).filter((message) => message.includes('@traceverse/genai-otel-instrument-onnx'));
+    const warnings = log.warn.mock.calls.map(([message]) => String(message)).filter((message) => message.includes('genai-otel-instrument-node-onnx'));
     expect(warnings).toHaveLength(1);
   });
 

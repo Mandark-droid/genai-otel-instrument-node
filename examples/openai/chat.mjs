@@ -12,7 +12,7 @@
  * serves in EXAMPLE_CHAT_MODEL / EXAMPLE_EMBEDDING_MODEL.
  */
 import OpenAI from 'openai';
-import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from '@traceverse/genai-otel-instrument';
+import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from 'genai-otel-instrument-node';
 
 // One line. Everything else is read from the environment (OTEL_*, GENAI_*).
 instrument({ serviceName: process.env.OTEL_SERVICE_NAME ?? 'example-openai' });
