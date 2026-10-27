@@ -1,5 +1,5 @@
 /**
- * genai-otel-instrument-node - browser entry.
+ * @traceverse/genai-otel-instrument-node - browser entry.
  *
  * The runtime-agnostic core, an explicit `instrument({...})` that exports OTLP
  * over `fetch`, and `traceGenAiCall()` for calls the application makes itself.

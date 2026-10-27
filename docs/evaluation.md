@@ -47,7 +47,7 @@ is sent**, on calls made through an instrumented client: the call throws
 with `evaluation.blocked = true` and `evaluation.blocked_reasons`.
 
 ```js
-import { PolicyViolationError } from 'genai-otel-instrument-node';
+import { PolicyViolationError } from '@traceverse/genai-otel-instrument-node';
 
 try {
   await client.chat.completions.create({ model, messages });
@@ -113,7 +113,7 @@ A scorer is a function from text to a score between 0 and 1 per category
 it before `instrument()`:
 
 ```js
-import { instrument, setToxicityScorer } from 'genai-otel-instrument-node';
+import { instrument, setToxicityScorer } from '@traceverse/genai-otel-instrument-node';
 
 setToxicityScorer(async (text, categories) => {
   // An on-prem endpoint. The mapping from its categories to these is yours to state.
@@ -146,7 +146,7 @@ not), but no Perspective client ships.
 ## Using the detectors directly
 
 ```js
-import { PIIDetector, PromptInjectionDetector } from 'genai-otel-instrument-node';
+import { PIIDetector, PromptInjectionDetector } from '@traceverse/genai-otel-instrument-node';
 
 const pii = new PIIDetector({ enabled: true, mode: 'redact' });
 pii.detect('Mail jane.doe@example.com').redactedText; // 'Mail ********************'

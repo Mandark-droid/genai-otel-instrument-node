@@ -11,7 +11,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Button, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { CactusLM, type CactusLMMessage } from 'cactus-react-native';
-import { flushTelemetry } from 'genai-otel-instrument-node';
+import { flushTelemetry } from '@traceverse/genai-otel-instrument-node';
 import { SESSION_ID, startTelemetry } from './telemetry';
 
 // Before any CactusLM is used: the classes are patched here.

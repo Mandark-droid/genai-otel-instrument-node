@@ -8,7 +8,7 @@
  *   MISTRAL_API_KEY=... OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node examples/mistral/chat.mjs
  */
 import { Mistral } from '@mistralai/mistralai';
-import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from 'genai-otel-instrument-node';
+import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from '@traceverse/genai-otel-instrument-node';
 
 instrument({ serviceName: process.env.OTEL_SERVICE_NAME ?? 'example-mistral' });
 // @mistralai/mistralai is an ES-module package: it is patched asynchronously.

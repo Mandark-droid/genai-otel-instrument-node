@@ -1,5 +1,5 @@
 {
-  "name": "genai-otel-instrument-node",
+  "name": "@traceverse/genai-otel-instrument-node",
   "version": "0.1.0-alpha.1",
   "description": "OpenTelemetry instrumentation for GenAI applications on Node.js, in browsers and in React Native (port of genai_otel_instrument)",
   "license": "Apache-2.0",

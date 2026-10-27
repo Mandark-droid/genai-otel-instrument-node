@@ -1,12 +1,12 @@
-# genai-otel-instrument-node-onnx
+# @traceverse/genai-otel-instrument-node-onnx
 
-Optional add-on to `genai-otel-instrument-node`: a toxicity judge that runs a
+Optional add-on to `@traceverse/genai-otel-instrument-node`: a toxicity judge that runs a
 Detoxify-style classifier with ONNX Runtime, in-process and on-prem
 (`GENAI_TOXICITY_ONNX_MODEL`; contract/SDK_ADDITIONS.md section 12). The core package never
 depends on ONNX Runtime; install this one next to it only when you want the judge.
 
 ```sh
-npm install genai-otel-instrument-node genai-otel-instrument-node-onnx
+npm install @traceverse/genai-otel-instrument-node @traceverse/genai-otel-instrument-node-onnx
 export GENAI_ENABLE_TOXICITY_DETECTION=true
 export GENAI_TOXICITY_ONNX_MODEL=/models/detoxify-original-onnx
 ```

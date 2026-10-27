@@ -1,7 +1,7 @@
 /**
  * Zero-code entry point for ES-module applications:
  *
- *     node --import genai-otel-instrument-node/register app.mjs
+ *     node --import @traceverse/genai-otel-instrument-node/register app.mjs
  *
  * ES modules cannot be patched synchronously from a hook, so this entry waits
  * until the instrumentors have finished patching the ESM builds of the client

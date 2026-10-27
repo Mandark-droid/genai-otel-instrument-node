@@ -19,7 +19,7 @@ import {
   instrumentTransformers,
   setSession,
   watchWebGpuDevice,
-} from 'genai-otel-instrument-node';
+} from '@traceverse/genai-otel-instrument-node';
 
 const query = new URLSearchParams(location.search);
 const $ = (id) => document.getElementById(id);

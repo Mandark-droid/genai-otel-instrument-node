@@ -15,7 +15,7 @@ import { randomBytes } from 'node:crypto';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { OpenTelemetry } from '@ai-sdk/otel';
 import { generateText } from 'ai';
-import { flushTelemetry, instrument, instrumentorsReady, uninstrument, withSession } from 'genai-otel-instrument-node';
+import { flushTelemetry, instrument, instrumentorsReady, uninstrument, withSession } from '@traceverse/genai-otel-instrument-node';
 
 instrument({ serviceName: process.env.OTEL_SERVICE_NAME ?? 'example-vercel-ai-sdk' });
 await instrumentorsReady();

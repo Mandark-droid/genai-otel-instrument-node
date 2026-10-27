@@ -2,7 +2,7 @@
  * A toxicity judge that runs a Detoxify-style classifier with ONNX Runtime,
  * in-process and on-prem: the counterpart of the reference's Detoxify backend
  * (`GENAI_TOXICITY_ONNX_MODEL`; contract/SDK_ADDITIONS.md section 12). An
- * optional add-on: `genai-otel-instrument-node` never depends on ONNX
+ * optional add-on: `@traceverse/genai-otel-instrument-node` never depends on ONNX
  * Runtime, and loads this package only when the variable is set.
  *
  * The model directory holds `model.onnx` (or one other `.onnx` file) and the

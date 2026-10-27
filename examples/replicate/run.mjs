@@ -7,7 +7,7 @@
  *   REPLICATE_API_TOKEN=r8_... OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node examples/replicate/run.mjs
  */
 import Replicate from 'replicate';
-import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from 'genai-otel-instrument-node';
+import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from '@traceverse/genai-otel-instrument-node';
 
 instrument({ serviceName: process.env.OTEL_SERVICE_NAME ?? 'example-replicate' });
 await instrumentorsReady();

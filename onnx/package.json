@@ -1,8 +1,8 @@
 {
-  "name": "genai-otel-instrument-node-onnx",
+  "name": "@traceverse/genai-otel-instrument-node-onnx",
   "version": "0.1.0-dev.0",
   "private": true,
-  "description": "Optional add-on to genai-otel-instrument-node: a Detoxify-style toxicity classifier run in-process with ONNX Runtime (GENAI_TOXICITY_ONNX_MODEL).",
+  "description": "Optional add-on to @traceverse/genai-otel-instrument-node: a Detoxify-style toxicity classifier run in-process with ONNX Runtime (GENAI_TOXICITY_ONNX_MODEL).",
   "license": "UNLICENSED",
   "type": "commonjs",
   "main": "./dist/index.js",

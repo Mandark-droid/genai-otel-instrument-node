@@ -1,5 +1,5 @@
 /**
- * genai-otel-instrument-node
+ * @traceverse/genai-otel-instrument-node
  *
  * OpenTelemetry instrumentation for GenAI applications on Node.js. A port of
  * the Python library `genai_otel_instrument`: same span attributes, same

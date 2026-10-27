@@ -12,7 +12,7 @@
  */
 import { randomBytes } from 'node:crypto';
 import { QdrantClient } from '@qdrant/js-client-rest';
-import { flushTelemetry, instrument, instrumentorsReady, uninstrument, withSession } from 'genai-otel-instrument-node';
+import { flushTelemetry, instrument, instrumentorsReady, uninstrument, withSession } from '@traceverse/genai-otel-instrument-node';
 
 instrument({ serviceName: process.env.OTEL_SERVICE_NAME ?? 'example-qdrant' });
 await instrumentorsReady();

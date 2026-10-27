@@ -41,7 +41,7 @@ EXIF data, blur faces and scan PDFs. Here a redactor is a function the applicati
 registers:
 
 ```js
-import { setMediaRedactor } from 'genai-otel-instrument-node';
+import { setMediaRedactor } from '@traceverse/genai-otel-instrument-node';
 
 setMediaRedactor(async (modality, mimeType, bytes) => stripMetadata(bytes));
 ```

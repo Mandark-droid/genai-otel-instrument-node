@@ -7,7 +7,7 @@
  *   ELEVENLABS_API_KEY=... OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node examples/elevenlabs/speech.mjs
  */
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
-import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from 'genai-otel-instrument-node';
+import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from '@traceverse/genai-otel-instrument-node';
 
 instrument({ serviceName: process.env.OTEL_SERVICE_NAME ?? 'example-elevenlabs' });
 await instrumentorsReady();

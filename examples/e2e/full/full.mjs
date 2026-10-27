@@ -25,7 +25,7 @@ import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
 import { QdrantClient } from '@qdrant/js-client-rest';
 import OpenAI from 'openai';
-import { flushTelemetry, instrument, instrumentorsReady, uninstrument, VERSION, withSession } from 'genai-otel-instrument-node';
+import { flushTelemetry, instrument, instrumentorsReady, uninstrument, VERSION, withSession } from '@traceverse/genai-otel-instrument-node';
 
 if (!process.env.OTEL_EXPORTER_OTLP_ENDPOINT) {
   console.error('OTEL_EXPORTER_OTLP_ENDPOINT is not set: the collector to export to, e.g. http://<host>:4318. See examples/e2e/full/README.md.');

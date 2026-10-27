@@ -6,7 +6,7 @@
     "noEmit": true,
     "rootDir": "..",
     "paths": {
-      "genai-otel-instrument-node": [
+      "@traceverse/genai-otel-instrument-node": [
         "../src/index.ts"
       ]
     }

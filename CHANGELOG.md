@@ -13,7 +13,7 @@
 - `loadConfig()`: environment-driven configuration with the Python library's variables,
   defaults and parsing, checked against every case in `contract/config.json`.
 - `buildResource()`: resource attributes with `telemetry.sdk.language=nodejs`,
-  `telemetry.distro.name=genai-otel-instrument-node` and `telemetry.distro.version`,
+  `telemetry.distro.name=@traceverse/genai-otel-instrument-node` and `telemetry.distro.version`,
   host / os / process attributes, argv credential redaction, `host.ip`, and a random or
   derived `service.instance.id`. The attribute set matches the reference implementation's.
 - `instrument()`, `uninstrument()`, `flushTelemetry()`, `instrumentorsReady()`: tracer and
@@ -21,8 +21,8 @@
   endpoint is empty), trace-id-ratio sampling, W3C trace-context propagation, flush on
   exit and optionally on SIGTERM. Export is batched off the request path; shutdown and
   flush are bounded by a timeout.
-- Zero-code entry points: `node --require genai-otel-instrument-node/register`
-  (CommonJS) and `node --import genai-otel-instrument-node/register` (ES modules).
+- Zero-code entry points: `node --require @traceverse/genai-otel-instrument-node/register`
+  (CommonJS) and `node --import @traceverse/genai-otel-instrument-node/register` (ES modules).
 - GitHub Actions `test` workflow: sync check, typecheck, lint, tests and build on Node
   20 / 22 / 24, and a built-package smoke on Node 18.
 
@@ -159,7 +159,7 @@
   used when no scorer is given in code. A judge that fails or answers with no score writes
   nothing. Allowed when air-gapped.
 
-- `GENAI_TOXICITY_ONNX_MODEL` and the optional add-on `genai-otel-instrument-node-onnx`
+- `GENAI_TOXICITY_ONNX_MODEL` and the optional add-on `@traceverse/genai-otel-instrument-node-onnx`
   (`onnx/`): a Detoxify-style toxicity classifier run in-process by ONNX Runtime 1.30.0, with
   a BERT WordPiece tokenizer checked against Hugging Face's. The core never depends on ONNX
   Runtime and imports the add-on only when the variable is set (SDK_ADDITIONS.md section 12).

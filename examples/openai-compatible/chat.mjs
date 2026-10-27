@@ -10,7 +10,7 @@
  *   node examples/openai-compatible/chat.mjs
  */
 import OpenAI from 'openai';
-import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from 'genai-otel-instrument-node';
+import { flushTelemetry, instrument, instrumentorsReady, uninstrument } from '@traceverse/genai-otel-instrument-node';
 
 const PROVIDERS = {
   openrouter: { baseURL: 'https://openrouter.ai/api/v1', model: 'openai/gpt-4o-mini' },

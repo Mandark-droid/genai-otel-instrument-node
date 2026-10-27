@@ -4,7 +4,7 @@
  */
 import { AppState } from 'react-native';
 import { CactusLM, CactusSTT } from 'cactus-react-native';
-import { instrument, instrumentCactus, setSession } from 'genai-otel-instrument-node';
+import { instrument, instrumentCactus, setSession } from '@traceverse/genai-otel-instrument-node';
 
 /**
  * Where to export. There is no default: a phone sends telemetry only to a

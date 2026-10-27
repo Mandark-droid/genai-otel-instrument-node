@@ -24,7 +24,7 @@ import {
   uninstrument,
   withExpectedTool,
   withMcpSession,
-} from 'genai-otel-instrument-node';
+} from '@traceverse/genai-otel-instrument-node';
 
 instrument({ serviceName: process.env.OTEL_SERVICE_NAME ?? 'example-mcp', enabledInstrumentors: ['mcp_client'] });
 await instrumentorsReady();

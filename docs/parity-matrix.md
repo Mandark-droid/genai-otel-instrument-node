@@ -15,7 +15,7 @@ evaluation, media.
 | Area | Status | Notes |
 |---|---|---|
 | Configuration from environment | shipped | Every variable, default and raw-value case in `contract/config.json` |
-| Resource attributes and identity | shipped | Same attribute set as the reference; identity differs by design (`telemetry.sdk.language=nodejs`, `telemetry.distro.name=genai-otel-instrument-node`) |
+| Resource attributes and identity | shipped | Same attribute set as the reference; identity differs by design (`telemetry.sdk.language=nodejs`, `telemetry.distro.name=@traceverse/genai-otel-instrument-node`) |
 | Cost calculator | shipped | All 2,545 vectors in `contract/cost_vectors.json`, bit for bit |
 | Cost enrichment of spans from other instrumentation | shipped | One span processor (`onEnding`); the reference needs a processor plus an exporter wrapper |
 | Semantic-convention names, `OTEL_SEMCONV_STABILITY_OPT_IN` | shipped | Generated from the contract; all 13 opt-in cases |
@@ -136,7 +136,7 @@ with each other where the reference has nothing to agree with.
 | On-device spans: `transformers.model.load`, `cactus.download`, `cactus.init`, `cactus.complete`, `cactus.embed`, `cactus.stt.transcribe`; attributes `transformers.device`, `transformers.device.requested`, `transformers.dtype`, `transformers.load.*`, `transformers.tokens_per_second`, `webgpu.*`, `cactus.*`; counter `webgpu.device.lost` | JavaScript only: models that run in the page or on the phone. `gen_ai.*` attributes are used wherever one exists (tokens, time to first token, model, cost) |
 | MCP server span `mcp.server.call_tool <tool>` (server kind) | The reference instruments the MCP client only. Here the point where an `McpServer` runs a tool handler is wrapped too, so both sides of a call are spans |
 | `withMcpSession()` is also a session scope | In the reference `mcp_session()` puts the session id on MCP spans only, and model spans get it through the extractor. Here everything started inside carries `session.id` |
-| `telemetry.distro.name = genai-otel-instrument-node` | The reference emits `genai-otel-instrument`, with no suffix |
+| `telemetry.distro.name = @traceverse/genai-otel-instrument-node` | The reference emits `genai-otel-instrument`, with no suffix |
 
 ### JavaScript only: three runtimes
 
