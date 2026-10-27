@@ -1,7 +1,41 @@
 {
   "name": "@traceverse/genai-otel-instrument-node",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "OpenTelemetry instrumentation for GenAI applications on Node.js, in browsers and in React Native (port of genai_otel_instrument)",
+  "keywords": [
+    "opentelemetry",
+    "otel",
+    "genai",
+    "llm",
+    "observability",
+    "tracing",
+    "instrumentation",
+    "semantic-conventions",
+    "gen_ai",
+    "openai",
+    "anthropic",
+    "langchain",
+    "mcp",
+    "agents",
+    "rag",
+    "vector-database",
+    "react-native",
+    "cactus",
+    "on-device",
+    "browser",
+    "cost-tracking",
+    "token-usage",
+    "otlp"
+  ],
+  "homepage": "https://mandark-droid.github.io/genai-otel-instrument-node-docs/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mandark-droid/genai-otel-instrument-node-docs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Mandark-droid/genai-otel-instrument-node-docs/issues"
+  },
+  "author": "TraceVerse",
   "license": "Apache-2.0",
   "engines": {
     "node": ">=18.19.0"

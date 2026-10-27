@@ -5,7 +5,13 @@ token and cost attribution, and (in later phases) GPU / energy / CO2 metrics and
 evaluation signals - in the same wire format as the Python library
 `genai-otel-instrument`.
 
-**Pre-release.** Published on npm as `@traceverse/genai-otel-instrument-node` under the `next` tag (Apache-2.0).
+[![npm](https://img.shields.io/npm/v/@traceverse/genai-otel-instrument-node/next)](https://www.npmjs.com/package/@traceverse/genai-otel-instrument-node) [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE) [![Docs](https://img.shields.io/badge/docs-site-indigo)](https://mandark-droid.github.io/genai-otel-instrument-node-docs/)
+
+**Pre-release** (`0.1.0-alpha`). Documentation: https://mandark-droid.github.io/genai-otel-instrument-node-docs/ · Python library: [`genai-otel-instrument`](https://pypi.org/project/genai-otel-instrument/)
+
+```bash
+npm install @traceverse/genai-otel-instrument-node@next
+```
 
 | | |
 |---|---|
@@ -44,7 +50,7 @@ application starts.
 
 Configuration then comes from the environment - the same variables, defaults and parsing
 as the Python library (`OTEL_SERVICE_NAME`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `GENAI_*`).
-See [docs/configuration.md](docs/configuration.md).
+See [docs/configuration.md](https://mandark-droid.github.io/genai-otel-instrument-node-docs/configuration/).
 
 `instrument()` never throws into the application unless `GENAI_FAIL_ON_ERROR=true`: a
 configuration or setup error is logged and the application runs uninstrumented. Export
@@ -84,7 +90,7 @@ The same package loads in a browser bundle and in a React Native app, through th
 (configuration, cost, semantic conventions, metrics), an explicit `instrument({...})`
 that exports OTLP over `fetch`, and `traceGenAiCall()` for calls the app makes itself.
 There is no default endpoint there: telemetry leaves the device only for a collector you
-name. See [docs/runtimes.md](docs/runtimes.md), including what is and is not sent.
+name. See [Runtimes](https://mandark-droid.github.io/genai-otel-instrument-node-docs/runtimes/), including what is and is not sent, and the [React Native and Cactus guide](https://mandark-droid.github.io/genai-otel-instrument-node-docs/react-native/), verified on a phone in the LiquidChat app.
 
 ## What is instrumented
 
@@ -97,7 +103,7 @@ Each call is one span with the request model, token counts, cost, and for stream
 time to first token. A model with no price in the shipped table gets **no** cost attribute
 and `gen_ai.usage.cost.pricing_source = unpriced` - never a cost of 0.
 
-See [docs/parity-matrix.md](docs/parity-matrix.md) for the state of every instrumentor
+See [docs/parity-matrix.md](https://mandark-droid.github.io/genai-otel-instrument-node-docs/parity-matrix/) for the state of every instrumentor
 against the Python reference, what is not applicable to Node and why, and the reference
 behaviours that were ported as they are.
 
