@@ -102,3 +102,15 @@ export {
 export { GpuMetricsCollector, setGpuSource, type GpuCollectorOptions, type GpuSample, type GpuSource } from './gpu/collector';
 export { buildCanonicalMessages, detectParts, offloadPart, setMediaRedactor, type ContentPart, type MediaConfig, type MediaRedactor, type MediaStore } from './media';
 export { HttpStore, registerMediaStore } from './media/stores';
+export {
+  traceAgent,
+  traceRetrieval,
+  traceTool,
+  traceWorkflow,
+  type AgentSpanOptions,
+  type AppSpanOptions,
+  type RetrievalSpanOptions,
+  type ToolSpanOptions,
+  type WorkflowSpanOptions,
+} from './app-spans';
+export { addRetrievalAttributes, type RetrievalAttributeOptions, type RetrievedDocument } from './retrieval';

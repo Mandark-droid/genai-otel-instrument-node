@@ -34,7 +34,9 @@ import { clearStateSlot, globalState } from '../state';
 import { VERSION } from '../version';
 import { startOnDeviceInstrumentors, stopOnDeviceInstrumentors } from '../on-device';
 import { manualInstrumentor } from './manual';
+import { setAppSpanContentCapture } from '../app-spans';
 import { setActivateCallSpans } from '../call-scope';
+import { RootSpanFlushProcessor } from './root-flush';
 import { PromiseScopeContextManager } from './promise-context';
 import { FetchMetricExporter, FetchSpanExporter, signalUrl, type FetchLike } from './otlp-fetch';
 
@@ -68,7 +70,10 @@ export interface WebInstrumentOptions extends Partial<OTelConfig> {
 }
 
 export interface ReactNativeInstrumentOptions extends WebInstrumentOptions {
-  /** Pass `AppState` from `react-native` to flush when the app leaves the foreground. */
+  /**
+   * React Native's `AppState`, to flush when the app leaves the foreground. The React Native
+   * entry finds it on its own; pass it only to use another.
+   */
   appState?: AppStateLike;
 }
 
@@ -183,6 +188,9 @@ function setup(
   if (options.openInferenceSpanKinds !== false) spanProcessors.push(new OpenInferenceSpanProcessor());
   // Batched: ending a span only enqueues it. Nothing is sent on the caller's path.
   spanProcessors.push(new BatchSpanProcessor(spanExporter));
+  // Then a finished trace is sent at once: the batch timer stalls when the app is in the
+  // background, which is where a trace often ends (a tool that opened another app).
+  spanProcessors.push(new RootSpanFlushProcessor(() => tracerProvider.forceFlush()));
 
   const sampler = config.samplingRate < 1.0 ? new TraceIdRatioBasedSampler(config.samplingRate) : undefined;
   const tracerProvider = new BasicTracerProvider({ resource, sampler, spanProcessors });
@@ -211,6 +219,7 @@ function setup(
     appStateSubscription: undefined,
   };
   globalState()[STATE_SLOT] = state;
+  setAppSpanContentCapture(config.enableContentCapture, config.contentMaxLength);
   // One shared scope stack here: a model call running in the background must not become the
   // parent of everything started meanwhile. Only the application's context.with() scopes count.
   if (state.registeredContext) setActivateCallSpans(false);
@@ -220,10 +229,11 @@ function setup(
   manualInstrumentor().instrument(config);
   startOnDeviceInstrumentors(config);
 
-  if (options.appState) {
+  const appState = options.appState;
+  if (appState) {
     // A backgrounded app may be suspended or killed without notice: send what is queued now.
     state.appStateSubscription =
-      options.appState.addEventListener('change', (next) => {
+      appState.addEventListener('change', (next) => {
         if (next === 'background' || next === 'inactive') void flushTelemetry();
       }) ?? undefined;
   }

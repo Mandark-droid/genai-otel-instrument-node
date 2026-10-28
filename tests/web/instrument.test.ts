@@ -3,7 +3,7 @@
  * fetch, no default endpoint, the manual-span helper. Runs in the Node test
  * project and in the browser-like one.
  */
-import { metrics, SpanStatusCode, trace } from '@opentelemetry/api';
+import { context, metrics, SpanStatusCode, trace } from '@opentelemetry/api';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as browserEntry from '../../src/index.browser';
 import * as reactNativeEntry from '../../src/index.react-native';
@@ -280,7 +280,12 @@ describe('react-native entry', () => {
       }),
     };
     reactNativeEntry.instrument({ serviceName: 'rn-app', endpoint: 'https://c.example', fetch, appState });
-    reactNativeEntry.traceGenAiCall({ name: 'cactus.completion', system: 'cactus', model: 'm' }, () => ({}));
+    // A trace still in progress: a finished trace is sent on its own (its root span ending),
+    // the spans of an unfinished one wait for the batch timer or for the app to leave.
+    const parent = trace.getTracer('app').startSpan('invoke_agent assistant');
+    context.with(trace.setSpan(context.active(), parent), () =>
+      reactNativeEntry.traceGenAiCall({ name: 'cactus.completion', system: 'cactus', model: 'm' }, () => ({})),
+    );
     expect(sent).toEqual([]);
 
     listener?.('active');
@@ -289,6 +294,7 @@ describe('react-native entry', () => {
 
     listener?.('background');
     await vi.waitFor(() => expect(spansOf(sent).map((span) => span.name)).toEqual(['cactus.completion']));
+    parent.end();
 
     await reactNativeEntry.uninstrument(0.2);
     expect(remove).toHaveBeenCalledTimes(1);

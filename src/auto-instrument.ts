@@ -58,6 +58,7 @@ import {
 import { logger } from './logger';
 import { metricViews, resetSharedMetrics } from './metrics';
 import { buildResource } from './resource';
+import { setAppSpanContentCapture } from './app-spans';
 import { SessionSpanProcessor } from './session';
 import { clearStateSlot, globalState } from './state';
 import { VERSION } from './version';
@@ -412,6 +413,7 @@ function installSigtermFlushHandler(config: OTelConfig, state: ActiveState): voi
 }
 
 function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumentors: boolean): InstrumentationHandle {
+  setAppSpanContentCapture(config.enableContentCapture, config.contentMaxLength);
   logger.info('Starting auto-instrumentation setup...');
   installDiagLogger();
 

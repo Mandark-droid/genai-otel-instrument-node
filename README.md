@@ -111,6 +111,11 @@ In those entries:
 - **Retrieval.** `addRetrievalAttributes(span, documents, { query })` records what a search
   returned, in rank order, under the same names as the Python library (available in every
   entry).
+- **One call.** In React Native, `instrument({...})` is all an app needs: `AppState` and
+  `cactus-react-native` are picked up when installed, and a finished trace is sent at once.
+- **Your own components.** `traceAgent`, `traceTool`, `traceRetrieval` and `traceWorkflow`
+  wrap an agent loop, a tool dispatcher, a search or a pipeline in one call each, with the
+  conventions above built in (every entry, Node included).
 
 ## What is instrumented
 

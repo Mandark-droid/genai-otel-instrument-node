@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### 0.1.0-alpha.7
+- `traceAgent`, `traceTool`, `traceRetrieval` and `traceWorkflow`, in every entry: one call
+  around each of an application's own components (its agent loop, tool dispatcher, search,
+  pipelines), which no instrumentor can find. They follow the GenAI conventions
+  (`invoke_agent`, `execute_tool`), carry the OpenInference span kind, nest what runs inside
+  them across `await`, record retrieved documents in rank order, and record content only with
+  `enableContentCapture` (error messages too).
+- React Native entry: `instrument()` is the only call an app needs. `AppState` and
+  `cactus-react-native` are picked up when the app has them (optional requires); passing
+  `appState` or calling `instrumentCactus()` still works.
+- Browser and React Native entry: a finished trace (its root span ended) is exported at once.
+  The batch timer stalls in the background, so a trace that ended there (a tool that opened
+  another app) arrived only when the app came back.
+- Test data no longer uses names from the application the React Native entry was verified in.
+
 ### 0.1.0-alpha.6
 - `addRetrievalAttributes(span, documents, { query, maxDocs })`, in every entry: a port of
   the Python library's `add_retrieval_attributes` with the same names, limits and

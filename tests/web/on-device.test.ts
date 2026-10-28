@@ -543,7 +543,7 @@ describe('cactus-react-native', () => {
     CactusLM.embedDelayMs = 30;
     const background = new CactusLM().embed({ text: 'index me' }); // e.g. a search index, not awaited
     const tracer = trace.getTracer('app');
-    const pipeline = tracer.startSpan('meeting.process');
+    const pipeline = tracer.startSpan('pipeline.ingest');
     await context.with(trace.setSpan(context.active(), pipeline), async () => {
       CactusLM.embedDelayMs = 0;
       await new CactusLM().complete({ messages: MESSAGES });
@@ -566,21 +566,21 @@ describe('cactus-react-native', () => {
     start(native, { fetch: capture, spanProcessors: [] });
     const tracer = trace.getTracer('app');
     tracer
-      .startSpan('execute_tool set_alarm', {
+      .startSpan('execute_tool get_weather', {
         attributes: {
           'gen_ai.operation.name': 'execute_tool',
-          'gen_ai.tool.name': 'set_alarm',
-          'gen_ai.tool.description': 'Sets an alarm.',
-          'gen_ai.tool.call.arguments': '{"time":"07:00"}',
+          'gen_ai.tool.name': 'get_weather',
+          'gen_ai.tool.description': 'Gets the weather for a city.',
+          'gen_ai.tool.call.arguments': '{"city":"Paris"}',
           'gen_ai.tool.call.result': '{"success":true}',
         },
       })
       .end();
     const retrieve = tracer.startSpan('retrieve memory', { attributes: { 'gen_ai.operation.name': 'retrieve' } });
-    native.addRetrievalAttributes(retrieve, [{ id: 'm1', score: 2.5, content: 'Prefers 11 am' }], { query: 'meeting time' });
+    native.addRetrievalAttributes(retrieve, [{ id: 'm1', score: 2.5, content: 'Refunds within 30 days' }], { query: 'refund policy' });
     retrieve.end();
     // Content not captured: nothing to mirror.
-    tracer.startSpan('execute_tool turn_on_flashlight', { attributes: { 'gen_ai.operation.name': 'execute_tool', 'gen_ai.tool.name': 'turn_on_flashlight' } }).end();
+    tracer.startSpan('execute_tool lookup_order', { attributes: { 'gen_ai.operation.name': 'execute_tool', 'gen_ai.tool.name': 'lookup_order' } }).end();
     await native.flushTelemetry(2);
 
     const spans = bodies
@@ -592,20 +592,20 @@ describe('cactus-react-native', () => {
     }[];
     const attrs = (name: string) =>
       Object.fromEntries((spans.find((s) => s.name === name)?.attributes ?? []).map((a) => [a.key, Object.values(a.value)[0]]));
-    expect(attrs('execute_tool set_alarm')).toMatchObject({
-      'input.value': '{"time":"07:00"}',
+    expect(attrs('execute_tool get_weather')).toMatchObject({
+      'input.value': '{"city":"Paris"}',
       'output.value': '{"success":true}',
-      'tool.name': 'set_alarm',
-      'tool.description': 'Sets an alarm.',
-      'tool.parameters': '{"time":"07:00"}',
+      'tool.name': 'get_weather',
+      'tool.description': 'Gets the weather for a city.',
+      'tool.parameters': '{"city":"Paris"}',
     });
     expect(attrs('retrieve memory')).toMatchObject({
       'openinference.span.kind': 'RETRIEVER',
-      'input.value': 'meeting time',
-      'retrieval.documents.0.document.content': 'Prefers 11 am',
+      'input.value': 'refund policy',
+      'retrieval.documents.0.document.content': 'Refunds within 30 days',
     });
-    const bare = attrs('execute_tool turn_on_flashlight');
-    expect(bare['tool.name']).toBe('turn_on_flashlight');
+    const bare = attrs('execute_tool lookup_order');
+    expect(bare['tool.name']).toBe('lookup_order');
     expect('input.value' in bare || 'output.value' in bare || 'tool.parameters' in bare).toBe(false);
   });
 
@@ -631,7 +631,7 @@ describe('cactus-react-native', () => {
     start(native, { fetch: capture, spanProcessors: [] });
     const tracer = trace.getTracer('app');
     tracer.startSpan('invoke_agent assistant').end();
-    tracer.startSpan('meeting.process').end();
+    tracer.startSpan('pipeline.ingest').end();
     tracer.startSpan('retrieve memory').end();
     await native.flushTelemetry(2);
 
@@ -644,6 +644,6 @@ describe('cactus-react-native', () => {
     }[];
     const kindOf = (name: string) =>
       spans.find((s) => s.name === name)?.attributes.find((a) => a.key === 'openinference.span.kind')?.value.stringValue;
-    expect([kindOf('invoke_agent assistant'), kindOf('meeting.process'), kindOf('retrieve memory')]).toEqual(['AGENT', 'CHAIN', 'RETRIEVER']);
+    expect([kindOf('invoke_agent assistant'), kindOf('pipeline.ingest'), kindOf('retrieve memory')]).toEqual(['AGENT', 'CHAIN', 'RETRIEVER']);
   });
 });

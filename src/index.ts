@@ -145,6 +145,17 @@ export {
 } from './semconv';
 export { addRetrievalAttributes, type RetrievalAttributeOptions, type RetrievedDocument } from './retrieval';
 export {
+  traceAgent,
+  traceRetrieval,
+  traceTool,
+  traceWorkflow,
+  type AgentSpanOptions,
+  type AppSpanOptions,
+  type RetrievalSpanOptions,
+  type ToolSpanOptions,
+  type WorkflowSpanOptions,
+} from './app-spans';
+export {
   currentSession,
   SessionSpanProcessor,
   setSession,

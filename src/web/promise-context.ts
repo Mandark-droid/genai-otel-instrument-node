@@ -4,7 +4,7 @@
  *
  * Without one, `context.active()` is always the root context, so every span an
  * instrumentor starts - a Cactus completion inside an agent run, a transcription
- * inside a meeting pipeline - begins its own trace. Here `context.with(ctx, fn)`
+ * inside a document-ingestion pipeline - begins its own trace. Here `context.with(ctx, fn)`
  * keeps `ctx` active until `fn` returns, or, when `fn` returns a promise, until
  * that promise settles. Code after an `await` inside `fn` therefore still sees
  * `ctx`, and spans started there become its children.

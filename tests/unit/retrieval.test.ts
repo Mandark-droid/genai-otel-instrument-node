@@ -17,21 +17,21 @@ describe('addRetrievalAttributes (port of add_retrieval_attributes)', () => {
       addRetrievalAttributes(
         span,
         [
-          { id: 'm1', score: 0.91, content: 'Prefers meetings at 11 am', metadata: { kind: 'profile' } },
-          { id: 7, score: 0.42, content: 'Asked about LiteLLM' },
+          { id: 'm1', score: 0.91, content: 'Refunds are accepted within 30 days', metadata: { kind: 'policy' } },
+          { id: 7, score: 0.42, content: 'Shipping takes 3 to 5 days' },
         ],
-        { query: 'When do I like meetings?' },
+        { query: 'What is the refund window?' },
       ),
     );
     expect(attributes).toEqual({
-      'retrieval.query': 'When do I like meetings?',
+      'retrieval.query': 'What is the refund window?',
       'retrieval.documents.0.document.id': 'm1',
       'retrieval.documents.0.document.score': 0.91,
-      'retrieval.documents.0.document.content': 'Prefers meetings at 11 am',
-      'retrieval.documents.0.document.metadata.kind': 'profile',
+      'retrieval.documents.0.document.content': 'Refunds are accepted within 30 days',
+      'retrieval.documents.0.document.metadata.kind': 'policy',
       'retrieval.documents.1.document.id': '7',
       'retrieval.documents.1.document.score': 0.42,
-      'retrieval.documents.1.document.content': 'Asked about LiteLLM',
+      'retrieval.documents.1.document.content': 'Shipping takes 3 to 5 days',
       'retrieval.document_count': 2,
     });
   });

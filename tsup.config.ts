@@ -43,6 +43,8 @@ export default defineConfig([
     entry: { 'index.react-native': 'src/index.react-native.ts' },
     format: ['cjs'],
     platform: 'neutral',
+    // Optional modules of the app, required at run time (see optionalModule).
+    external: ['react-native', 'cactus-react-native'],
     target: 'es2020',
     dts: true,
     sourcemap: true,

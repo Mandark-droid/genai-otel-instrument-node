@@ -37,6 +37,8 @@ export const TARGETS = [
     conditions: ['react-native', 'browser', 'require'],
     mainFields: ['react-native', 'browser', 'main'],
     forbidDom: true,
+    // The app's own modules, required optionally at run time (a React Native app has them).
+    external: ['react-native', 'cactus-react-native'],
   },
 ];
 
@@ -49,7 +51,7 @@ function codeOnly(source) {
 }
 
 /**
- * @param {{name: string, file: string, conditions: string[], mainFields: string[], forbidDom: boolean}} target
+ * @param {{name: string, file: string, conditions: string[], mainFields: string[], forbidDom: boolean, external?: string[]}} target
  * @returns {Promise<string[]>} findings; empty when the entry is clean
  */
 export async function checkEntry(target) {
@@ -72,6 +74,7 @@ export async function checkEntry(target) {
       format: 'esm',
       conditions: target.conditions,
       mainFields: target.mainFields,
+      external: target.external ?? [],
       logLevel: 'silent',
     });
     bundled = result.outputFiles[0].text;
