@@ -8,7 +8,8 @@
   pipelines), which no instrumentor can find. They follow the GenAI conventions
   (`invoke_agent`, `execute_tool`), carry the OpenInference span kind, nest what runs inside
   them across `await`, record retrieved documents in rank order, and record content only with
-  `enableContentCapture` (error messages too).
+  `enableContentCapture` (error messages too); `resultAttributes` adds what is known only
+  from the result.
 - React Native entry: `instrument()` is the only call an app needs. `AppState` and
   `cactus-react-native` are picked up when the app has them (optional requires); passing
   `appState` or calling `instrumentCactus()` still works.

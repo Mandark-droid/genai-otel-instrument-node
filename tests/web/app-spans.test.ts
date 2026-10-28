@@ -156,6 +156,14 @@ describe('application spans', () => {
     expect(warnings.some((w) => w.includes('second.example') && w.includes('401'))).toBe(true);
   });
 
+  it('attributes known only from the result', async () => {
+    const exporter = start();
+    await native.traceWorkflow('ingest', { resultAttributes: (r: { pages: number }) => ({ 'app.pages': r.pages, 'app.skipped': undefined }) }, async () => ({ pages: 12 }));
+    const attributes = named(exporter, 'ingest').attributes;
+    expect(attributes['app.pages']).toBe(12);
+    expect('app.skipped' in attributes).toBe(false);
+  });
+
   it('starts without react-native or cactus-react-native installed', () => {
     expect(() => start()).not.toThrow();
     expect(native.isInstrumented()).toBe(true);

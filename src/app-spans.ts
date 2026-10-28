@@ -43,6 +43,19 @@ export interface AppSpanOptions {
   parent?: Context;
 }
 
+/** Attributes known only once the work is done (counts, a status). Not content: always recorded. */
+interface ResultAttributes<T> {
+  resultAttributes?: (result: T) => Attrs;
+}
+
+function withResultAttributes<T>(options: ResultAttributes<T>, after?: (span: Span, result: T) => void) {
+  return (span: Span, result: T): void => {
+    const extra = options.resultAttributes?.(result);
+    if (extra) span.setAttributes(clean(extra));
+    after?.(span, result);
+  };
+}
+
 function clean(attrs: Attrs): Record<string, AttributeValue> {
   const out: Record<string, AttributeValue> = {};
   for (const [key, value] of Object.entries(attrs)) if (value !== undefined && value !== null) out[key] = value;
@@ -95,7 +108,7 @@ async function run<T>(
   });
 }
 
-export interface AgentSpanOptions<T> extends AppSpanOptions {
+export interface AgentSpanOptions<T> extends AppSpanOptions, ResultAttributes<T> {
   /** `gen_ai.agent.id`, e.g. the run's id. */
   id?: string;
   /** `gen_ai.conversation.id`. */
@@ -125,18 +138,18 @@ export function traceAgent<T>(name: string, options: AgentSpanOptions<T>, fn: ()
       if (span) setContent(span, 'gen_ai.input.messages', options.input);
       return fn();
     },
-    (span, result) => {
+    withResultAttributes(options, (span, result) => {
       setContent(span, 'gen_ai.output.messages', options.output?.(result));
       const failure = options.failure?.(result);
       if (failure) {
         span.setAttribute('error.type', failure);
         span.setStatus({ code: SpanStatusCode.ERROR, message: failure });
       }
-    },
+    }),
   );
 }
 
-export interface ToolSpanOptions<T> extends AppSpanOptions {
+export interface ToolSpanOptions<T> extends AppSpanOptions, ResultAttributes<T> {
   /** `gen_ai.tool.call.id`. */
   callId?: string;
   /** `gen_ai.tool.description`: what the model was told the tool does. */
@@ -173,18 +186,18 @@ export function traceTool<T>(name: string, options: ToolSpanOptions<T>, fn: () =
       if (span) setContent(span, 'gen_ai.tool.call.arguments', options.arguments);
       return fn();
     },
-    (span, result) => {
+    withResultAttributes(options, (span, result) => {
       setContent(span, 'gen_ai.tool.call.result', options.result ? options.result(result) : result);
       const failure = options.failure?.(result);
       if (failure) {
         span.setAttribute('error.type', failure);
         span.setStatus({ code: SpanStatusCode.ERROR, message: failure });
       }
-    },
+    }),
   );
 }
 
-export interface RetrievalSpanOptions<T> extends AppSpanOptions {
+export interface RetrievalSpanOptions<T> extends AppSpanOptions, ResultAttributes<T> {
   /** The query (content). */
   query?: string;
   /** `db.system.name`, e.g. `sqlite`, `qdrant`. */
@@ -212,7 +225,7 @@ export function traceRetrieval<T>(
     },
     options,
     fn,
-    (span, result) => {
+    withResultAttributes(options, (span, result) => {
       const documents = options.documents(result);
       span.setAttribute('db.response.returned_rows', documents.length);
       const scores = documents.map((d) => d.score).filter((s): s is number => typeof s === 'number' && Number.isFinite(s));
@@ -225,11 +238,11 @@ export function traceRetrieval<T>(
       }
       if (capture.enabled) addRetrievalAttributes(span, documents, { query: options.query });
       else addRetrievalAttributes(span, documents.map((d) => ({ id: d.id, score: d.score })));
-    },
+    }),
   );
 }
 
-export interface WorkflowSpanOptions<T> extends AppSpanOptions {
+export interface WorkflowSpanOptions<T> extends AppSpanOptions, ResultAttributes<T> {
   /** What went in (content). */
   input?: unknown;
   /** What came out, from the result (content). */
@@ -247,6 +260,6 @@ export function traceWorkflow<T>(name: string, options: WorkflowSpanOptions<T>, 
       if (span) setContent(span, 'input.value', options.input);
       return fn();
     },
-    (span, result) => setContent(span, 'output.value', options.output?.(result)),
+    withResultAttributes(options, (span, result) => setContent(span, 'output.value', options.output?.(result))),
   );
 }
