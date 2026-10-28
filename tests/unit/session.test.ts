@@ -114,7 +114,8 @@ describe('SessionSpanProcessor', () => {
       provider.getTracer('x').startSpan('explicit', { attributes: { 'session.id': 'explicit' } }).end();
     });
     expect(attributesOf('explicit')['session.id']).toBe('explicit');
-    expect(attributesOf('explicit')['gen_ai.conversation.id']).toBe('scope');
+    // The span that owns a session gets it as its conversation id too (Python 1.45.0).
+    expect(attributesOf('explicit')['gen_ai.conversation.id']).toBe('explicit');
   });
 
   it('flushes and shuts down as a no-op', async () => {

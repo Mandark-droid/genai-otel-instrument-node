@@ -10,7 +10,7 @@ import './node-env';
 import { connect } from 'node:net';
 import { context, diag, DiagLogLevel, metrics, propagation, trace, type DiagLogger } from '@opentelemetry/api';
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
-import { W3CTraceContextPropagator } from '@opentelemetry/core';
+import { CompositePropagator, W3CTraceContextPropagator } from '@opentelemetry/core';
 import { OTLPMetricExporter as GrpcMetricExporter } from '@opentelemetry/exporter-metrics-otlp-grpc';
 import { OTLPMetricExporter as HttpMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
 import { OTLPTraceExporter as GrpcTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
@@ -60,7 +60,13 @@ import { metricViews, resetSharedMetrics } from './metrics';
 import { buildResource } from './resource';
 import { AgentGraphSpanProcessor, agentGraphEnabled } from './agent-graph';
 import { setAppSpanContentCapture } from './app-spans';
-import { SessionSpanProcessor } from './session';
+import {
+  configureSessionPropagation,
+  parseBaggageKeys,
+  SessionBaggagePropagator,
+  SessionSpanProcessor,
+  sessionBaggageEnabled,
+} from './session';
 import { clearStateSlot, globalState } from './state';
 import { VERSION } from './version';
 
@@ -413,6 +419,22 @@ function installSigtermFlushHandler(config: OTelConfig, state: ActiveState): voi
   logger.info(`SIGTERM flush handler installed (timeout ${config.sigtermFlushTimeout.toFixed(1)}s)`);
 }
 
+/**
+ * W3C trace context, plus session baggage when this service opts in (GENAI_SESSION_BAGGAGE_KEYS or
+ * _ACCEPT), as the Python library's _install_propagators: a service that does not opt in
+ * propagates exactly what it did before.
+ */
+function sessionPropagator() {
+  configureSessionPropagation({
+    enabled: (process.env.GENAI_ENABLE_SESSION_PROPAGATION ?? 'true').trim().toLowerCase() === 'true',
+    send: parseBaggageKeys(process.env.GENAI_SESSION_BAGGAGE_KEYS),
+    accept: parseBaggageKeys(process.env.GENAI_SESSION_BAGGAGE_ACCEPT),
+  });
+  return sessionBaggageEnabled()
+    ? new CompositePropagator({ propagators: [new W3CTraceContextPropagator(), new SessionBaggagePropagator()] })
+    : new W3CTraceContextPropagator();
+}
+
 function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumentors: boolean): InstrumentationHandle {
   setAppSpanContentCapture(config.enableContentCapture, config.contentMaxLength);
   logger.info('Starting auto-instrumentation setup...');
@@ -515,7 +537,7 @@ function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumen
     contextManager: undefined,
     registeredTracer: trace.setGlobalTracerProvider(tracerProvider),
     registeredMeter: metrics.setGlobalMeterProvider(meterProvider),
-    registeredPropagator: propagation.setGlobalPropagator(new W3CTraceContextPropagator()),
+    registeredPropagator: propagation.setGlobalPropagator(sessionPropagator()),
     onBeforeExit: undefined,
     onSigterm: undefined,
   };

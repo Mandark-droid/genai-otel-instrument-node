@@ -29,7 +29,7 @@ import { logger } from '../logger';
 import { metricViews, resetSharedMetrics } from '../metrics';
 import { OPENINFERENCE_PROJECT_NAME } from '../resource-attributes';
 import { OpenInferenceSpanProcessor } from '../openinference';
-import { SessionSpanProcessor } from '../session';
+import { configureSessionPropagation, SessionSpanProcessor } from '../session';
 import { clearStateSlot, globalState } from '../state';
 import { VERSION } from '../version';
 import { startOnDeviceInstrumentors, stopOnDeviceInstrumentors } from '../on-device';
@@ -190,6 +190,11 @@ function setup(
     timeoutMillis,
   });
 
+  // Sessions reach child spans from their parent (Python 1.45.0). No baggage here: an app does not
+  // take session ids from outside, and its outbound calls are not instrumented.
+  configureSessionPropagation({
+    enabled: (env.GENAI_ENABLE_SESSION_PROPAGATION ?? 'true').trim().toLowerCase() === 'true',
+  });
   const spanProcessors: SpanProcessor[] = [new SessionSpanProcessor()];
   if (agentGraphEnabled(env.GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES)) spanProcessors.push(new AgentGraphSpanProcessor());
   if (config.enableCostTracking) spanProcessors.push(new CostEnrichmentSpanProcessor(costCalculatorFor(config.customPricingJson)));
