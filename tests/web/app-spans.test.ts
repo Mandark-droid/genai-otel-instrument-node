@@ -129,6 +129,33 @@ describe('application spans', () => {
     expect(posted.filter((u) => u.endsWith('/v1/traces')).length).toBeGreaterThanOrEqual(1);
   });
 
+  it('additional destinations get the same telemetry with their own headers', async () => {
+    const calls: { url: string; headers: Record<string, string>; body: string }[] = [];
+    const warnings: string[] = [];
+    const capture = (async (url: unknown, init: { headers: Record<string, string>; body: string | Uint8Array }) => {
+      calls.push({ url: String(url), headers: init.headers, body: typeof init.body === 'string' ? init.body : new TextDecoder().decode(init.body) });
+      return { ok: !String(url).startsWith('https://second.example'), status: String(url).startsWith('https://second.example') ? 401 : 200 };
+    }) as unknown as typeof fetch;
+    start({
+      fetch: capture,
+      spanProcessors: [],
+      headers: { authorization: 'Bearer main' },
+      additionalDestinations: [{ endpoint: 'https://second.example/', headers: { api_key: 'k2' } }],
+    });
+    setLogger({ debug: () => {}, info: () => {}, warn: (m: string) => warnings.push(m), error: () => {} });
+    await native.traceWorkflow('ingest', {}, async () => 1);
+    await tick();
+    await tick();
+    const traces = calls.filter((c) => c.url.endsWith('/v1/traces'));
+    expect(traces.map((c) => c.url).sort()).toEqual(['https://collector.example/v1/traces', 'https://second.example/v1/traces']);
+    const second = traces.find((c) => c.url.startsWith('https://second.example'))!;
+    const main = traces.find((c) => c.url.startsWith('https://collector.example'))!;
+    expect(second.body).toBe(main.body);
+    expect(second.headers.api_key).toBe('k2');
+    expect(Object.keys(second.headers).map((k) => k.toLowerCase())).not.toContain('authorization');
+    expect(warnings.some((w) => w.includes('second.example') && w.includes('401'))).toBe(true);
+  });
+
   it('starts without react-native or cactus-react-native installed', () => {
     expect(() => start()).not.toThrow();
     expect(native.isInstrumented()).toBe(true);

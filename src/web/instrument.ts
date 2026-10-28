@@ -37,6 +37,7 @@ import { manualInstrumentor } from './manual';
 import { setAppSpanContentCapture } from '../app-spans';
 import { setActivateCallSpans } from '../call-scope';
 import { RootSpanFlushProcessor } from './root-flush';
+import { type Destination, fanOutFetch } from './destinations';
 import { PromiseScopeContextManager } from './promise-context';
 import { FetchMetricExporter, FetchSpanExporter, signalUrl, type FetchLike } from './otlp-fetch';
 
@@ -59,6 +60,11 @@ export interface WebInstrumentOptions extends Partial<OTelConfig> {
   metricReaders?: IMetricReader[];
   /** Milliseconds between metric exports. Default 60000. */
   metricExportIntervalMillis?: number;
+  /**
+   * More backends that receive the same telemetry as `endpoint`, each with its own headers
+   * (e.g. your own collector and a hosted one).
+   */
+  additionalDestinations?: Destination[];
   /**
    * Add `openinference.span.kind` to every span (default true), so Arize AX and
    * Phoenix classify on-device operations that have no GenAI operation to map:
@@ -97,6 +103,7 @@ interface ActiveState {
 
 const NON_CONFIG_OPTIONS = new Set([
   'fetch',
+  'additionalDestinations',
   'spanProcessors',
   'metricReaders',
   'metricExportIntervalMillis',
@@ -269,7 +276,8 @@ export function instrument(options: ReactNativeInstrumentOptions = {}): WebInstr
     const fetchImpl = options.fetch ?? (globalThis as { fetch?: typeof fetch }).fetch;
     if (typeof fetchImpl !== 'function') throw new Error('no fetch available: pass `fetch` to instrument()');
     const config = loadConfig({ ...overrides, endpoint }, env);
-    return setup(config, env, options, endpoint, fetchImpl as unknown as FetchLike);
+    const exportFetch = fanOutFetch(endpoint, options.additionalDestinations ?? [], fetchImpl as unknown as FetchLike);
+    return setup(config, env, options, endpoint, exportFetch);
   } catch (error) {
     logger.error(`Failed to initialize instrumentation: ${String(error)}`);
     if (failOnError) throw error;

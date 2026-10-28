@@ -54,7 +54,9 @@ class FetchExporter<T> {
       () => resultCallback({ code: ExportResultCode.SUCCESS }),
       (error: unknown) => {
         this.failures += 1;
-        logger.debug(`OTLP ${this.signal} export failed: ${String(error)}`);
+        // A warning, not debug: a collector that rejects every export (a missing header, a wrong
+        // path) otherwise looks exactly like one that accepts them.
+        logger.warn(`OTLP ${this.signal} export failed: ${String(error)}`);
         resultCallback({ code: ExportResultCode.FAILED, error: error instanceof Error ? error : new Error(String(error)) });
       },
     );

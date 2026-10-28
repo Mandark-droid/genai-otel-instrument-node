@@ -65,3 +65,4 @@ export {
   type WebGpuFacts,
 } from './webgpu';
 export { traceGenAiCall, type GenAiCall, type GenAiResult } from './web/manual';
+export type { Destination } from './web/destinations';

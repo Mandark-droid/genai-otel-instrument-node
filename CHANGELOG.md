@@ -15,6 +15,11 @@
 - Browser and React Native entry: a finished trace (its root span ended) is exported at once.
   The batch timer stalls in the background, so a trace that ended there (a tool that opened
   another app) arrived only when the app came back.
+- Browser and React Native entry: `additionalDestinations: [{ endpoint, headers }]` sends the
+  same telemetry to more backends, each with its own headers (the main endpoint's credentials
+  are never sent to them).
+- Browser and React Native entry: a failed export is logged as a warning, not at debug level; a
+  collector that rejected every request (a missing header) looked the same as one that accepted.
 - Test data no longer uses names from the application the React Native entry was verified in.
 
 ### 0.1.0-alpha.6
