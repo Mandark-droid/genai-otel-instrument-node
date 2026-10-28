@@ -51,12 +51,21 @@ describe('framework examples', () => {
     expect(outcome.stdout).toContain('session.id: graph-thread-under-test');
     expect(outcome.stdout).toContain('telemetry exported');
 
-    expect(receiver.spans.map((span) => span.name).sort()).toEqual(['langgraph.graph.invoke', 'openai.chat.completion', 'openai.chat.completion']);
+    expect(receiver.spans.map((span) => span.name).sort()).toEqual([
+      'langgraph.graph.invoke',
+      'langgraph.node.draft_answer',
+      'langgraph.node.shorten',
+      'openai.chat.completion',
+      'openai.chat.completion',
+    ]);
     const graph = receiver.spans.find((span) => span.name === 'langgraph.graph.invoke');
+    const nodes = receiver.spans.filter((span) => span.name.startsWith('langgraph.node.'));
     const calls = receiver.spans.filter((span) => span.name === 'openai.chat.completion');
     expect(graph?.spanId).toMatch(/^[0-9a-f]{16}$/);
+    // Each node under the run, and each model call under the node that made it.
+    for (const node of nodes) expect(node.parentSpanId).toBe(graph?.spanId);
     for (const call of calls) {
-      expect(call.parentSpanId).toBe(graph?.spanId);
+      expect(nodes.map((node) => node.spanId)).toContain(call.parentSpanId);
       expect(call.attributes['session.id']).toBe('graph-thread-under-test');
     }
     const perCall = Number(calls[0]?.attributes['gen_ai.usage.total_tokens']);

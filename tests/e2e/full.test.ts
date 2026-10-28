@@ -189,7 +189,9 @@ describe('examples/e2e/full against mocks', () => {
     // The framework: a graph span over two model calls, with what the run consumed.
     const [graph] = within('framework_langgraph', 'langgraph.graph.invoke');
     expect(graph?.attributes).toMatchObject({ 'gen_ai.operation.name': 'graph.execution', 'gen_ai.agent.iteration_budget.consumed': 2, 'gen_ai.agent.token_budget.consumed': 60 });
-    expect(receiver.spans.filter((span) => span.parentSpanId === graph?.spanId && span.name === 'openai.chat.completion')).toHaveLength(2);
+    // Its model calls under its node spans, which sit under the run (Python 1.44.0).
+    const nodeIds = receiver.spans.filter((span) => span.parentSpanId === graph?.spanId && span.name.startsWith('langgraph.node.')).map((span) => span.spanId);
+    expect(receiver.spans.filter((span) => nodeIds.includes(span.parentSpanId ?? '') && span.name === 'openai.chat.completion')).toHaveLength(2);
 
     // The datastore.
     expect(within('datastore', 'qdrant.query_points')[0]?.attributes).toMatchObject({ 'db.system': 'qdrant', 'rag.result.score_max': 0.99 });

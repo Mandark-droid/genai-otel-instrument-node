@@ -8,7 +8,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AIMessage, AIMessageChunk, HumanMessage, type BaseMessage } from '@langchain/core/messages';
 import { ChatGenerationChunk, type ChatResult } from '@langchain/core/outputs';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
-import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
+import { Annotation, END, interrupt, MemorySaver, START, StateGraph } from '@langchain/langgraph';
 import { BaseQueryEngine } from 'llamaindex';
 import { afterEach, describe, expect, it } from 'vitest';
 import { getDefaultCostCalculator } from '../../src/cost';
@@ -148,7 +148,8 @@ describe('LangGraph', () => {
     harness = await startHarness({ enabledInstrumentors: ['langgraph'] });
     const result = await graph().invoke({ question: 'the capital of France' }, { configurable: { thread_id: 'thread-3' }, recursionLimit: 12 });
     expect(result.answer).toBe('about the capital of France: Paris.');
-    expect(harness.spans().map((span) => span.name)).toEqual(['langgraph.graph.invoke']);
+    // The run, and each node in a span of its own beneath it (Python 1.44.0).
+    expect(harness.spans().map((span) => span.name).sort()).toEqual(['langgraph.graph.invoke', 'langgraph.node.reply', 'langgraph.node.think']);
     const span = harness.span('langgraph.graph.invoke');
     expect(span.attributes).toMatchObject({
       'gen_ai.system': 'langgraph',
@@ -181,7 +182,14 @@ describe('LangGraph', () => {
       .compile();
     await withChain.invoke({ question: 'x' }, { configurable: { thread_id: 'thread-8' } });
     // The application's own chain inside the node is still a span.
-    expect(harness.spans().map((span) => span.name).sort()).toEqual(['langchain.chain.RunnableSequence', 'langchain.chat_model.invoke', 'langgraph.graph.invoke']);
+    expect(harness.spans().map((span) => span.name).sort()).toEqual([
+      'langchain.chain.RunnableSequence',
+      'langchain.chat_model.invoke',
+      'langgraph.graph.invoke',
+      'langgraph.node.think',
+    ]);
+    // What the node calls nests under the node's span.
+    expect(harness.span('langchain.chain.RunnableSequence').parentSpanContext?.spanId).toBe(harness.span('langgraph.node.think').spanContext().spanId);
     // And the graph's thread is the session of everything inside the run.
     for (const span of harness.spans()) expect(span.attributes['session.id'], span.name).toBe('thread-8');
   });
@@ -198,8 +206,65 @@ describe('LangGraph', () => {
     const updates: unknown[] = [];
     for await (const update of await graph().stream({ question: 'x' })) updates.push(update);
     expect(updates.length).toBeGreaterThan(0);
-    expect(harness.spans().map((span) => span.name)).toEqual(['langgraph.graph.stream']);
+    expect(harness.spans().map((span) => span.name).sort()).toEqual(['langgraph.graph.stream', 'langgraph.node.reply', 'langgraph.node.think']);
     expect(harness.span('langgraph.graph.stream').status.code).toBe(SpanStatusCode.OK);
+  });
+
+  it('node spans: under the run, with step, triggers and the agent graph keys; the run is the root node', async () => {
+    harness = await startHarness({ enabledInstrumentors: ['langgraph'] });
+    await graph().invoke({ question: 'x' });
+    const run = harness.span('langgraph.graph.invoke');
+    const think = harness.span('langgraph.node.think');
+    const reply = harness.span('langgraph.node.reply');
+    for (const node of [think, reply]) expect(node.parentSpanContext?.spanId).toBe(run.spanContext().spanId);
+    expect(run.attributes).toMatchObject({ 'graph.node.id': 'LangGraph', 'openinference.span.kind': 'CHAIN' });
+    expect(think.attributes).toMatchObject({
+      'langgraph.node': 'think',
+      'graph.node.id': 'think',
+      'graph.node.parent_id': 'LangGraph',
+      'openinference.span.kind': 'CHAIN',
+      'langgraph.node.attempt': 1,
+    });
+    expect(typeof think.attributes['langgraph.step']).toBe('number');
+    expect(JSON.parse(String(think.attributes.metadata))).toEqual({ langgraph_node: 'think', langgraph_step: think.attributes['langgraph.step'] });
+    expect(think.attributes['langgraph.triggers']).toBeDefined();
+    expect(reply.attributes['langgraph.step']).toBeGreaterThan(Number(think.attributes['langgraph.step']));
+  });
+
+  it('a node paused by interrupt() is marked interrupted, not failed', async () => {
+    harness = await startHarness({ enabledInstrumentors: ['langgraph'] });
+    const asking = new StateGraph(State)
+      .addNode('ask', async () => ({ answer: String(interrupt('Which city?')) }))
+      .addEdge(START, 'ask')
+      .addEdge('ask', END)
+      .compile({ checkpointer: new MemorySaver() });
+    await asking.invoke({ question: 'x' }, { configurable: { thread_id: 't-1' } });
+    const ask = harness.span('langgraph.node.ask');
+    expect(ask.attributes['langgraph.node.interrupted']).toBe(true);
+    expect(ask.status.code).not.toBe(SpanStatusCode.ERROR);
+  });
+
+  it('GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES=false: node spans without the graph keys', async () => {
+    process.env.GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES = 'false';
+    try {
+      harness = await startHarness({ enabledInstrumentors: ['langgraph'] });
+      await graph().invoke({ question: 'x' });
+      const think = harness.span('langgraph.node.think').attributes;
+      expect(think['langgraph.node']).toBe('think');
+      for (const key of ['graph.node.id', 'metadata']) expect(key in think).toBe(false);
+      expect('graph.node.id' in harness.span('langgraph.graph.invoke').attributes).toBe(false);
+    } finally {
+      delete process.env.GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES;
+    }
+  });
+
+  it('an enclosing withSession scope wins over the thread; an id in the input wins over both', async () => {
+    harness = await startHarness({ enabledInstrumentors: ['langgraph'] });
+    await withSession('conv-1', () => graph().invoke({ question: 'x' }, { configurable: { thread_id: 'thread-3' } }));
+    expect(harness.span('langgraph.graph.invoke').attributes['session.id']).toBe('conv-1');
+    harness.reset();
+    await withSession('conv-1', () => graph().invoke({ question: 'x', session_id: 'own' } as never, { configurable: { thread_id: 'thread-3' } }));
+    expect(harness.span('langgraph.graph.invoke').attributes['session.id']).toBe('own');
   });
 
   it('a node that throws ends the span with ERROR status', async () => {
@@ -213,6 +278,7 @@ describe('LangGraph', () => {
       .compile();
     await expect(failing.invoke({ question: 'x' })).rejects.toThrow('tool exploded');
     expect(harness.span('langgraph.graph.invoke').status.code).toBe(SpanStatusCode.ERROR);
+    expect(harness.span('langgraph.node.boom').status).toMatchObject({ code: SpanStatusCode.ERROR, message: 'Error' });
   });
 });
 

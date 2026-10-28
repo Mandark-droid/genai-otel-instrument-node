@@ -13,7 +13,8 @@
  * LangGraph: `invoke` and `stream` of a compiled graph, as agent invocations
  * (`graph.execution`), so the model calls inside are accounted to the run.
  */
-import { context, createContextKey, type AttributeValue } from '@opentelemetry/api';
+import { context, createContextKey, type AttributeValue, SpanStatusCode, trace } from '@opentelemetry/api';
+import { agentGraphEnabled } from '../agent-graph';
 import { extractBudgetAttributes } from '../agent-budget';
 import type { UsageDict } from '../instrumentors/base';
 import type { PatchTarget } from '../instrumentors/patching';
@@ -217,6 +218,19 @@ export class LangChainInstrumentor extends FrameworkInstrumentor {
 }
 
 const GRAPH_RUNNING = createContextKey('traceverse.genai-otel-instrument.langgraph-running');
+// Runners and tasks already decorated, so a re-entered run does not stack spans.
+const decorated = new WeakSet<object>();
+
+/** LangGraph's GraphBubbleUp family (interrupt, parent commands): `is_bubble_up` on the error. */
+function isGraphBubbleUp(error: unknown): boolean {
+  return isObject(error) && (error as { is_bubble_up?: unknown }).is_bubble_up === true;
+}
+
+function clean(attributes: Obj): Record<string, AttributeValue> {
+  const out: Record<string, AttributeValue> = {};
+  for (const [key, value] of Object.entries(attributes)) if (value !== undefined && value !== null) out[key] = value as AttributeValue;
+  return out;
+}
 
 export class LangGraphInstrumentor extends FrameworkInstrumentor {
   protected readonly label = 'LangGraph';
@@ -228,6 +242,118 @@ export class LangGraphInstrumentor extends FrameworkInstrumentor {
   protected targets(module: unknown): PatchTarget[] {
     const graph: unknown = exportedClass(module, 'CompiledStateGraph');
     if (typeof graph !== 'function') return [];
+    return [...this.runTargets(graph), ...this.nodeTargets(graph)];
+  }
+
+  /**
+   * A span per node execution (Python 1.44.0 wraps `run_with_retry`). Here the run loop, a method
+   * of the exported Pregel class in both the CommonJS and the ES-module build, hands each step's
+   * tasks to its runner, which calls `task.proc.invoke(input, config)`: each task's `proc` is
+   * wrapped as the runner picks it up, so what the node calls nests under its span. These are
+   * LangGraph internals; a version that moved them loses node spans and nothing else.
+   */
+  private nodeTargets(graph: unknown): PatchTarget[] {
+    const holder = prototypeDefining(graph, '_runLoop');
+    if (!holder) return [];
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const instrumentor = this;
+    return [
+      {
+        holder,
+        method: '_runLoop',
+        wrap: (original: AnyFunction): AnyFunction =>
+          function (this: unknown, ...args: unknown[]): unknown {
+            try {
+              instrumentor.decorateRunner(args[0]);
+            } catch {
+              // tracing must never cost the graph its run
+            }
+            return (original as unknown as (...a: unknown[]) => unknown).apply(this, args);
+          } as unknown as AnyFunction,
+      },
+    ];
+  }
+
+  private decorateRunner(params: unknown): void {
+    const runner = isObject(params) ? params.runner : undefined;
+    const loop = isObject(params) ? params.loop : undefined;
+    if (!isObject(runner) || !isObject(loop) || typeof runner.tick !== 'function' || decorated.has(runner)) return;
+    const tick = runner.tick as (...a: unknown[]) => unknown;
+    decorated.add(runner);
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const instrumentor = this;
+    runner.tick = function (this: unknown, ...args: unknown[]): unknown {
+      if (instrumentor.instrumented && isObject(loop.tasks)) {
+        for (const task of Object.values(loop.tasks)) instrumentor.traceTask(task);
+      }
+      return tick.apply(this, args);
+    };
+  }
+
+  /** Span name and start attributes for a node task, or undefined to leave it untraced. */
+  nodeSpan(task: unknown): [string, Obj] | undefined {
+    const name = isObject(task) ? task.name : undefined;
+    // __start__ writes the graph input into its channels; it is not a node.
+    if (typeof name !== 'string' || !name || name.startsWith('__')) return undefined;
+    const metadata = pick(pick(task, 'config'), 'metadata');
+    const step = pick(metadata, 'langgraph_step');
+    const attributes: Obj = { 'langgraph.node': name };
+    if (typeof step === 'number' && Number.isInteger(step)) attributes['langgraph.step'] = step;
+    const triggers = isObject(task) ? task.triggers : undefined;
+    if (Array.isArray(triggers) && triggers.length) attributes['langgraph.triggers'] = triggers.slice(0, 10).map(String);
+    if (agentGraphEnabled(process.env.GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES)) {
+      attributes['graph.node.id'] = name;
+      attributes['openinference.span.kind'] = 'CHAIN';
+      // OpenInference's metadata attribute, which Arize reads LangGraph nodes from. Only the node
+      // keys: the run metadata can hold user data.
+      const nodeMetadata: Obj = { langgraph_node: name };
+      if (typeof step === 'number' && Number.isInteger(step)) nodeMetadata.langgraph_step = step;
+      attributes.metadata = JSON.stringify(nodeMetadata);
+    }
+    return [`langgraph.node.${name}`, attributes];
+  }
+
+  private traceTask(task: unknown): void {
+    if (!isObject(task) || decorated.has(task) || !isObject(task.proc) || typeof task.proc.invoke !== 'function') return;
+    decorated.add(task);
+    const prepared = this.nodeSpan(task);
+    if (!prepared) return;
+    const [spanName, attributes] = prepared;
+    const proc = task.proc;
+    const invoke = proc.invoke as (...a: unknown[]) => Promise<unknown>;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const instrumentor = this;
+    // A span per attempt: whether LangGraph retries a failed attempt is decided after it returns.
+    let attempt = 0;
+    const traced = Object.create(proc) as Obj;
+    traced.invoke = function (this: unknown, ...args: unknown[]): Promise<unknown> {
+      attempt += 1;
+      const span = instrumentor.tracer.startSpan(spanName, {
+        attributes: clean({ ...attributes, 'langgraph.node.attempt': attempt }),
+      });
+      return context.with(trace.setSpan(context.active(), span), () => invoke.apply(proc, args)).then(
+        (result) => {
+          span.end();
+          return result;
+        },
+        (error: unknown) => {
+          if (isGraphBubbleUp(error)) {
+            // interrupt() and Command(graph=PARENT) travel as errors; they are control flow.
+            span.setAttribute('langgraph.node.interrupted', true);
+          } else {
+            span.setStatus({ code: SpanStatusCode.ERROR, message: error instanceof Error ? error.name : typeof error });
+            if (error instanceof Error) span.recordException(error);
+          }
+          span.end();
+          throw error;
+        },
+      );
+    };
+    task.proc = traced;
+  }
+
+  /** One span per graph run (`invoke` / `stream`). */
+  private runTargets(graph: unknown): PatchTarget[] {
     return (['invoke', 'stream'] as const).map((method) => ({
       holder: prototypeDefining(graph, method),
       method,
@@ -252,6 +378,12 @@ export class LangGraphInstrumentor extends FrameworkInstrumentor {
       [ATTR.GEN_AI_OPERATION_NAME]: 'graph.execution',
       ...extractBudgetAttributes(config, instance),
     };
+    if (agentGraphEnabled(process.env.GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES)) {
+      // The run is the root node of the agent graph; its nodes hang beneath it (Python 1.44.0).
+      const name = isObject(instance) ? instance.name : undefined;
+      attributes['graph.node.id'] = typeof name === 'string' && name ? name : 'LangGraph';
+      attributes['openinference.span.kind'] = 'CHAIN';
+    }
     if (isObject(instance)) {
       const nodes = isObject(instance.nodes) ? Object.keys(instance.nodes).filter((name) => !name.startsWith('__')) : [];
       if (nodes.length > 0) {
@@ -285,11 +417,13 @@ export class LangGraphInstrumentor extends FrameworkInstrumentor {
     const recursionLimit = pick(config, 'recursionLimit', 'recursion_limit');
     if (typeof recursionLimit === 'number') attributes['langgraph.recursion_limit'] = recursionLimit;
 
+    // An id in the input, then an enclosing withSession scope, then the thread (Python 1.45.0).
     const sessionId = this.resolveSessionId(
-      [pick(input, 'session_id', 'session.id'), threadId === undefined ? undefined : String(threadId)],
+      [pick(input, 'session_id', 'session.id')],
       instance,
       args,
       true,
+      [threadId === undefined ? undefined : String(threadId)],
     );
     attributes[ATTR.SESSION_ID] = sessionId;
     attributes['langgraph.session.id'] = sessionId;

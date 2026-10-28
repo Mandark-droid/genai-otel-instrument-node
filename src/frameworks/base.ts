@@ -16,7 +16,7 @@
 import type { UsageDict } from '../instrumentors/base';
 import { PatchingInstrumentor } from '../instrumentors/patching';
 import { pyStr, pyTruncate } from '../pycompat';
-import { currentSession } from '../session';
+import { defaultSession, inboundSession, scopedSession } from '../session';
 
 export type Obj = Record<string, unknown>;
 export const isObject = (value: unknown): value is Obj => typeof value === 'object' && value !== null;
@@ -56,8 +56,26 @@ export abstract class FrameworkInstrumentor extends PatchingInstrumentor {
    * last resort for LangChain and LangGraph: a random id, so that the spans of
    * one call can at least be grouped with each other.
    */
-  protected resolveSessionId(candidates: unknown[], instance: unknown, args: unknown[], generate: boolean): string | undefined {
-    for (const candidate of candidates) if (typeof candidate === 'string' && candidate) return candidate;
+  /**
+   * The session of a framework call, as the Python library ranks it (1.46.0): an id in the call's
+   * own input, an enclosing `withSession` scope, the framework's own fallbacks (`afterScope`: a
+   * LangGraph thread_id), the extractor, then - this SDK only - the `setSession` default, an id an
+   * upstream service sent as accepted baggage, and lastly a generated one.
+   */
+  protected resolveSessionId(
+    candidates: unknown[],
+    instance: unknown,
+    args: unknown[],
+    generate: boolean,
+    afterScope: unknown[] = [],
+  ): string | undefined {
+    const first = (values: unknown[]) => values.find((v): v is string => typeof v === 'string' && v.length > 0);
+    const own = first(candidates);
+    if (own) return own;
+    const scoped = scopedSession().sessionId;
+    if (scoped) return scoped;
+    const framework = first(afterScope);
+    if (framework) return framework;
     const extractor = this.config?.sessionIdExtractor;
     if (extractor) {
       try {
@@ -67,8 +85,8 @@ export abstract class FrameworkInstrumentor extends PatchingInstrumentor {
         // an extractor that throws is not a reason to lose the call
       }
     }
-    const scoped = currentSession().sessionId;
-    if (scoped) return scoped;
+    const fallback = defaultSession().sessionId ?? inboundSession().sessionId;
+    if (fallback) return fallback;
     return generate ? uuid4() : undefined;
   }
 }

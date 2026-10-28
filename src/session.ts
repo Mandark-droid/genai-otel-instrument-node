@@ -208,6 +208,16 @@ export function currentSession(ctx: Context = context.active()): SessionScope {
   return { ...(globalState()[DEFAULT_SLOT] as SessionScope | undefined) };
 }
 
+/** The session of an enclosing `withSession` scope only (Python: `session()`), not the default. */
+export function scopedSession(ctx: Context = context.active()): SessionScope {
+  return { ...(ctx.getValue(SESSION_KEY) as SessionScope | undefined) };
+}
+
+/** The `setSession` default, if any. */
+export function defaultSession(): SessionScope {
+  return { ...(globalState()[DEFAULT_SLOT] as SessionScope | undefined) };
+}
+
 /** A session / user an upstream service sent as baggage, when this service accepts it. Ranks last. */
 export function inboundSession(ctx: Context = context.active()): SessionScope {
   const bag = propagation.getBaggage(ctx);
