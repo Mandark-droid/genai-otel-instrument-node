@@ -1,6 +1,6 @@
 # Parity matrix
 
-What this SDK does, against the Python reference `genai_otel_instrument` **v1.30.0**.
+What this SDK does, against the Python reference `genai_otel_instrument` **v1.46.0** (contract re-synced from v1.30.0; the rows below that name v1.30.0 describe what was found then).
 Every instrumentor id the reference accepts in `GENAI_ENABLED_INSTRUMENTORS` has a row.
 
 Status values: **shipped** (tests, an example, a changelog line), **planned** with the

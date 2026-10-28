@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+### 0.1.0-alpha.9 (reference v1.46.0)
+- The contract is re-synced from the Python library v1.46.0 (was v1.30.0), and what changed in
+  between is ported: speech-to-text and decision pricing, per-category pricing sources, priced
+  dict-shaped embeddings and flat image prices; decision, background-evaluation, toxicity, agent
+  graph, session-propagation and baggage settings as configuration fields; the seven
+  `gen_ai.client.inference.*` metrics; `host,os` resource detectors by default (`process` and
+  `host.ip` opt-in) and `host.id`; detector result caches, `cache_size`, toxicity `quantize` /
+  `torch_threads` and PII `model_analyzed_length`; Sarvam speech priced from the audio section.
+- Session propagation (Python 1.45.0): spans take the session of their parent span;
+  OpenInference `setSession()` / `setUser()` are honoured; `GENAI_ENABLE_SESSION_PROPAGATION`.
+- Session baggage (1.46.0, Node): `GENAI_SESSION_BAGGAGE_KEYS` / `_ACCEPT`, a filtering
+  `SessionBaggagePropagator` installed only when a service opts in, a warning when it is replaced.
+- LangGraph node spans (1.44.0): `langgraph.node.<name>` under each run, with step, triggers,
+  `langgraph.attempt` and the agent-graph keys; the run is the graph's root node; interrupts are
+  not errors. Works with the ES-module build too. One span per attempt (Python: one per task).
+- Framework sessions follow the reference's order: the call's own id, an enclosing
+  `withSession`, the thread, the extractor, then the `setSession` default and accepted baggage.
+- Attribute names that are a dotted prefix of another (OpenSearch and Elasticsearch reject such
+  span documents) avoided: `traceTool` / `traceRetrieval` write the contract's `mcp.server` and
+  `db.system`; `transformers.requested_device` / `requested_dtype`.
+- `GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES` is now a configuration field with the reference's parsing:
+  only `true` (any case) turns it on.
+
 ### 0.1.0-alpha.8
 - Agent graph attributes for Arize AX / Phoenix, a port of the Python library's
   `AgentGraphSpanProcessor` (1.44.0) in every entry: spans that name an agent

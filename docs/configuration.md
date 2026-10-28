@@ -1,7 +1,7 @@
 # Configuration
 
 Configuration is read from the environment, with the **same variables, defaults and
-parsing as the Python library** `genai_otel_instrument` v1.30.0. The authoritative list,
+parsing as the Python library** `genai_otel_instrument` v1.46.0. The authoritative list,
 with the value produced for every raw input, is `contract/config.json`; the contract test
 checks this SDK against all of it.
 
