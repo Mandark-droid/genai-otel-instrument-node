@@ -107,6 +107,7 @@ export {
   traceRetrieval,
   traceTool,
   traceWorkflow,
+  detached,
   type AgentSpanOptions,
   type AppSpanOptions,
   type RetrievalSpanOptions,

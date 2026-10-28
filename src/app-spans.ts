@@ -15,7 +15,7 @@
  * `enableContentCapture`. Errors always record their type; their message only
  * with content capture, as it may quote content.
  */
-import { type AttributeValue, type Context, context, type Span, SpanStatusCode, trace } from '@opentelemetry/api';
+import { type AttributeValue, type Context, context, ROOT_CONTEXT, type Span, SpanStatusCode, trace } from '@opentelemetry/api';
 import { OPENINFERENCE_SPAN_KIND } from './openinference';
 import { addRetrievalAttributes, type RetrievedDocument } from './retrieval';
 import { VERSION } from './version';
@@ -262,4 +262,27 @@ export function traceWorkflow<T>(name: string, options: WorkflowSpanOptions<T>, 
     },
     withResultAttributes(options, (span, result) => setContent(span, 'output.value', options.output?.(result))),
   );
+}
+
+/**
+ * Starts `fn` outside the current trace: spans that the calls `fn` makes start synchronously -
+ * an instrumented model call, a helper span - are children of `parent` (by default none: each
+ * begins its own trace), and nothing else is. For background work, such as indexing documents
+ * while the user runs something else.
+ *
+ * In React Native and browsers the active context is the most recent scope still open, so a
+ * call a background task makes while a long workflow is running would otherwise become part of
+ * that workflow. `detached` enters `parent` only while `fn` runs synchronously and opens no scope
+ * that outlives it, so it never takes over the workflow's spans either. Spans started after an
+ * `await` inside `fn` are not covered; wrap each call:
+ *
+ *   const vector = await detached(() => model.embed({ text }));
+ */
+export function detached<T>(fn: () => T, parent: Context = ROOT_CONTEXT): T {
+  let result!: T;
+  // The callback returns nothing, so the scope ends when it does, whatever `fn` returns.
+  context.with(parent, () => {
+    result = fn();
+  });
+  return result;
 }

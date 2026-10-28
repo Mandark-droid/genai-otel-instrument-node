@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### 0.1.0-alpha.10
+- `detached(fn, parent?)`: starts the calls `fn` makes outside the current trace, opening no
+  scope. In React Native and browsers the active context is the most recent open scope, so
+  background work (indexing documents) running during a long workflow had its model calls
+  filed under that workflow; wrapped in `detached`, each is its own trace and the workflow
+  keeps only its own spans.
+
 ### 0.1.0-alpha.9 (reference v1.46.0)
 - The contract is re-synced from the Python library v1.46.0 (was v1.30.0), and what changed in
   between is ported: speech-to-text and decision pricing, per-category pricing sources, priced
