@@ -67,7 +67,13 @@ before: an ES-module import of a library that cannot run on Node 18 (anything on
 | `OTEL_ENVIRONMENT` | | Sets `deployment.environment.name` (and legacy `environment`) |
 | `OTEL_SERVICE_INSTANCE_ID` | | Wins over the generated instance id |
 | `OTEL_RESOURCE_ATTRIBUTES` | | Standard; an explicit `service.instance.id` here is respected |
-| `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS` | `host,os,process` | `host,os` under a hardened profile |
+| `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS` | `host,os` | Add `process` for the process attributes (opt-in since the reference's v1.46.0). `host.id` is included |
+| `GENAI_OTEL_RESOURCE_HOST_IP` | off | `1`, `true`, `yes` or `on` adds `host.ip` |
+| `GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES` | `true` | `graph.node.*` and `agent.name` on agent spans and LangGraph node spans; only `true` (any case) turns it on |
+| `GENAI_ENABLE_SESSION_PROPAGATION` | `true` | A span without a session takes its parent span's `session.id` / `user.id` (and an OpenInference `setSession()` / `setUser()`); `false` keeps only explicit sessions |
+| `GENAI_SESSION_BAGGAGE_KEYS` / `GENAI_SESSION_BAGGAGE_ACCEPT` | empty | Comma lists of `session.id`, `user.id`: which ids a service sends to, and accepts from, other services as W3C baggage. Off by default: an id crosses a service boundary only when both sides opt in. Node only |
+| `GENAI_EVALUATION_CACHE_SIZE` | `256` | Results each detector keeps for repeated text (keyed by a digest, never the text); `0` turns caching off |
+| `GENAI_TOXICITY_QUANTIZE`, `GENAI_TOXICITY_TORCH_THREADS` | `false`, unset | Passed to the toxicity detector's model settings |
 | `GENAI_SERVICE_INSTANCE_ID_MODE` | `random` | `derived`: a v5 UUID stable across restarts |
 | `GENAI_ENABLED_INSTRUMENTORS` | reference list | See `docs/parity-matrix.md` |
 | `GENAI_ENABLE_COST_TRACKING` | `true` | |
@@ -111,6 +117,8 @@ reported in the log at start-up; it is never silently ignored.
 |---|---|---|
 | `GENAI_CO2_COUNTRY_ISO_CODE`, `GENAI_CO2_REGION`, `GENAI_CO2_CLOUD_PROVIDER`, `GENAI_CO2_CLOUD_REGION`, `GENAI_CO2_OFFLINE_MODE`, `GENAI_CO2_TRACKING_MODE`, `GENAI_CO2_USE_MANUAL`, `GENAI_CODECARBON_LOG_LEVEL` | codecarbon's location and mode settings. There is no codecarbon here: CO2 is energy times `GENAI_CARBON_INTENSITY` | - |
 | `GENAI_ENABLE_CONCURRENCY_METRICS` | Read by the Python library's configuration and used by nothing there either | - |
+| `GENAI_EVALUATION_MODE`, `GENAI_EVALUATION_QUEUE_SIZE`, `GENAI_EVALUATION_MAX_CHARS`, `GENAI_TOXICITY_MAX_CHARS`, `GENAI_EVALUATION_SHUTDOWN_TIMEOUT` | Background evaluation (Python 1.36.0): detectors run off the request path from a bounded queue. Here they still run inline | later |
+| `GENAI_DECISION_HTTP_MATCHER`, `GENAI_DECISION_LEGACY_LLM_KIND`, `GENAI_DECISION_PROVIDER` | Decision spans from HTTP decision services (Python 1.38.0). Decision *pricing* is in effect: a span with `gen_ai.request.type = decision` is priced | later |
 
 Variables the Python library reads that this SDK does not, and why, are listed in
 `tests/contract/config.contract.test.ts` (`NOT_READ`). The test fails if a future
