@@ -533,6 +533,19 @@ describe('cactus-react-native', () => {
     expect(named(exporter, 'cactus.embed').spanContext().traceId).not.toBe(parent.spanContext().traceId);
   });
 
+  it('withSession holds across await, so every model call in the conversation carries its session', async () => {
+    const exporter = start(native);
+    native.instrumentCactus({ CactusLM });
+    await native.withSession('chat-41', async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      await new CactusLM().complete({ messages: MESSAGES });
+    });
+    expect(named(exporter, 'cactus.complete').attributes).toMatchObject({
+      'session.id': 'chat-41',
+      'gen_ai.conversation.id': 'chat-41',
+    });
+  });
+
   it('the export carries the OpenInference kind of application spans and the project name', async () => {
     const bodies: string[] = [];
     const capture = (async (_url: unknown, init: { body: string | Uint8Array }) => {
