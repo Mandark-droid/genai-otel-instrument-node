@@ -8,6 +8,7 @@ import { logger } from '../logger';
 import { contextWithSessionId } from '../session';
 import { BaseInstrumentor, type AttributeExtractor, type SpanWrapperOptions } from './base';
 import { unwrapMethod, wrapMethod } from './wrap';
+import { activatesCallSpans } from '../call-scope';
 
 type AnyFunction = (...args: never[]) => unknown;
 
@@ -206,7 +207,7 @@ export abstract class PatchingInstrumentor extends BaseInstrumentor {
           // if it carries a session id, that session is in force inside it.
           const active = span;
           const ctx = contextWithSessionId(trace.setSpan(context.active(), active), (active as unknown as { attributes?: Attributes }).attributes?.['session.id']);
-          result = context.with(ctx, () => invoke(this, args));
+          result = activatesCallSpans() ? context.with(ctx, () => invoke(this, args)) : invoke(this, args);
         } catch (error) {
           fail(error);
           throw error;

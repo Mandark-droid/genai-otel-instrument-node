@@ -34,6 +34,7 @@ import { clearStateSlot, globalState } from '../state';
 import { VERSION } from '../version';
 import { startOnDeviceInstrumentors, stopOnDeviceInstrumentors } from '../on-device';
 import { manualInstrumentor } from './manual';
+import { setActivateCallSpans } from '../call-scope';
 import { PromiseScopeContextManager } from './promise-context';
 import { FetchMetricExporter, FetchSpanExporter, signalUrl, type FetchLike } from './otlp-fetch';
 
@@ -210,6 +211,9 @@ function setup(
     appStateSubscription: undefined,
   };
   globalState()[STATE_SLOT] = state;
+  // One shared scope stack here: a model call running in the background must not become the
+  // parent of everything started meanwhile. Only the application's context.with() scopes count.
+  if (state.registeredContext) setActivateCallSpans(false);
   // Instruments are bound to the provider that created them.
   resetPricingMissingCounter();
   resetSharedMetrics();
@@ -318,5 +322,8 @@ export async function uninstrument(timeoutSeconds = 5.0): Promise<void> {
   resetSharedMetrics();
   if (state.registeredTracer) trace.disable();
   if (state.registeredMeter) metrics.disable();
-  if (state.registeredContext) context.disable();
+  if (state.registeredContext) {
+    context.disable();
+    setActivateCallSpans(true);
+  }
 }

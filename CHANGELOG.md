@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### 0.1.0-alpha.5 (browser and React Native entry)
+- An instrumented model call no longer makes its span the active one there. With a single
+  scope stack shared by everything in flight, a call running in the background (an
+  embedding for a search index) became the parent of every span the application started
+  meanwhile, and traces were attached to the wrong root. Model calls are leaves; only the
+  application's own `context.with()` scopes are active. The Node entry is unchanged.
+
 ### 0.1.0-alpha.4 (browser and React Native entry)
 - Spans nest across `await`: a promise-scoped context manager is registered, so a span an
   instrumentor starts inside the application's span is its child. Before, every on-device

@@ -353,7 +353,10 @@ describe('cactus-react-native', () => {
       );
     }
 
+    static embedDelayMs = 0;
+
     async embed(_params: { text: string }): Promise<{ embedding: number[] }> {
+      if (CactusLM.embedDelayMs) await new Promise((resolve) => setTimeout(resolve, CactusLM.embedDelayMs));
       return { embedding: [0.1, 0.2, 0.3, 0.4] };
     }
   }
@@ -361,6 +364,7 @@ describe('cactus-react-native', () => {
   afterEach(() => {
     CactusLM.failNext = undefined;
     CactusLM.nextResult = undefined;
+    CactusLM.embedDelayMs = 0;
   });
 
   const MESSAGES = [{ role: 'user', content: 'What is the capital of France?' }];
@@ -531,6 +535,26 @@ describe('cactus-react-native', () => {
     expect(child.spanContext().traceId).toBe(parent.spanContext().traceId);
     expect(child.parentSpanContext?.spanId).toBe(parent.spanContext().spanId);
     expect(named(exporter, 'cactus.embed').spanContext().traceId).not.toBe(parent.spanContext().traceId);
+  });
+
+  it('a model call running in the background does not become the parent of what starts meanwhile', async () => {
+    const exporter = start(native);
+    native.instrumentCactus({ CactusLM });
+    CactusLM.embedDelayMs = 30;
+    const background = new CactusLM().embed({ text: 'index me' }); // e.g. a search index, not awaited
+    const tracer = trace.getTracer('app');
+    const pipeline = tracer.startSpan('meeting.process');
+    await context.with(trace.setSpan(context.active(), pipeline), async () => {
+      CactusLM.embedDelayMs = 0;
+      await new CactusLM().complete({ messages: MESSAGES });
+    });
+    pipeline.end();
+    await background;
+
+    const embed = named(exporter, 'cactus.embed');
+    expect(pipeline.spanContext().traceId).not.toBe(embed.spanContext().traceId);
+    const complete = named(exporter, 'cactus.complete');
+    expect(complete.parentSpanContext?.spanId).toBe(pipeline.spanContext().spanId);
   });
 
   it('withSession holds across await, so every model call in the conversation carries its session', async () => {

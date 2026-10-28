@@ -46,6 +46,7 @@ import { contextWithSessionId } from '../session';
 import { stateSlot } from '../state';
 import { holders, USAGE_HOLDERS, USAGE_RECORDED_BY, usageRecordedBelow, type UsageHolder } from '../usage-holders';
 import type { Instrumentor } from './registry';
+import { activatesCallSpans } from '../call-scope';
 
 /** Instrumentation scope of the spans, as in the Python library. */
 export const BASE_TRACER_NAME = 'genai_otel.instrumentors.base';
@@ -733,7 +734,7 @@ export abstract class BaseInstrumentor implements Instrumentor {
         try {
           // The span is the active one for the duration of the call, so nested
           // work (HTTP client spans, tool calls) parents to it.
-          result = context.with(ctx, () => invoke(this, args));
+          result = activatesCallSpans() ? context.with(ctx, () => invoke(this, args)) : invoke(this, args);
         } catch (error) {
           instrumentor.failCall(active, error);
           throw error;
