@@ -92,6 +92,21 @@ that exports OTLP over `fetch`, and `traceGenAiCall()` for calls the app makes i
 There is no default endpoint there: telemetry leaves the device only for a collector you
 name. See [Runtimes](https://mandark-droid.github.io/genai-otel-instrument-node-docs/runtimes/), including what is and is not sent, and the [React Native and Cactus guide](https://mandark-droid.github.io/genai-otel-instrument-node-docs/react-native/), verified on a phone in the LiquidChat app.
 
+In those entries:
+
+- **Spans nest across `await`.** There is no async context in React Native or a plain
+  browser, so the entry registers a context manager that keeps a context active until the
+  promise passed to `context.with()` settles. A Cactus completion started inside your agent
+  span becomes its child instead of a trace of its own. With two pipelines running at once,
+  pass the parent explicitly where it matters.
+- **Arize AX and Phoenix work as they are.** Every span carries `openinference.span.kind`
+  (`LLM`, `EMBEDDING`, `RETRIEVER`, `TOOL`, `AGENT`, `CHAIN`), so operations with no GenAI
+  operation to map (speech to text, model loads, your pipeline steps) are classified rather
+  than "unknown". The resource carries `openinference.project.name` (the service name, or
+  `OPENINFERENCE_PROJECT_NAME`), which Arize requires to accept a trace. Point the endpoint
+  at `https://otlp.arize.com` with `space_id` and `api_key` headers. Other backends ignore
+  both attributes. Turn the span kinds off with `openInferenceSpanKinds: false`.
+
 ## What is instrumented
 
 | Library | Versions verified | Covered |

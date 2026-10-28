@@ -11,7 +11,7 @@
  *  - nothing is patched. Calls are traced with `traceGenAiCall()`;
  *  - the resource carries no host, process or OS attributes.
  */
-import { metrics, trace } from '@opentelemetry/api';
+import { context, metrics, trace } from '@opentelemetry/api';
 import { defaultResource, resourceFromAttributes, type Resource } from '@opentelemetry/resources';
 import { MeterProvider, PeriodicExportingMetricReader, type IMetricReader } from '@opentelemetry/sdk-metrics';
 import {
@@ -27,11 +27,14 @@ import { resetPricingMissingCounter } from '../cost/pricing-missing';
 import { setAmbientEnv, type Env } from '../env';
 import { logger } from '../logger';
 import { metricViews, resetSharedMetrics } from '../metrics';
+import { OPENINFERENCE_PROJECT_NAME } from '../resource-attributes';
+import { OpenInferenceSpanProcessor } from '../openinference';
 import { SessionSpanProcessor } from '../session';
 import { clearStateSlot, globalState } from '../state';
 import { VERSION } from '../version';
 import { startOnDeviceInstrumentors, stopOnDeviceInstrumentors } from '../on-device';
 import { manualInstrumentor } from './manual';
+import { PromiseScopeContextManager } from './promise-context';
 import { FetchMetricExporter, FetchSpanExporter, signalUrl, type FetchLike } from './otlp-fetch';
 
 /** One package, one distro name, whichever runtime it is loaded in. */
@@ -53,6 +56,12 @@ export interface WebInstrumentOptions extends Partial<OTelConfig> {
   metricReaders?: IMetricReader[];
   /** Milliseconds between metric exports. Default 60000. */
   metricExportIntervalMillis?: number;
+  /**
+   * Add `openinference.span.kind` to every span (default true), so Arize AX and
+   * Phoenix classify on-device operations that have no GenAI operation to map:
+   * speech to text, model loads, the application's own pipeline steps.
+   */
+  openInferenceSpanKinds?: boolean;
   /** Any setting under its environment-variable name, as a string. */
   [envName: Uppercase<string>]: string | undefined;
 }
@@ -76,10 +85,18 @@ interface ActiveState {
   metricExporter: FetchMetricExporter;
   registeredTracer: boolean;
   registeredMeter: boolean;
+  registeredContext: boolean;
   appStateSubscription: { remove(): void } | undefined;
 }
 
-const NON_CONFIG_OPTIONS = new Set(['fetch', 'spanProcessors', 'metricReaders', 'metricExportIntervalMillis', 'appState']);
+const NON_CONFIG_OPTIONS = new Set([
+  'fetch',
+  'spanProcessors',
+  'metricReaders',
+  'metricExportIntervalMillis',
+  'appState',
+  'openInferenceSpanKinds',
+]);
 
 function activeState(): ActiveState | undefined {
   return globalState()[STATE_SLOT] as ActiveState | undefined;
@@ -115,6 +132,8 @@ function buildWebResource(config: OTelConfig, env: Env): Resource {
     'telemetry.distro.version': VERSION,
   };
   if (env.OTEL_ENVIRONMENT) attributes['deployment.environment.name'] = env.OTEL_ENVIRONMENT;
+  // Arize AX files traces under a project and rejects those that name none.
+  attributes[OPENINFERENCE_PROJECT_NAME] = env.OPENINFERENCE_PROJECT_NAME || config.serviceName;
   // defaultResource() supplies telemetry.sdk.* for the runtime the OpenTelemetry SDK was built for.
   return defaultResource().merge(resourceFromAttributes(attributes));
 }
@@ -160,6 +179,7 @@ function setup(
   const spanProcessors: SpanProcessor[] = [new SessionSpanProcessor()];
   if (config.enableCostTracking) spanProcessors.push(new CostEnrichmentSpanProcessor(costCalculatorFor(config.customPricingJson)));
   spanProcessors.push(...(options.spanProcessors ?? []));
+  if (options.openInferenceSpanKinds !== false) spanProcessors.push(new OpenInferenceSpanProcessor());
   // Batched: ending a span only enqueues it. Nothing is sent on the caller's path.
   spanProcessors.push(new BatchSpanProcessor(spanExporter));
 
@@ -185,6 +205,8 @@ function setup(
     metricExporter,
     registeredTracer: trace.setGlobalTracerProvider(tracerProvider),
     registeredMeter: metrics.setGlobalMeterProvider(meterProvider),
+    // No async context here: without this every instrumented call starts its own trace.
+    registeredContext: context.setGlobalContextManager(new PromiseScopeContextManager().enable()),
     appStateSubscription: undefined,
   };
   globalState()[STATE_SLOT] = state;
@@ -296,4 +318,5 @@ export async function uninstrument(timeoutSeconds = 5.0): Promise<void> {
   resetSharedMetrics();
   if (state.registeredTracer) trace.disable();
   if (state.registeredMeter) metrics.disable();
+  if (state.registeredContext) context.disable();
 }

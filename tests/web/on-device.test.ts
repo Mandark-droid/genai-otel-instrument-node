@@ -4,7 +4,7 @@
  * browser-like one. The model libraries are stand-ins shaped like the real
  * ones; see tests/helpers/fake-transformers.ts.
  */
-import { metrics, SpanStatusCode, trace } from '@opentelemetry/api';
+import { context, metrics, SpanStatusCode, trace } from '@opentelemetry/api';
 import { InMemorySpanExporter, SimpleSpanProcessor, type ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as web from '../../src/index.browser';
@@ -485,5 +485,76 @@ describe('cactus-react-native', () => {
   it('something that is not the library is refused quietly', () => {
     start(native);
     expect(native.instrumentCactus({})).toBe(false);
+  });
+  it('every span carries its OpenInference kind, so Arize AX and Phoenix classify it', async () => {
+    const exporter = start(native);
+    native.instrumentCactus({ CactusLM });
+    const lm = new CactusLM();
+    await lm.download();
+    await lm.init();
+    await lm.complete({ messages: MESSAGES });
+    await lm.embed({ text: 'alpha' });
+    const kind = (name: string) => named(exporter, name).attributes['openinference.span.kind'];
+    expect([kind('cactus.download'), kind('cactus.init'), kind('cactus.complete'), kind('cactus.embed')]).toEqual([
+      'CHAIN',
+      'CHAIN',
+      'LLM',
+      'EMBEDDING',
+    ]);
+  });
+
+  it('init() on a model that is already loaded is not a span (the engine calls it before every completion)', async () => {
+    const exporter = start(native);
+    native.instrumentCactus({ CactusLM });
+    const lm = Object.assign(new CactusLM(), { isInitialized: false });
+    await lm.init();
+    lm.isInitialized = true;
+    await lm.init();
+    await lm.init();
+    expect(exporter.getFinishedSpans().filter((span) => span.name === 'cactus.init')).toHaveLength(1);
+  });
+
+  it('a model call inside a span of the application is its child, across await (no async context in React Native)', async () => {
+    const exporter = start(native);
+    native.instrumentCactus({ CactusLM });
+    const tracer = trace.getTracer('app');
+    const parent = tracer.startSpan('invoke_agent assistant');
+    await context.with(trace.setSpan(context.active(), parent), async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      await new CactusLM().complete({ messages: MESSAGES });
+    });
+    parent.end();
+    // Outside the scope again: a new trace.
+    await new CactusLM().embed({ text: 'later' });
+
+    const child = named(exporter, 'cactus.complete');
+    expect(child.spanContext().traceId).toBe(parent.spanContext().traceId);
+    expect(child.parentSpanContext?.spanId).toBe(parent.spanContext().spanId);
+    expect(named(exporter, 'cactus.embed').spanContext().traceId).not.toBe(parent.spanContext().traceId);
+  });
+
+  it('the export carries the OpenInference kind of application spans and the project name', async () => {
+    const bodies: string[] = [];
+    const capture = (async (_url: unknown, init: { body: string | Uint8Array }) => {
+      bodies.push(typeof init.body === 'string' ? init.body : new TextDecoder().decode(init.body));
+      return { ok: true, status: 200 };
+    }) as unknown as typeof fetch;
+    start(native, { fetch: capture, spanProcessors: [] });
+    const tracer = trace.getTracer('app');
+    tracer.startSpan('invoke_agent assistant').end();
+    tracer.startSpan('meeting.process').end();
+    tracer.startSpan('retrieve memory').end();
+    await native.flushTelemetry(2);
+
+    const payload = bodies.map((body) => JSON.parse(body)).find((body) => body.resourceSpans);
+    const resource = payload.resourceSpans[0].resource.attributes as { key: string; value: { stringValue?: string } }[];
+    expect(resource.find((a) => a.key === 'openinference.project.name')?.value.stringValue).toBe('on-device-test');
+    const spans = payload.resourceSpans.flatMap((r: { scopeSpans: { spans: unknown[] }[] }) => r.scopeSpans.flatMap((s) => s.spans)) as {
+      name: string;
+      attributes: { key: string; value: { stringValue?: string } }[];
+    }[];
+    const kindOf = (name: string) =>
+      spans.find((s) => s.name === name)?.attributes.find((a) => a.key === 'openinference.span.kind')?.value.stringValue;
+    expect([kindOf('invoke_agent assistant'), kindOf('meeting.process'), kindOf('retrieve memory')]).toEqual(['AGENT', 'CHAIN', 'RETRIEVER']);
   });
 });

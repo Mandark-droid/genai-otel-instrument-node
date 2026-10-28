@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### 0.1.0-alpha.4 (browser and React Native entry)
+- Spans nest across `await`: a promise-scoped context manager is registered, so a span an
+  instrumentor starts inside the application's span is its child. Before, every on-device
+  model call was a single-span trace.
+- `openinference.span.kind` on every span (`openInferenceSpanKinds: false` turns it off) and
+  `openinference.span.kind` set by the Cactus instrumentor itself: completions and
+  transcriptions are `LLM`, embeddings `EMBEDDING`, downloads and loads `CHAIN`. Arize AX
+  showed these as "unknown".
+- `openinference.project.name` on the resource (the service name, or
+  `OPENINFERENCE_PROJECT_NAME`): Arize AX rejected traces without a project.
+- No `cactus.init` span when the model is already loaded (the engine calls `init()` before
+  every completion and transcription).
+- The Node entry is unchanged and still matches the Python reference.
+
 ### Added
 - Repository scaffold.
 - Build and test toolchain: TypeScript, CommonJS + ES-module bundles (tsup), vitest with

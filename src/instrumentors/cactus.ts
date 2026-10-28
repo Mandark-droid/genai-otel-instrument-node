@@ -16,11 +16,13 @@
 import type { AttributeValue, Span } from '@opentelemetry/api';
 import { logger } from '../logger';
 import { pyJsonDumps } from '../pycompat';
+import { OPENINFERENCE_SPAN_KIND } from '../openinference';
 import { ATTR } from '../semconv';
 import type { Params, UsageDict } from './base';
 import { PatchingInstrumentor, type PatchTarget } from './patching';
 
 type Obj = Record<string, unknown>;
+type AnyFunction = (...args: never[]) => unknown;
 const isObject = (value: unknown): value is Obj => typeof value === 'object' && value !== null;
 const isNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
@@ -60,7 +62,20 @@ export class CactusInstrumentor extends PatchingInstrumentor {
       [ATTR.GEN_AI_REQUEST_MODEL]: modelOf(instance),
       [ATTR.GEN_AI_OPERATION_NAME]: operation,
       'cactus.model_file': modelFile(instance),
+      // Downloading and loading weights are steps, not model calls.
+      [OPENINFERENCE_SPAN_KIND]: 'CHAIN',
     });
+    // The engine calls init() before every completion and transcription; on a loaded model it is a
+    // no-op and gets no span of its own.
+    const skipWhenLoaded =
+      (traced: (original: AnyFunction) => AnyFunction) =>
+      (original: AnyFunction): AnyFunction => {
+        const wrapped = traced(original);
+        return function (this: unknown, ...args: unknown[]) {
+          const loaded = isObject(this) && this.isInitialized === true;
+          return ((loaded ? original : wrapped) as (...a: unknown[]) => unknown).apply(this, args);
+        } as AnyFunction;
+      };
 
     for (const [className, completion, spanPrefix] of [
       ['CactusLM', 'complete', 'cactus'],
@@ -78,7 +93,7 @@ export class CactusInstrumentor extends PatchingInstrumentor {
         {
           holder: prototype,
           method: 'init',
-          wrap: this.operationWrapper(`${spanPrefix}.init`, (instance) => base(instance, 'load_model')),
+          wrap: skipWhenLoaded(this.operationWrapper(`${spanPrefix}.init`, (instance) => base(instance, 'load_model'))),
         },
         {
           holder: prototype,
@@ -97,6 +112,7 @@ export class CactusInstrumentor extends PatchingInstrumentor {
           attributes: (instance) => ({
             ...base(instance, 'embeddings'),
             [ATTR.GEN_AI_REQUEST_TYPE]: 'embedding',
+            [OPENINFERENCE_SPAN_KIND]: 'EMBEDDING',
             [ATTR.GEN_AI_REQUEST_INPUT_COUNT]: 1,
           }),
           options: { params: (args) => ({ ...(isObject(args[0]) ? args[0] : {}), __kind: 'embed' }) },
@@ -119,6 +135,7 @@ export class CactusInstrumentor extends PatchingInstrumentor {
       [ATTR.GEN_AI_SYSTEM]: SYSTEM,
       [ATTR.GEN_AI_REQUEST_MODEL]: modelOf(instance),
       [ATTR.GEN_AI_OPERATION_NAME]: 'chat',
+      [OPENINFERENCE_SPAN_KIND]: 'LLM',
       [ATTR.GEN_AI_REQUEST_MESSAGE_COUNT]: messages.length,
     };
     const file = modelFile(instance);
@@ -142,6 +159,7 @@ export class CactusInstrumentor extends PatchingInstrumentor {
       [ATTR.GEN_AI_REQUEST_MODEL]: modelOf(instance),
       [ATTR.GEN_AI_OPERATION_NAME]: 'speech_to_text',
       [ATTR.GEN_AI_REQUEST_TYPE]: 'speech_to_text',
+      [OPENINFERENCE_SPAN_KIND]: 'LLM',
     };
     const file = modelFile(instance);
     if (file) attributes['cactus.model_file'] = file;
