@@ -65,7 +65,7 @@ describe('detector caches', () => {
     const hallucination = new HallucinationDetector({ enabled: true, cacheSize: 8 });
     const claim = 'Studies show that 97% of users agree, according to experts.';
     expect(hallucination.detect(claim, 'a context')).toEqual(hallucination.detect(claim, 'a context'));
-    expect(hallucination.detect(claim).isHallucination).toBe(hallucination.detect(claim, '').isHallucination);
+    expect(hallucination.detect(claim).hasHallucination).toBe(hallucination.detect(claim, '').hasHallucination);
   });
 
   it('toxicity: a scored result is cached, a failed one is asked again; an async failure is logged, not thrown', async () => {
