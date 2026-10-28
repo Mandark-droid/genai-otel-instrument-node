@@ -58,6 +58,7 @@ import {
 import { logger } from './logger';
 import { metricViews, resetSharedMetrics } from './metrics';
 import { buildResource } from './resource';
+import { AgentGraphSpanProcessor, agentGraphEnabled } from './agent-graph';
 import { setAppSpanContentCapture } from './app-spans';
 import { SessionSpanProcessor } from './session';
 import { clearStateSlot, globalState } from './state';
@@ -421,6 +422,8 @@ function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumen
 
   // First, so the session is on the span before any other processor reads it.
   const spanProcessors: SpanProcessor[] = [new SessionSpanProcessor()];
+  // Arize agent graph keys on agent spans (the Python library's 1.44.0 processor).
+  if (agentGraphEnabled(process.env.GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES)) spanProcessors.push(new AgentGraphSpanProcessor());
   // Before the cost processor: it fills in what that one prices from.
   spanProcessors.push(new AiSdkSpanProcessor({ contentCapture: config.enableContentCapture }));
   try {

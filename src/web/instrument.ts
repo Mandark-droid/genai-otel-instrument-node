@@ -34,6 +34,7 @@ import { clearStateSlot, globalState } from '../state';
 import { VERSION } from '../version';
 import { startOnDeviceInstrumentors, stopOnDeviceInstrumentors } from '../on-device';
 import { manualInstrumentor } from './manual';
+import { AgentGraphSpanProcessor, agentGraphEnabled } from '../agent-graph';
 import { setAppSpanContentCapture } from '../app-spans';
 import { setActivateCallSpans } from '../call-scope';
 import { RootSpanFlushProcessor } from './root-flush';
@@ -190,6 +191,7 @@ function setup(
   });
 
   const spanProcessors: SpanProcessor[] = [new SessionSpanProcessor()];
+  if (agentGraphEnabled(env.GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES)) spanProcessors.push(new AgentGraphSpanProcessor());
   if (config.enableCostTracking) spanProcessors.push(new CostEnrichmentSpanProcessor(costCalculatorFor(config.customPricingJson)));
   spanProcessors.push(...(options.spanProcessors ?? []));
   if (options.openInferenceSpanKinds !== false) spanProcessors.push(new OpenInferenceSpanProcessor());

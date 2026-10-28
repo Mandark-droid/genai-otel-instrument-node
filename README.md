@@ -113,6 +113,9 @@ In those entries:
   entry).
 - **One call.** In React Native, `instrument({...})` is all an app needs: `AppState` and
   `cactus-react-native` are picked up when installed, and a finished trace is sent at once.
+- **Agent graph.** Spans that name an agent carry the `graph.node.*` keys Arize AX and Phoenix
+  draw their agent graph from, with each agent's parent the nearest enclosing agent, as in the
+  Python library (`GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES=false` turns it off).
 - **Your own components.** `traceAgent`, `traceTool`, `traceRetrieval` and `traceWorkflow`
   wrap an agent loop, a tool dispatcher, a search or a pipeline in one call each, with the
   conventions above built in (every entry, Node included).

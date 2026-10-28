@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### 0.1.0-alpha.8
+- Agent graph attributes for Arize AX / Phoenix, a port of the Python library's
+  `AgentGraphSpanProcessor` (1.44.0) in every entry: spans that name an agent
+  (`gen_ai.agent.name`) get `agent.name`, `graph.node.id`, `graph.node.name`,
+  `graph.node.display_name`, `graph.node.parent_id` (the nearest enclosing agent; unset on the
+  root) and `openinference.span.kind = AGENT`. Keys a span already has are kept. Turned off with
+  `GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES=false`, as in Python (read from the environment, or passed
+  to `instrument()` in a browser or React Native app; not yet a config field, since the vendored
+  contract is still at Python v1.30.0). An agent run inside another (a skill started by an
+  assistant, for example) becomes a child node. LangGraph node spans (Python 1.44.0) are not
+  ported yet.
+
 ### 0.1.0-alpha.7
 - `traceAgent`, `traceTool`, `traceRetrieval` and `traceWorkflow`, in every entry: one call
   around each of an application's own components (its agent loop, tool dispatcher, search,
