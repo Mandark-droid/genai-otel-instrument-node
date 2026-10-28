@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### 0.1.0-alpha.6
+- `addRetrievalAttributes(span, documents, { query, maxDocs })`, in every entry: a port of
+  the Python library's `add_retrieval_attributes` with the same names, limits and
+  truncation - `retrieval.query`, `retrieval.documents.{i}.document.{id,score,content,metadata.*}`
+  (the first five, in rank order) and `retrieval.document_count`.
+- Browser and React Native entry: content already on a span (GenAI messages, tool arguments
+  and results, a retrieval query) is also exported under the names OpenInference backends
+  display - `input.value`, `output.value`, `tool.name`, `tool.description`,
+  `tool.parameters`. Nothing is collected that was not captured already.
+
 ### 0.1.0-alpha.5 (browser and React Native entry)
 - An instrumented model call no longer makes its span the active one there. With a single
   scope stack shared by everything in flight, a call running in the background (an

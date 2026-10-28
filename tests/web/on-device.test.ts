@@ -557,6 +557,58 @@ describe('cactus-react-native', () => {
     expect(complete.parentSpanContext?.spanId).toBe(pipeline.spanContext().spanId);
   });
 
+  it('captured content is also exported under the names OpenInference backends display', async () => {
+    const bodies: string[] = [];
+    const capture = (async (_url: unknown, init: { body: string | Uint8Array }) => {
+      bodies.push(typeof init.body === 'string' ? init.body : new TextDecoder().decode(init.body));
+      return { ok: true, status: 200 };
+    }) as unknown as typeof fetch;
+    start(native, { fetch: capture, spanProcessors: [] });
+    const tracer = trace.getTracer('app');
+    tracer
+      .startSpan('execute_tool set_alarm', {
+        attributes: {
+          'gen_ai.operation.name': 'execute_tool',
+          'gen_ai.tool.name': 'set_alarm',
+          'gen_ai.tool.description': 'Sets an alarm.',
+          'gen_ai.tool.call.arguments': '{"time":"07:00"}',
+          'gen_ai.tool.call.result': '{"success":true}',
+        },
+      })
+      .end();
+    const retrieve = tracer.startSpan('retrieve memory', { attributes: { 'gen_ai.operation.name': 'retrieve' } });
+    native.addRetrievalAttributes(retrieve, [{ id: 'm1', score: 2.5, content: 'Prefers 11 am' }], { query: 'meeting time' });
+    retrieve.end();
+    // Content not captured: nothing to mirror.
+    tracer.startSpan('execute_tool turn_on_flashlight', { attributes: { 'gen_ai.operation.name': 'execute_tool', 'gen_ai.tool.name': 'turn_on_flashlight' } }).end();
+    await native.flushTelemetry(2);
+
+    const spans = bodies
+      .map((body) => JSON.parse(body))
+      .filter((body) => body.resourceSpans)
+      .flatMap((body) => body.resourceSpans.flatMap((r: { scopeSpans: { spans: unknown[] }[] }) => r.scopeSpans.flatMap((s) => s.spans))) as {
+      name: string;
+      attributes: { key: string; value: Record<string, unknown> }[];
+    }[];
+    const attrs = (name: string) =>
+      Object.fromEntries((spans.find((s) => s.name === name)?.attributes ?? []).map((a) => [a.key, Object.values(a.value)[0]]));
+    expect(attrs('execute_tool set_alarm')).toMatchObject({
+      'input.value': '{"time":"07:00"}',
+      'output.value': '{"success":true}',
+      'tool.name': 'set_alarm',
+      'tool.description': 'Sets an alarm.',
+      'tool.parameters': '{"time":"07:00"}',
+    });
+    expect(attrs('retrieve memory')).toMatchObject({
+      'openinference.span.kind': 'RETRIEVER',
+      'input.value': 'meeting time',
+      'retrieval.documents.0.document.content': 'Prefers 11 am',
+    });
+    const bare = attrs('execute_tool turn_on_flashlight');
+    expect(bare['tool.name']).toBe('turn_on_flashlight');
+    expect('input.value' in bare || 'output.value' in bare || 'tool.parameters' in bare).toBe(false);
+  });
+
   it('withSession holds across await, so every model call in the conversation carries its session', async () => {
     const exporter = start(native);
     native.instrumentCactus({ CactusLM });

@@ -9,11 +9,13 @@
  * the kind set it themselves (as the Python library does); this processor fills
  * it in for every other span, from the operation name or the span's name.
  *
- * Only the kind is added. Nothing else is duplicated, so the payload does not
- * grow and backends that ignore OpenInference see no difference. An explicit
- * kind, set by an instrumentor or the application, is never replaced.
+ * Content the span already carries (GenAI messages, tool arguments and results,
+ * a retrieval query) is also copied to the names those backends display
+ * (`input.value`, `output.value`, `tool.*`); with content capture off there is
+ * none to copy. A name set by an instrumentor or the application is never
+ * replaced, and backends that ignore OpenInference see no difference.
  *
- * Turned off with GENAI_OPENINFERENCE_SPAN_KIND=false.
+ * Turned off with `openInferenceSpanKinds: false` in instrument().
  */
 import { type Context, SpanKind } from '@opentelemetry/api';
 import type { ReadableSpan, Span, SpanProcessor } from '@opentelemetry/sdk-trace-base';
@@ -59,6 +61,30 @@ export function openInferenceKind(
   return kind === SpanKind.INTERNAL ? 'CHAIN' : undefined;
 }
 
+/**
+ * The names OpenInference backends display a span's input, output and tool under, filled in
+ * from GenAI attributes already on the span. Content is only copied, never collected: when the
+ * application did not capture prompts and results, there is nothing to copy. A name already set
+ * is kept.
+ */
+const CONTENT_SOURCES: [target: string, sources: string[]][] = [
+  ['input.value', ['gen_ai.input.messages', 'gen_ai.tool.call.arguments', 'retrieval.query', 'gen_ai.prompt']],
+  ['output.value', ['gen_ai.output.messages', 'gen_ai.tool.call.result', 'gen_ai.response', 'gen_ai.completion']],
+  ['tool.name', ['gen_ai.tool.name']],
+  ['tool.description', ['gen_ai.tool.description']],
+  ['tool.parameters', ['gen_ai.tool.call.arguments']],
+];
+
+export function openInferenceContent(attributes: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [target, sources] of CONTENT_SOURCES) {
+    if (attributes[target] !== undefined) continue;
+    const value = sources.map((key) => attributes[key]).find((v) => v !== undefined && v !== '');
+    if (value !== undefined) out[target] = value;
+  }
+  return out;
+}
+
 export class OpenInferenceSpanProcessor implements SpanProcessor {
   onStart(_span: Span, _parentContext: Context): void {}
 
@@ -69,12 +95,14 @@ export class OpenInferenceSpanProcessor implements SpanProcessor {
    */
   onEnd(span: ReadableSpan): void {
     const attributes = span.attributes as Record<string, unknown>;
-    if (attributes[OPENINFERENCE_SPAN_KIND] !== undefined) return;
     try {
-      const kind = openInferenceKind(span.name, attributes, span.kind);
-      if (kind) attributes[OPENINFERENCE_SPAN_KIND] = kind;
+      if (attributes[OPENINFERENCE_SPAN_KIND] === undefined) {
+        const kind = openInferenceKind(span.name, attributes, span.kind);
+        if (kind) attributes[OPENINFERENCE_SPAN_KIND] = kind;
+      }
+      Object.assign(attributes, openInferenceContent(attributes));
     } catch (error) {
-      logger.debug(`OpenInference span kind not set: ${String(error)}`);
+      logger.debug(`OpenInference attributes not set: ${String(error)}`);
     }
   }
 

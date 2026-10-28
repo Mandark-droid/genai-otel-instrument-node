@@ -105,7 +105,12 @@ In those entries:
   than "unknown". The resource carries `openinference.project.name` (the service name, or
   `OPENINFERENCE_PROJECT_NAME`), which Arize requires to accept a trace. Point the endpoint
   at `https://otlp.arize.com` with `space_id` and `api_key` headers. Other backends ignore
-  both attributes. Turn the span kinds off with `openInferenceSpanKinds: false`.
+  both attributes. Content the span already carries (messages, tool arguments and results)
+  is also exported under the names those backends display (`input.value`, `output.value`,
+  `tool.*`). Turn all of this off with `openInferenceSpanKinds: false`.
+- **Retrieval.** `addRetrievalAttributes(span, documents, { query })` records what a search
+  returned, in rank order, under the same names as the Python library (available in every
+  entry).
 
 ## What is instrumented
 

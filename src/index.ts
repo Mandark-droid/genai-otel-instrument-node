@@ -143,6 +143,7 @@ export {
   SUPERSEDED_ATTRIBUTES,
   type SemconvModes,
 } from './semconv';
+export { addRetrievalAttributes, type RetrievalAttributeOptions, type RetrievedDocument } from './retrieval';
 export {
   currentSession,
   SessionSpanProcessor,
