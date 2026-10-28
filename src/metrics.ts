@@ -43,6 +43,15 @@ const COUNTERS = {
   requestFinish: 'gen_ai.server.request.finish',
   requestSuccess: 'gen_ai.server.request.success',
   requestFailure: 'gen_ai.server.request.failure',
+  // Token usage under the current GenAI metric conventions (semantic-conventions-genai#374),
+  // recorded beside gen_ai.client.token.usage, never instead of it (Python 1.37.0).
+  /** Input tokens, cached ones included, by `gen_ai.token.modality`. */
+  inferenceInputTokens: 'gen_ai.client.inference.usage.input_tokens',
+  /** Output tokens, reasoning ones included. */
+  inferenceOutputTokens: 'gen_ai.client.inference.usage.output_tokens',
+  inferenceCacheReadTokens: 'gen_ai.client.inference.usage.cache_read.input_tokens',
+  inferenceCacheWriteTokens: 'gen_ai.client.inference.usage.cache_write.input_tokens',
+  inferenceReasoningTokens: 'gen_ai.client.inference.usage.reasoning.output_tokens',
 } as const satisfies Record<string, MetricName>;
 
 const HISTOGRAMS = {
@@ -58,6 +67,10 @@ const HISTOGRAMS = {
   timePerOutputToken: 'gen_ai.server.time_per_output_token',
   promptTokens: 'gen_ai.client.token.usage.prompt',
   completionTokens: 'gen_ai.client.token.usage.completion',
+  /** Input tokens of one inference operation (#374). */
+  inferenceOperationInputTokens: 'gen_ai.client.inference.operation.input_tokens',
+  /** Output tokens of one inference operation (#374). */
+  inferenceOperationOutputTokens: 'gen_ai.client.inference.operation.output_tokens',
 } as const satisfies Record<string, MetricName>;
 
 export const SHARED_METRIC_NAMES: readonly MetricName[] = Object.freeze([

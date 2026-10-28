@@ -463,6 +463,8 @@ describe('OpenAI instrumentor', () => {
         'gen_ai.usage.prompt_tokens': 8,
         'gen_ai.usage.total_tokens': 8,
         'gen_ai.usage.cost.total': cost,
+        // Where the price came from, for every call type (Python 1.46.0).
+        'gen_ai.usage.cost.pricing_source': calculator.pricingSource('text-embedding-3-small', 'embedding'),
       });
       expect(cost).toBeGreaterThan(0);
     });

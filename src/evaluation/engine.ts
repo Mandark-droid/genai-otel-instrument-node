@@ -83,6 +83,7 @@ export function evaluationConfigsFrom(config: OTelConfig): EvaluationConfigs | u
       customPatterns: config.piiCustomPatterns as PIIConfig['customPatterns'],
       airGapped: config.airGapped,
       contentMaxLength: config.contentMaxLength,
+      cacheSize: config.evaluationCacheSize,
     };
   }
   if (config.enableToxicityDetection) {
@@ -94,16 +95,33 @@ export function evaluationConfigsFrom(config: OTelConfig): EvaluationConfigs | u
       blockOnDetection: config.toxicityBlockOnDetection,
       allowExternalEgress: config.allowExternalEgress,
       airGapped: config.airGapped,
+      cacheSize: config.evaluationCacheSize,
+      quantize: config.toxicityQuantize,
+      torchThreads: config.toxicityTorchThreads ?? null,
     };
   }
-  if (config.enableBiasDetection) configs.bias = { enabled: true, threshold: config.biasThreshold, blockOnDetection: config.biasBlockOnDetection };
+  // Every detector keeps a bounded cache of its results (GENAI_EVALUATION_CACHE_SIZE; 0 turns it off).
+  const cacheSize = config.evaluationCacheSize;
+  if (config.enableBiasDetection) {
+    configs.bias = { enabled: true, threshold: config.biasThreshold, blockOnDetection: config.biasBlockOnDetection, cacheSize };
+  }
   if (config.enablePromptInjectionDetection) {
-    configs.promptInjection = { enabled: true, threshold: config.promptInjectionThreshold, blockOnDetection: config.promptInjectionBlockOnDetection };
+    configs.promptInjection = {
+      enabled: true,
+      threshold: config.promptInjectionThreshold,
+      blockOnDetection: config.promptInjectionBlockOnDetection,
+      cacheSize,
+    };
   }
   if (config.enableRestrictedTopics) {
-    configs.restrictedTopics = { enabled: true, threshold: config.restrictedTopicsThreshold, blockOnDetection: config.restrictedTopicsBlockOnDetection };
+    configs.restrictedTopics = {
+      enabled: true,
+      threshold: config.restrictedTopicsThreshold,
+      blockOnDetection: config.restrictedTopicsBlockOnDetection,
+      cacheSize,
+    };
   }
-  if (config.enableHallucinationDetection) configs.hallucination = { enabled: true, threshold: config.hallucinationThreshold };
+  if (config.enableHallucinationDetection) configs.hallucination = { enabled: true, threshold: config.hallucinationThreshold, cacheSize };
   return Object.keys(configs).length > 0 ? configs : undefined;
 }
 

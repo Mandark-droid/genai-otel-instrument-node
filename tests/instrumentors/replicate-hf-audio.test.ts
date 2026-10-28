@@ -254,14 +254,14 @@ describe('Sarvam instrumentor', () => {
     });
   });
 
-  it('textToSpeech.convert: model spelling normalised for pricing, speaker, characters', async () => {
+  it('textToSpeech.convert: the model as requested, priced per character from the audio section, speaker', async () => {
     harness = await startHarness({ enabledInstrumentors: ['sarvamai'] });
     llm.reply({ json: { request_id: 'r-2', audios: ['ZmFrZQ=='] } });
     await client().textToSpeech.convert({ text: 'Namaste', language_code: 'hi-IN', speaker: 'anushka', model: 'bulbul:v2' }, noRetry);
     const attributes = harness.span('sarvam.text_to_speech.convert').attributes;
     expect(attributes).toMatchObject({
       'gen_ai.system': 'sarvam',
-      'gen_ai.request.model': 'bulbul-v2',
+      'gen_ai.request.model': 'bulbul:v2',
       'gen_ai.operation.name': 'text_to_speech',
       'gen_ai.request.type': 'text_to_speech',
       'sarvam.target_language': 'hi-IN',

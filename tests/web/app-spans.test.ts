@@ -70,7 +70,7 @@ describe('application spans', () => {
     expect(search.attributes).toMatchObject({
       'openinference.span.kind': 'RETRIEVER',
       'db.collection.name': 'notes',
-      'db.system.name': 'sqlite',
+      'db.system': 'sqlite',
       'db.vector.query.top_k': 3,
       'db.response.returned_rows': 2,
       'rag.result.score_max': 4.2,
@@ -103,7 +103,7 @@ describe('application spans', () => {
     await native.traceTool('search_repos', { mcpServer: 'hub', failure: (r: { ok: boolean }) => (r.ok ? undefined : 'rate_limited') }, async () => ({ ok: false }));
     await expect(native.traceWorkflow('ingest', {}, async () => { throw new TypeError('bad file'); })).rejects.toThrow('bad file');
     const mcp = named(exporter, 'execute_tool search_repos');
-    expect(mcp.attributes).toMatchObject({ 'gen_ai.tool.type': 'extension', 'mcp.server.name': 'hub', 'mcp.method.name': 'tools/call', 'error.type': 'rate_limited' });
+    expect(mcp.attributes).toMatchObject({ 'gen_ai.tool.type': 'extension', 'mcp.server': 'hub', 'mcp.method.name': 'tools/call', 'error.type': 'rate_limited' });
     expect(mcp.status.code).toBe(SpanStatusCode.ERROR);
     const ingest = named(exporter, 'ingest');
     expect(ingest.attributes).toMatchObject({ 'openinference.span.kind': 'CHAIN', 'error.type': 'TypeError' });

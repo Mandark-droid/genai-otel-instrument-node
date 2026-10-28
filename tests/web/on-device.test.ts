@@ -62,9 +62,9 @@ describe('transformers.js', () => {
       'gen_ai.provider.name': 'huggingface',
       'gen_ai.request.model': MODEL,
       'gen_ai.operation.name': 'load_model',
-      'transformers.device.requested': 'webgpu',
+      'transformers.requested_device': 'webgpu',
       'transformers.device': 'webgpu',
-      'transformers.dtype.requested': 'q4',
+      'transformers.requested_dtype': 'q4',
       'transformers.dtype': 'q4',
       'webgpu.fallback': false,
       'transformers.load.files': 2,
@@ -89,7 +89,7 @@ describe('transformers.js', () => {
     web.instrumentTransformers(fake.module);
     await fake.PreTrainedModel.from_pretrained(MODEL, { device: 'webgpu' });
     expect(named(exporter, 'transformers.model.load').attributes).toMatchObject({
-      'transformers.device.requested': 'webgpu',
+      'transformers.requested_device': 'webgpu',
       'transformers.device': 'wasm',
       'webgpu.fallback': true,
     });
@@ -102,7 +102,7 @@ describe('transformers.js', () => {
     await fake.PreTrainedModel.from_pretrained(MODEL);
     const attributes = named(exporter, 'transformers.model.load').attributes;
     expect(attributes['transformers.device']).toBe('wasm');
-    expect('transformers.device.requested' in attributes).toBe(false);
+    expect('transformers.requested_device' in attributes).toBe(false);
     expect('webgpu.fallback' in attributes).toBe(false);
   });
 

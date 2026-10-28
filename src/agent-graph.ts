@@ -46,9 +46,12 @@ function nodeIdOf(attributes: Attributes): string | undefined {
   return undefined;
 }
 
-/** Whether the processor is on: GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES, default true. */
+/**
+ * A GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES value, parsed as `OTelConfig.enableAgentGraphAttributes`
+ * parses it (`.lower() == "true"`, default true). The setups read the config field.
+ */
 export function agentGraphEnabled(value: string | undefined): boolean {
-  return (value ?? 'true').trim().toLowerCase() !== 'false';
+  return (value ?? 'true').toLowerCase() === 'true';
 }
 
 export class AgentGraphSpanProcessor implements SpanProcessor {

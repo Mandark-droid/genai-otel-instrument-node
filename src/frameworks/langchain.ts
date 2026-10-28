@@ -14,7 +14,6 @@
  * (`graph.execution`), so the model calls inside are accounted to the run.
  */
 import { context, createContextKey, type AttributeValue, SpanStatusCode, trace } from '@opentelemetry/api';
-import { agentGraphEnabled } from '../agent-graph';
 import { extractBudgetAttributes } from '../agent-budget';
 import type { UsageDict } from '../instrumentors/base';
 import type { PatchTarget } from '../instrumentors/patching';
@@ -301,7 +300,7 @@ export class LangGraphInstrumentor extends FrameworkInstrumentor {
     if (typeof step === 'number' && Number.isInteger(step)) attributes['langgraph.step'] = step;
     const triggers = isObject(task) ? task.triggers : undefined;
     if (Array.isArray(triggers) && triggers.length) attributes['langgraph.triggers'] = triggers.slice(0, 10).map(String);
-    if (agentGraphEnabled(process.env.GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES)) {
+    if (this.config?.enableAgentGraphAttributes ?? true) {
       attributes['graph.node.id'] = name;
       attributes['openinference.span.kind'] = 'CHAIN';
       // OpenInference's metadata attribute, which Arize reads LangGraph nodes from. Only the node
@@ -329,7 +328,7 @@ export class LangGraphInstrumentor extends FrameworkInstrumentor {
     traced.invoke = function (this: unknown, ...args: unknown[]): Promise<unknown> {
       attempt += 1;
       const span = instrumentor.tracer.startSpan(spanName, {
-        attributes: clean({ ...attributes, 'langgraph.node.attempt': attempt }),
+        attributes: clean({ ...attributes, 'langgraph.attempt': attempt }),
       });
       return context.with(trace.setSpan(context.active(), span), () => invoke.apply(proc, args)).then(
         (result) => {
@@ -378,7 +377,7 @@ export class LangGraphInstrumentor extends FrameworkInstrumentor {
       [ATTR.GEN_AI_OPERATION_NAME]: 'graph.execution',
       ...extractBudgetAttributes(config, instance),
     };
-    if (agentGraphEnabled(process.env.GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES)) {
+    if (this.config?.enableAgentGraphAttributes ?? true) {
       // The run is the root node of the agent graph; its nodes hang beneath it (Python 1.44.0).
       const name = isObject(instance) ? instance.name : undefined;
       attributes['graph.node.id'] = typeof name === 'string' && name ? name : 'LangGraph';

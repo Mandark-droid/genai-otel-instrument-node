@@ -156,7 +156,7 @@ export interface ToolSpanOptions<T> extends AppSpanOptions, ResultAttributes<T> 
   description?: string;
   /** `gen_ai.tool.type`; `extension` when `mcpServer` is given, else `function`. */
   type?: 'function' | 'extension' | 'datastore';
-  /** The MCP server the tool belongs to (`mcp.server.name`, `mcp.method.name = tools/call`). */
+  /** The MCP server the tool belongs to (`mcp.server`, `mcp.method.name = tools/call`). */
   mcpServer?: string;
   /** The arguments (content). */
   arguments?: unknown;
@@ -176,7 +176,7 @@ export function traceTool<T>(name: string, options: ToolSpanOptions<T>, fn: () =
       'gen_ai.tool.type': options.type ?? (options.mcpServer ? 'extension' : 'function'),
       'gen_ai.tool.call.id': options.callId,
       'gen_ai.tool.description': options.description,
-      'mcp.server.name': options.mcpServer,
+      'mcp.server': options.mcpServer,
       'mcp.method.name': options.mcpServer ? 'tools/call' : undefined,
       [OPENINFERENCE_SPAN_KIND]: 'TOOL',
     },
@@ -200,7 +200,7 @@ export function traceTool<T>(name: string, options: ToolSpanOptions<T>, fn: () =
 export interface RetrievalSpanOptions<T> extends AppSpanOptions, ResultAttributes<T> {
   /** The query (content). */
   query?: string;
-  /** `db.system.name`, e.g. `sqlite`, `qdrant`. */
+  /** `db.system` (the contract's name for it), e.g. `sqlite`, `qdrant`. */
   system?: string;
   /** `db.vector.query.top_k`. */
   topK?: number;
@@ -219,7 +219,7 @@ export function traceRetrieval<T>(
     {
       'gen_ai.operation.name': 'retrieval',
       'db.collection.name': collection,
-      'db.system.name': options.system,
+      'db.system': options.system,
       'db.vector.query.top_k': options.topK,
       [OPENINFERENCE_SPAN_KIND]: 'RETRIEVER',
     },

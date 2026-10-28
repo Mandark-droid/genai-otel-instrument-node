@@ -32,6 +32,10 @@ function table(): PricingData {
       'odd-a': { per_minute: 1 },
     },
     speech_to_text: { 'asr-1': { promptPrice: 0.00015, completionPrice: 0.00015 } },
+    decision: {
+      'dec-1': { promptPrice: 0.0001, completionPrice: 0, cacheReadPrice: 0, cacheWritePrice: 0 },
+      'dec-1-ultra': { promptPrice: 0.0002, completionPrice: 0 },
+    },
     deprecated: { 'old-model': 'Retires 2026-12-31; migrate to gpt-x.', 'stt-a': 'Withdrawn.' },
     prices_checked: { 'gpt-x': '2026-08-13', 'tts-a': '2026-08-01' },
   };
@@ -278,8 +282,52 @@ describe('call types', () => {
     setLogger({ debug: vi.fn(), info: vi.fn(), warn, error: vi.fn() });
     expect(calc().calculateCost('gpt-x', CHAT, 'rerank')).toBeNull();
     expect(calc().calculateCost('gpt-x', CHAT, '')).toBeNull();
-    expect(calc().calculateCost('asr-1', { prompt_tokens: 1000 }, 'speech_to_text')).toBeNull();
+    expect(calc().calculateCost('embed-small', { prompt_tokens: 1000 }, 'embeddings')).toBeNull();
     expect(warn).toHaveBeenCalled();
+  });
+
+  it('speech_to_text is priced per token from its own table, and per second from the audio table', () => {
+    expect(calc().calculateCost('asr-1', { prompt_tokens: 1000, completion_tokens: 2000 }, 'speech_to_text')).toBe(
+      (1000 / 1000) * 0.00015 + (2000 / 1000) * 0.00015,
+    );
+    expect(calc().calculateCost('asr-1', { prompt_tokens: null }, 'speech_to_text')).toBe(0);
+    expect(calc().calculateCost('stt-a', { seconds: 90, prompt_tokens: 1000 }, 'speech_to_text')).toBe(90 * 0.0001);
+    // "seconds" goes to the audio table, which has no asr-1.
+    expect(calc().calculateCost('asr-1', { seconds: 90 }, 'speech_to_text')).toBeNull();
+    expect(calc().isPriced('asr-1', 'speech_to_text')).toBe(true);
+    expect(calc().isPriced('asr-1', 'speech_to_text', { seconds: 90 })).toBe(false);
+    expect(calc().isPriced('stt-a', 'speech_to_text', { seconds: 90 })).toBe(true);
+  });
+
+  it('decision models bill input only, from the decision table only', () => {
+    expect(calc().calculateCost('dec-1', CHAT, 'decision')).toBe((1000 / 1000) * 0.0001);
+    // Cache prices of 0: cached input is free, and capped at the prompt tokens.
+    expect(calc().calculateCost('dec-1', { prompt_tokens: 1000, cache_read_input_tokens: 300, cache_creation_input_tokens: 200 }, 'decision')).toBe(
+      (500 / 1000) * 0.0001,
+    );
+    expect(calc().calculateCost('dec-1', { prompt_tokens: 100, cache_read_input_tokens: 300 }, 'decision')).toBe(0);
+    // No cache prices: cached input is billed as input.
+    expect(calc().calculateCost('dec-1-ultra', { prompt_tokens: 1000, cache_read_input_tokens: 300 }, 'decision')).toBe(
+      (1000 / 1000) * 0.0002,
+    );
+    // Never the chat table.
+    expect(calc().calculateCost('gpt-x', CHAT, 'decision')).toBeNull();
+    expect(calc().isPriced('gpt-x', 'decision')).toBe(false);
+    expect(calc().pricingSource('gpt-x', 'decision')).toBe('unpriced');
+  });
+
+  it.each([
+    ['dec-1', 'dec-1'],
+    ['DEC-1', 'dec-1'],
+    ['openai/dec-1', 'dec-1'],
+    ['LiquidAI/dec-1-ultra', 'dec-1-ultra'],
+    ['typesafe/dec-1-2026-01-01', 'dec-1'],
+    ['dec-1-ultra-v2', 'dec-1-ultra'],
+    ['dec-1x', null],
+    ['acme/dec-1', null],
+    ['openai/liquid/dec-1', null],
+  ])('decision model %s resolves to %s', (model, key) => {
+    expect(calc().normalizeModelName(model, 'decision')).toBe(key);
   });
 
   it('with no pricing data at all nothing is priced', () => {
@@ -291,15 +339,19 @@ describe('call types', () => {
 });
 
 describe('pricingSource', () => {
-  it('uses the call type as the table section only when a section has that name', () => {
-    // "embedding" is not a section name ("embeddings" is), so the chat table is consulted -
-    // and there the size word in the name makes it an "estimated" local model.
-    expect(calc().pricingSource('embed-small', 'embedding')).toBe('estimated');
+  it("reads the call type's own section; an unmapped call type is a section name, else chat", () => {
+    // "embedding" reads "embeddings" (until v1.46 it read chat, and estimated embed-small).
+    expect(calc().pricingSource('embed-small', 'embedding')).toBe('table');
     expect(calc().pricingSource('embed-x9', 'embedding')).toBe('unpriced');
     expect(calc().pricingSource('embed-small', 'embeddings')).toBe('table');
-    expect(calc().pricingSource('gpt-x', 'embedding')).toBe('table');
+    expect(calc().pricingSource('gpt-x', 'embedding')).toBe('unpriced');
+    expect(calc().pricingSource('img-1', 'image')).toBe('table');
     expect(calc().pricingSource('asr-1', 'speech_to_text')).toBe('table');
+    // Always the speech_to_text section, even for a model billed per second from audio.
+    expect(calc().pricingSource('stt-a', 'speech_to_text')).toBe('unpriced');
     expect(calc().pricingSource('acme:7b', 'audio')).toBe('unpriced');
+    expect(calc().pricingSource('gpt-x', 'rerank')).toBe('table');
+    expect(calc().pricingSource('acme:7b', 'rerank')).toBe('estimated');
   });
 });
 
@@ -402,7 +454,7 @@ describe('table and usage shapes at the edges', () => {
     new CostCalculator({
       pricingData: {
         chat: { 'no-prices': {}, 'not-an-entry': 'text', 'only-prompt': { promptPrice: 0.002 } },
-        embeddings: { 'dict-priced': { promptPrice: 1 } },
+        embeddings: { 'dict-priced': { promptPrice: 1 }, 'dict-no-price': { dimensions: 768 }, 'text-priced': 'cheap' },
         images: { 'flat-quality': { standard: 0.04 }, 'not-a-mapping': 0.04 },
         notes: 'a top-level value that is not a section',
         prices_checked: { 'no-prices': 'last tuesday', 'only-prompt': '2026-08-13', 'not-an-entry': '2026-08-13' },
@@ -430,10 +482,23 @@ describe('table and usage shapes at the edges', () => {
   });
 
   it('entries in the wrong shape raise TypeError rather than produce a number', () => {
-    expect(() => odd().calculateCost('dict-priced', { prompt_tokens: 10 }, 'embedding')).toThrow(TypeError);
     expect(() => odd().calculateCost('flat-quality', { size: '1024x1024' }, 'image')).toThrow(TypeError);
-    expect(() => odd().calculateCost('not-a-mapping', { size: '1024x1024' }, 'image')).toThrow(TypeError);
+    expect(() => odd().calculateCost('text-priced', { prompt_tokens: 10 }, 'embedding')).toThrow(TypeError);
     expect(() => calc().calculateCost('gpt-x', { completion_tokens_details: 5 }, 'chat')).toThrow(TypeError);
+  });
+
+  it('an embedding priced as {promptPrice} and an image priced as a bare number are priced (v1.46)', () => {
+    expect(odd().calculateCost('dict-priced', { prompt_tokens: 10 }, 'embedding')).toBe((10 / 1000) * 1);
+    expect(odd().calculateCost('dict-no-price', { prompt_tokens: 10 }, 'embedding')).toBe(0);
+    // A flat price per image, whatever the size or quality.
+    expect(odd().calculateCost('not-a-mapping', { size: '1024x1024', n: 3 }, 'image')).toBe(0.04 * 3);
+    expect(odd().calculateCost('not-a-mapping', {}, 'image')).toBe(0.04);
+  });
+
+  it('null completion_tokens_details or reasoning_tokens read as no reasoning', () => {
+    const plain = calc().calculateCost('reasoner-1', CHAT, 'chat');
+    expect(calc().calculateCost('reasoner-1', { ...CHAT, completion_tokens_details: null }, 'chat')).toBe(plain);
+    expect(calc().calculateCost('reasoner-1', { ...CHAT, completion_tokens_details: { reasoning_tokens: null } }, 'chat')).toBe(plain);
   });
 
   it('isPriced is false for everything when there is no table', () => {

@@ -127,6 +127,174 @@
     },
     {
       "attribute_keys_observed": [
+        "gen_ai.operation.name",
+        "gen_ai.provider.name",
+        "gen_ai.request.model",
+        "gen_ai.response.model"
+      ],
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": false,
+      "bucket_boundaries": [
+        1,
+        4,
+        16,
+        64,
+        256,
+        1024,
+        4096,
+        16384,
+        65536,
+        262144,
+        1048576,
+        4194304,
+        16777216,
+        67108864
+      ],
+      "bucket_source": "view",
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "The number of input (prompt) tokens used per inference operation.",
+      "kind": "histogram",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.client.inference.operation.input_tokens",
+      "requires_gpu_device": false,
+      "unit": "{token}"
+    },
+    {
+      "attribute_keys_observed": [
+        "gen_ai.operation.name",
+        "gen_ai.provider.name",
+        "gen_ai.request.model",
+        "gen_ai.response.model"
+      ],
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": false,
+      "bucket_boundaries": [
+        1,
+        4,
+        16,
+        64,
+        256,
+        1024,
+        4096,
+        16384,
+        65536,
+        262144,
+        1048576,
+        4194304,
+        16777216,
+        67108864
+      ],
+      "bucket_source": "view",
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "The number of output (completion) tokens used per inference operation.",
+      "kind": "histogram",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.client.inference.operation.output_tokens",
+      "requires_gpu_device": false,
+      "unit": "{token}"
+    },
+    {
+      "attribute_keys_observed": [
+        "gen_ai.operation.name",
+        "gen_ai.provider.name",
+        "gen_ai.request.model",
+        "gen_ai.response.model",
+        "gen_ai.token.modality"
+      ],
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": false,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "The number of input tokens served from a provider-managed cache.",
+      "kind": "counter",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.client.inference.usage.cache_read.input_tokens",
+      "requires_gpu_device": false,
+      "unit": "{token}"
+    },
+    {
+      "attribute_keys_observed": [
+        "gen_ai.operation.name",
+        "gen_ai.provider.name",
+        "gen_ai.request.model",
+        "gen_ai.response.model",
+        "gen_ai.token.modality"
+      ],
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": false,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "The number of input tokens written to a provider-managed cache.",
+      "kind": "counter",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.client.inference.usage.cache_write.input_tokens",
+      "requires_gpu_device": false,
+      "unit": "{token}"
+    },
+    {
+      "attribute_keys_observed": [
+        "gen_ai.operation.name",
+        "gen_ai.provider.name",
+        "gen_ai.request.model",
+        "gen_ai.response.model",
+        "gen_ai.token.modality"
+      ],
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": false,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "The number of input (prompt) tokens used, including cached tokens.",
+      "kind": "counter",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.client.inference.usage.input_tokens",
+      "requires_gpu_device": false,
+      "unit": "{token}"
+    },
+    {
+      "attribute_keys_observed": [
+        "gen_ai.operation.name",
+        "gen_ai.provider.name",
+        "gen_ai.request.model",
+        "gen_ai.response.model",
+        "gen_ai.token.modality"
+      ],
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": false,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "The number of output (completion) tokens used, including reasoning tokens.",
+      "kind": "counter",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.client.inference.usage.output_tokens",
+      "requires_gpu_device": false,
+      "unit": "{token}"
+    },
+    {
+      "attribute_keys_observed": [
+        "gen_ai.operation.name",
+        "gen_ai.provider.name",
+        "gen_ai.request.model",
+        "gen_ai.response.model",
+        "gen_ai.token.modality"
+      ],
+      "attribute_keys_static": [],
+      "attribute_keys_static_complete": false,
+      "bucket_boundaries": null,
+      "bucket_source": null,
+      "defined_in": "genai_otel/instrumentors/base.py",
+      "description": "The number of output tokens used for reasoning.",
+      "kind": "counter",
+      "meter": "genai_otel.instrumentors.base",
+      "name": "gen_ai.client.inference.usage.reasoning.output_tokens",
+      "requires_gpu_device": false,
+      "unit": "{token}"
+    },
+    {
+      "attribute_keys_observed": [
         "operation"
       ],
       "attribute_keys_static": [
@@ -840,7 +1008,7 @@
       "attribute_keys_static": [
         "model"
       ],
-      "attribute_keys_static_complete": true,
+      "attribute_keys_static_complete": false,
       "bucket_boundaries": null,
       "bucket_source": null,
       "defined_in": "genai_otel/server_metrics.py",
@@ -921,9 +1089,11 @@
       "unit": ""
     },
     {
-      "attribute_keys_observed": [],
+      "attribute_keys_observed": [
+        "server_metrics_source"
+      ],
       "attribute_keys_static": [],
-      "attribute_keys_static_complete": true,
+      "attribute_keys_static_complete": false,
       "bucket_boundaries": null,
       "bucket_source": null,
       "defined_in": "genai_otel/server_metrics.py",

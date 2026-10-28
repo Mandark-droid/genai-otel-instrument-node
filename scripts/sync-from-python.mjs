@@ -31,7 +31,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const PYTHON_TAG = 'v1.30.0';
+export const PYTHON_TAG = 'v1.46.0';
 
 const PRICING_FILE = 'llm_pricing.json';
 const MANIFEST_FILE = 'MANIFEST.json';

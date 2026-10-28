@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 const SCRIPT = resolve(__dirname, '../../scripts/sync-from-python.mjs');
 const sha = (text: string): string => createHash('sha256').update(text).digest('hex');
+// The tag the script is pinned to, read from its source (importing it would run it).
+const PIN = /export const PYTHON_TAG = '([^']+)'/.exec(readFileSync(SCRIPT, 'utf8'))?.[1] ?? 'unknown';
 
 function run(args: string[]): { status: number | null; out: string } {
   const result = spawnSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8' });
@@ -23,7 +25,7 @@ describe('scripts/sync-from-python', () => {
   };
   const pricing = '{"chat":{"m":{"promptPrice":1,"completionPrice":2}}}\n';
 
-  function writeStaging(tag = 'v1.30.0'): void {
+  function writeStaging(tag = PIN): void {
     for (const [name, text] of Object.entries(files)) writeFileSync(join(staging, name), text);
     writeFileSync(join(staging, 'llm_pricing.json'), pricing);
     writeFileSync(join(staging, 'SCHEMA.md'), '# schema\n');
@@ -56,7 +58,7 @@ describe('scripts/sync-from-python', () => {
       expect(readFileSync(join(dest, 'contract', name), 'utf8')).toBe(text);
     }
     expect(readFileSync(join(dest, 'src', 'pricing', 'llm_pricing.json'), 'utf8')).toBe(pricing);
-    expect(JSON.parse(readFileSync(join(dest, 'contract', 'MANIFEST.json'), 'utf8')).python_tag).toBe('v1.30.0');
+    expect(JSON.parse(readFileSync(join(dest, 'contract', 'MANIFEST.json'), 'utf8')).python_tag).toBe(PIN);
     expect(readFileSync(join(dest, 'contract', 'SCHEMA.md'), 'utf8')).toBe('# schema\n');
   });
 
@@ -110,7 +112,7 @@ describe('scripts/sync-from-python', () => {
     const { status, out } = run(['--from', staging, '--dest', dest]);
     expect(status).toBe(1);
     expect(out).toMatch(/v1\.29\.0/);
-    expect(out).toMatch(/v1\.30\.0/);
+    expect(out).toContain(PIN);
   });
 
   it('refuses a source whose file does not match its own manifest hash', () => {

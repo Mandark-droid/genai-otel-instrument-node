@@ -146,6 +146,7 @@ describe('profile and content-capture interactions', () => {
  * fails this test, so a bump of the pinned tag cannot add one unnoticed.
  */
 const NOT_READ: Record<string, string> = {
+  CREWAI_DISABLE_TELEMETRY: 'CrewAI is Python-only',
   CREWAI_TELEMETRY_OPT_OUT: 'CrewAI is Python-only',
   ENVIRONMENT: 'read only by the legacy config.setup_tracing(), which instrument() does not use',
   GENAI_DETOXIFY_MODEL_PATH: 'Detoxify is a Python ML backend; toxicity is measured by a scorer the application supplies',
@@ -153,7 +154,10 @@ const NOT_READ: Record<string, string> = {
   HAYSTACK_AUTO_TRACE_ENABLED: 'Haystack is Python-only',
   HF_HUB_OFFLINE: 'Hugging Face model downloads are a Python ML backend concern; no model is downloaded here',
   OTEL_METRICS_EXEMPLAR_FILTER: 'the OpenTelemetry JS SDK records no exemplars, so there is nothing to switch off',
-  OTEL_PYTHON_REQUESTS_EXCLUDED_URLS: 'Python `requests` instrumentation only',
+  OTEL_PROPAGATORS:
+    'Python skips installing its propagator when this is set, because the Python SDK already built one from it at ' +
+    'import; the OpenTelemetry JS API builds none, so instrument() always installs trace context (plus session baggage)',
+  OTEL_PYTHON_REQUESTS_EXCLUDED_URLS:'Python `requests` instrumentation only',
   TRACEVERDE_TELEMETRY: 'anonymous usage reporting is not ported: this SDK makes no call home',
   TRACEVERDE_TELEMETRY_URL: 'anonymous usage reporting is not ported: this SDK makes no call home',
   TRANSFORMERS_OFFLINE: 'Hugging Face model downloads are a Python ML backend concern; no model is downloaded here',
@@ -166,6 +170,7 @@ const READ_OUTSIDE_CONFIG = [
   'OLLAMA_BASE_URL',
   'GENAI_MCP_HASH_SALT',
   'GENAI_OTEL_LOG_LEVEL',
+  'GENAI_OTEL_RESOURCE_HOST_IP',
   'GENAI_SERVICE_INSTANCE_ID_MODE',
   'GENAI_SKIP_COLLECTOR_CHECK',
   'OTEL_ENVIRONMENT',

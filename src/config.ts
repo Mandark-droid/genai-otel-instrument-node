@@ -33,6 +33,14 @@ export interface OTelConfig {
   enableCostTracking: boolean;
   enableMcpInstrumentation: boolean;
   enableHttpInstrumentation: boolean;
+  /** Mirror gen_ai.agent.name into the OpenInference agent.name / graph.node.* attributes. */
+  enableAgentGraphAttributes: boolean;
+  /** Copy session.id / user.id from a session block, or from the parent span, onto every span. */
+  enableSessionPropagation: boolean;
+  /** Which of session.id / user.id this service sends as W3C baggage. */
+  sessionBaggageKeys: string[];
+  /** Which of them it accepts from inbound baggage. */
+  sessionBaggageAccept: string[];
   failOnError: boolean;
   /** Programmatic only. `OTEL_EXPORTER_OTLP_HEADERS` is read by the exporters themselves. */
   headers: Record<string, string> | undefined;
@@ -66,6 +74,12 @@ export interface OTelConfig {
   captureEmbeddingVectors: boolean;
   contentMaxLength: number;
   customPricingJson: string | undefined;
+  /** Keep `openinference.span.kind=LLM` on SystemOne calls (pre-1.38 kind). */
+  decisionLegacyLlmKind: boolean;
+  /** A plain HTTP POST to a decision endpoint becomes a DECISION span. */
+  decisionHttpMatcher: boolean;
+  /** The provider behind a host the library cannot recognise. */
+  decisionProvider: string | undefined;
   enablePiiDetection: boolean;
   piiMode: string;
   piiThreshold: number;
@@ -90,6 +104,22 @@ export interface OTelConfig {
   restrictedTopicsBlockOnDetection: boolean;
   enableHallucinationDetection: boolean;
   hallucinationThreshold: number;
+  /** Where the detectors run once a call has returned: `background` or `inline`. */
+  evaluationMode: string;
+  /** Spans that may wait for the detectors at once; at least 1. */
+  evaluationQueueSize: number;
+  /** Characters of prompt / response the detectors analyse. 0 = no limit. */
+  evaluationMaxChars: number;
+  /** Characters at the end of a prompt the toxicity detector analyses. 0 = no limit of its own. */
+  toxicityMaxChars: number;
+  /** Seconds given to detectors still running at shutdown; 0 to 3600. */
+  evaluationShutdownTimeout: number;
+  /** Results each detector remembers. 0 = none. */
+  evaluationCacheSize: number;
+  /** Run the local toxicity model with 8-bit weights (Python backend). */
+  toxicityQuantize: boolean;
+  /** Threads for the local toxicity model (Python backend); undefined = unset. */
+  toxicityTorchThreads: number | undefined;
   mediaCaptureMode: string;
   mediaStore: string;
   mediaStoreEndpoint: string | undefined;
@@ -116,6 +146,7 @@ export interface OTelConfig {
  */
 export const DEFAULT_INSTRUMENTORS: readonly string[] = Object.freeze([
   'openai',
+  'databricks',
   'openrouter',
   'cometapi',
   'anthropic',
@@ -131,6 +162,7 @@ export const DEFAULT_INSTRUMENTORS: readonly string[] = Object.freeze([
   'ollama',
   'vllm',
   'vertexai',
+  'xai_sdk',
   'replicate',
   'anyscale',
   'sambanova',
@@ -152,10 +184,14 @@ export const DEFAULT_INSTRUMENTORS: readonly string[] = Object.freeze([
   'smolagents',
   'litellm',
   'typesafe',
+  'claude_agent_sdk',
+  'agno',
+  'microsoft_agent_framework',
+  'strands_agents',
 ]);
 
 /** Opt-in only in the Python library; listed so an explicit request is recognised. */
-export const OPT_IN_INSTRUMENTORS: readonly string[] = Object.freeze(['litellm_latency', 'strands']);
+export const OPT_IN_INSTRUMENTORS: readonly string[] = Object.freeze(['litellm_latency', 'strands', 'antigravity']);
 
 export const OTEL_GENAI_CAPTURE_MESSAGE_CONTENT = 'OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT';
 
@@ -169,6 +205,28 @@ export const CONTENT_CAPTURE_MODES: Readonly<Record<string, boolean>> = Object.f
 
 /** `GENAI_PROFILE` values that lock the deployment down. */
 export const HARDENED_PROFILES: ReadonlySet<string> = new Set(['strict', 'bfsi', 'bank']);
+
+/** `EVALUATION_MODES`: detectors on a worker after the call returns, or before it returns. */
+export const EVALUATION_MODE_BACKGROUND = 'background';
+export const EVALUATION_MODE_INLINE = 'inline';
+export const EVALUATION_MODES: readonly string[] = Object.freeze([EVALUATION_MODE_BACKGROUND, EVALUATION_MODE_INLINE]);
+export const DEFAULT_EVALUATION_QUEUE_SIZE = 1000;
+export const DEFAULT_EVALUATION_MAX_CHARS = 1500;
+/** The local toxicity model is the slowest detector by far, so it reads less. */
+export const DEFAULT_TOXICITY_MAX_CHARS = 500;
+export const DEFAULT_EVALUATION_SHUTDOWN_TIMEOUT = 5.0;
+export const MAX_EVALUATION_SHUTDOWN_TIMEOUT = 3600.0;
+export const DEFAULT_EVALUATION_CACHE_SIZE = 256;
+
+/** The ids that may cross a process boundary as baggage, in the order they are reported. */
+export const SESSION_BAGGAGE_KEYS: readonly string[] = Object.freeze(['session.id', 'user.id']);
+
+/** `parse_baggage_keys()`: unset or empty means none; unknown names (case-sensitive) are ignored. */
+export function parseSessionBaggageKeys(raw: string | undefined): string[] {
+  if (!raw) return [];
+  const keys = new Set(raw.split(',').map((key) => key.trim()));
+  return SESSION_BAGGAGE_KEYS.filter((key) => keys.has(key));
+}
 
 const PY_FLOAT = /^[+-]?(?:\d+(?:_\d+)*\.?(?:\d+(?:_\d+)*)?|\.\d+(?:_\d+)*)(?:[eE][+-]?\d+(?:_\d+)*)?$/;
 const PY_FLOAT_SPECIAL = /^([+-]?)(?:inf(?:inity)?|(nan))$/i;
@@ -211,7 +269,21 @@ export type ConfigFieldKind =
   /** `_get_exporter_timeout()` - int, warns and falls back to 60 on garbage */
   | 'int_timeout'
   /** `_get_enabled_instrumentors()` */
-  | 'instrumentors';
+  | 'instrumentors'
+  /** `os.getenv(X, default).strip().lower() != "false"` */
+  | 'bool_not_false'
+  /** `(os.getenv(X) or "").strip() or None` */
+  | 'opt_str_strip'
+  /** `_parse_session_baggage_keys(os.getenv(X))` */
+  | 'baggage_keys'
+  /** `_number_from_env(X, default)` - int; blank or garbage warns and falls back to the default */
+  | 'int_or_default'
+  /** `_number_from_env(X, default, float)` */
+  | 'float_or_default'
+  /** `_characters_from_env(X)` - int, undefined when unset or garbage (the default is filled in later) */
+  | 'opt_int'
+  /** `_positive_count(os.getenv(X))` - an int of one or more, else undefined */
+  | 'positive_count';
 
 export interface ConfigField {
   readonly field: keyof OTelConfig;
@@ -233,6 +305,10 @@ export const CONFIG_FIELDS: readonly ConfigField[] = Object.freeze([
   f('enableCostTracking', 'GENAI_ENABLE_COST_TRACKING', 'bool', 'true'),
   f('enableMcpInstrumentation', 'GENAI_ENABLE_MCP_INSTRUMENTATION', 'bool', 'true'),
   f('enableHttpInstrumentation', 'GENAI_ENABLE_HTTP_INSTRUMENTATION', 'bool', 'false'),
+  f('enableAgentGraphAttributes', 'GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES', 'bool', 'true'),
+  f('enableSessionPropagation', 'GENAI_ENABLE_SESSION_PROPAGATION', 'bool', 'true'),
+  f('sessionBaggageKeys', 'GENAI_SESSION_BAGGAGE_KEYS', 'baggage_keys'),
+  f('sessionBaggageAccept', 'GENAI_SESSION_BAGGAGE_ACCEPT', 'baggage_keys'),
   f('failOnError', 'GENAI_FAIL_ON_ERROR', 'bool', 'false'),
   f('enableCo2Tracking', 'GENAI_ENABLE_CO2_TRACKING', 'bool', 'false'),
   f('exporterTimeout', 'OTEL_EXPORTER_OTLP_TIMEOUT', 'int_timeout', '60'),
@@ -264,6 +340,9 @@ export const CONFIG_FIELDS: readonly ConfigField[] = Object.freeze([
   f('captureEmbeddingVectors', 'GENAI_CAPTURE_EMBEDDING_VECTORS', 'bool_strip', 'false'),
   f('contentMaxLength', 'GENAI_CONTENT_MAX_LENGTH', 'int', '200'),
   f('customPricingJson', 'GENAI_CUSTOM_PRICING_JSON', 'opt_str'),
+  f('decisionLegacyLlmKind', 'GENAI_DECISION_LEGACY_LLM_KIND', 'bool_strip', 'false'),
+  f('decisionHttpMatcher', 'GENAI_DECISION_HTTP_MATCHER', 'bool_not_false', 'true'),
+  f('decisionProvider', 'GENAI_DECISION_PROVIDER', 'opt_str_strip'),
   f('enablePiiDetection', 'GENAI_ENABLE_PII_DETECTION', 'bool', 'false'),
   f('piiMode', 'GENAI_PII_MODE', 'str', 'detect'),
   f('piiThreshold', 'GENAI_PII_THRESHOLD', 'float', '0.5'),
@@ -286,6 +365,20 @@ export const CONFIG_FIELDS: readonly ConfigField[] = Object.freeze([
   f('restrictedTopicsBlockOnDetection', 'GENAI_RESTRICTED_TOPICS_BLOCK_ON_DETECTION', 'bool', 'false'),
   f('enableHallucinationDetection', 'GENAI_ENABLE_HALLUCINATION_DETECTION', 'bool', 'false'),
   f('hallucinationThreshold', 'GENAI_HALLUCINATION_THRESHOLD', 'float', '0.6'),
+  // Normalised together once the options are applied, see normaliseEvaluation.
+  f('evaluationMode', 'GENAI_EVALUATION_MODE', 'str', EVALUATION_MODE_BACKGROUND),
+  f('evaluationQueueSize', 'GENAI_EVALUATION_QUEUE_SIZE', 'int_or_default', String(DEFAULT_EVALUATION_QUEUE_SIZE)),
+  f('evaluationMaxChars', 'GENAI_EVALUATION_MAX_CHARS', 'opt_int'),
+  f('toxicityMaxChars', 'GENAI_TOXICITY_MAX_CHARS', 'opt_int'),
+  f(
+    'evaluationShutdownTimeout',
+    'GENAI_EVALUATION_SHUTDOWN_TIMEOUT',
+    'float_or_default',
+    String(DEFAULT_EVALUATION_SHUTDOWN_TIMEOUT),
+  ),
+  f('evaluationCacheSize', 'GENAI_EVALUATION_CACHE_SIZE', 'int_or_default', String(DEFAULT_EVALUATION_CACHE_SIZE)),
+  f('toxicityQuantize', 'GENAI_TOXICITY_QUANTIZE', 'bool_strip', 'false'),
+  f('toxicityTorchThreads', 'GENAI_TOXICITY_TORCH_THREADS', 'positive_count'),
   f('mediaCaptureMode', 'GENAI_OTEL_MEDIA_CAPTURE_MODE', 'str', 'off'),
   f('mediaStore', 'GENAI_OTEL_MEDIA_STORE', 'str', 'none'),
   f('mediaStoreEndpoint', 'GENAI_OTEL_MEDIA_STORE_ENDPOINT', 'opt_str'),
@@ -313,6 +406,117 @@ function contentCaptureFromEnv(env: Env): boolean {
     return false;
   }
   return (env.GENAI_ENABLE_CONTENT_CAPTURE ?? 'false').trim().toLowerCase() === 'true';
+}
+
+/** `_number_from_env()`: blank means the default; garbage warns and means the default. */
+function numberOrDefault(field: ConfigField, raw: string | undefined, parse: (raw: string) => number): number {
+  const fallback = parse(field.default ?? '0');
+  if (raw === undefined || !raw.trim()) return fallback;
+  try {
+    return parse(raw.trim());
+  } catch {
+    logger.warn(`Invalid value '${raw}' in ${field.env}. Using default of ${field.default ?? ''}.`);
+    return fallback;
+  }
+}
+
+/** Python `int(x)`: a number truncates; NaN, infinity and a non-numeric string cannot be converted. */
+function pyIntOf(value: unknown): number | undefined {
+  if (typeof value === 'boolean') return value ? 1 : 0;
+  if (typeof value === 'number') return Number.isFinite(value) ? Math.trunc(value) : undefined;
+  if (typeof value === 'string') {
+    try {
+      return pyInt(value);
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+/** `_positive_count()`: a whole number of one or more, else undefined. */
+function positiveCount(value: unknown): number | undefined {
+  if (value === undefined || value === null || typeof value === 'boolean') return undefined;
+  const count = typeof value === 'string' ? pyIntOf(value) : value;
+  return typeof count === 'number' && Number.isInteger(count) && count > 0 ? count : undefined;
+}
+
+/** `_evaluation_mode()`: an unknown mode warns and becomes the default. */
+function evaluationMode(value: unknown): string {
+  const mode = String(value ?? '').trim().toLowerCase();
+  if (EVALUATION_MODES.includes(mode)) return mode;
+  if (mode) {
+    logger.warn(
+      `${mode} is not a valid option for \`GENAI_EVALUATION_MODE\`. Must be one of ${EVALUATION_MODES.join(', ')}. ` +
+        `Defaulting to ${EVALUATION_MODE_BACKGROUND}.`,
+    );
+  }
+  return EVALUATION_MODE_BACKGROUND;
+}
+
+/** `_evaluation_shutdown_timeout()`: zero or more finite seconds, capped. */
+function evaluationShutdownTimeout(value: unknown): number {
+  let seconds = Number.NaN;
+  if (typeof value === 'number') seconds = value;
+  else if (typeof value === 'boolean') seconds = value ? 1 : 0;
+  else if (typeof value === 'string') {
+    try {
+      seconds = pyFloat(value);
+    } catch {
+      seconds = Number.NaN;
+    }
+  }
+  // Written so that NaN, which compares false with everything, fails it.
+  if (!(seconds >= 0 && seconds < Infinity)) {
+    logger.warn(
+      `Invalid value '${String(value)}' in GENAI_EVALUATION_SHUTDOWN_TIMEOUT: it must be a number of seconds, ` +
+        `zero or more. Using default of ${DEFAULT_EVALUATION_SHUTDOWN_TIMEOUT}.`,
+    );
+    return DEFAULT_EVALUATION_SHUTDOWN_TIMEOUT;
+  }
+  if (seconds > MAX_EVALUATION_SHUTDOWN_TIMEOUT) {
+    logger.warn(
+      `GENAI_EVALUATION_SHUTDOWN_TIMEOUT of ${String(value)} seconds is more than the ` +
+        `${MAX_EVALUATION_SHUTDOWN_TIMEOUT} allowed. Using ${MAX_EVALUATION_SHUTDOWN_TIMEOUT}.`,
+    );
+    return MAX_EVALUATION_SHUTDOWN_TIMEOUT;
+  }
+  return seconds;
+}
+
+/** `_evaluation_cache_size()`: not a count means the default; negative means none. */
+function evaluationCacheSize(value: unknown): number {
+  if (typeof value === 'boolean') return DEFAULT_EVALUATION_CACHE_SIZE;
+  const size = pyIntOf(value);
+  if (size === undefined) {
+    logger.warn(
+      `Invalid value '${String(value)}' in GENAI_EVALUATION_CACHE_SIZE. Using default of ${DEFAULT_EVALUATION_CACHE_SIZE}.`,
+    );
+    return DEFAULT_EVALUATION_CACHE_SIZE;
+  }
+  return Math.max(0, size);
+}
+
+/** `_characters()`: the default when not set, never negative. */
+function characters(value: unknown, fallback: number): number {
+  if (value === undefined || value === null) return fallback;
+  return Math.max(0, pyIntOf(value) ?? fallback);
+}
+
+/**
+ * The evaluation half of `OTelConfig.__post_init__`: whether a value came from
+ * the environment or as an option, it is made safe to read once, here. Under a
+ * hardened profile the detectors read everything unless a limit was set.
+ */
+function normaliseEvaluation(config: OTelConfig, hardened: boolean): void {
+  config.evaluationMode = evaluationMode(config.evaluationMode);
+  config.evaluationQueueSize = Math.max(1, pyIntOf(config.evaluationQueueSize) ?? DEFAULT_EVALUATION_QUEUE_SIZE);
+  config.evaluationMaxChars = characters(config.evaluationMaxChars, hardened ? 0 : DEFAULT_EVALUATION_MAX_CHARS);
+  config.toxicityMaxChars = characters(config.toxicityMaxChars, hardened ? 0 : DEFAULT_TOXICITY_MAX_CHARS);
+  config.evaluationShutdownTimeout = evaluationShutdownTimeout(config.evaluationShutdownTimeout);
+  config.evaluationCacheSize = evaluationCacheSize(config.evaluationCacheSize);
+  config.toxicityQuantize = Boolean(config.toxicityQuantize);
+  config.toxicityTorchThreads = positiveCount(config.toxicityTorchThreads);
 }
 
 function numberField(field: ConfigField, raw: string, parse: (raw: string) => number): number {
@@ -361,6 +565,27 @@ export function parseConfigField(field: ConfigField, env: Env): OTelConfig[keyof
       // An empty string is falsy in Python, so it means "the default list" too.
       if (raw) return raw.split(',').map((name) => name.trim());
       return [...DEFAULT_INSTRUMENTORS];
+    case 'bool_not_false':
+      return withDefault.trim().toLowerCase() !== 'false';
+    case 'opt_str_strip':
+      return (raw ?? '').trim() || undefined;
+    case 'baggage_keys':
+      return parseSessionBaggageKeys(raw);
+    case 'int_or_default':
+      return numberOrDefault(field, raw, pyInt);
+    case 'float_or_default':
+      return numberOrDefault(field, raw, pyFloat);
+    case 'opt_int':
+      // `_characters_from_env()`: "not set" stays apart from the default, which depends on the profile.
+      if (raw === undefined || !raw.trim()) return undefined;
+      try {
+        return pyInt(raw);
+      } catch {
+        logger.warn(`Invalid value '${raw}' in ${field.env}. Using the default.`);
+        return undefined;
+      }
+    case 'positive_count':
+      return positiveCount(raw);
   }
 }
 
@@ -386,8 +611,10 @@ export function loadConfig(overrides: Partial<OTelConfig> = {}, env: Env = ambie
     if (overrides[key] !== undefined) values[key] = overrides[key];
   }
   const config = values as unknown as OTelConfig;
+  const hardened = HARDENED_PROFILES.has(config.profile);
+  normaliseEvaluation(config, hardened);
 
-  if (HARDENED_PROFILES.has(config.profile)) {
+  if (hardened) {
     // Hard overrides: no third-party egress, no runtime downloads.
     config.allowExternalEgress = false;
     config.airGapped = true;

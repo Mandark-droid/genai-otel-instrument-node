@@ -22,6 +22,7 @@
           "sexual_orientation"
         ],
         "block_on_detection": false,
+        "cache_size": 256,
         "check_prompts": true,
         "check_responses": true,
         "enabled": false,
@@ -438,6 +439,7 @@
         ]
       },
       "config_defaults": {
+        "cache_size": 256,
         "check_citations": true,
         "check_hedging": true,
         "enabled": false,
@@ -476,8 +478,8 @@
           {
             "flags": "IGNORECASE",
             "has_non_ascii": false,
-            "regex": "\\$?\\d+(?:,\\d{3})*(?:\\.\\d+)?\\s*(?:million|billion|trillion|thousand)\\b",
-            "uses_lookaround_or_backreference": false
+            "regex": "\\$?(?<!\\d)(?!(?<=\\d,)\\d{3}(?!\\d))\\d+(?:,\\d{3})*(?:\\.\\d+)?\\s*(?:million|billion|trillion|thousand)\\b",
+            "uses_lookaround_or_backreference": true
           },
           {
             "flags": "IGNORECASE",
@@ -548,7 +550,7 @@
             "\\bimpossible\\b",
             "\\bfalse\\b"
           ],
-          "number_pattern": "(\\w+)\\s+(?:is|are|was|were|reached?)\\s+(?:exactly|approximately|about)?\\s*(\\d+(?:,\\d{3})*(?:\\.\\d+)?(?:\\s*(?:million|billion|thousand))?)"
+          "number_pattern": "(\\w+)\\s+(?:is|are|was|were|reached?)\\s+(?:(?:exactly|approximately|about)\\s*)?(\\d+(?:,\\d{3})*(?:\\.\\d+)?(?:\\s*(?:million|billion|thousand))?)"
         },
         "_check_internal_contradiction": {
           "contradiction_markers": [
@@ -579,6 +581,7 @@
       "config_defaults": {
         "air_gapped": false,
         "allow_list": null,
+        "cache_size": 256,
         "content_max_length": 200,
         "custom_patterns": null,
         "enabled": false,
@@ -658,7 +661,7 @@
           "entity_type": "EMAIL_ADDRESS",
           "flags": "none",
           "has_non_ascii": false,
-          "regex": "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b",
+          "regex": "\\b[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b",
           "score": 0.9,
           "uses_lookaround_or_backreference": false
         },
@@ -714,7 +717,7 @@
           "entity_type": "IN_UPI",
           "flags": "none",
           "has_non_ascii": false,
-          "regex": "\\b[\\w.+-]+@(?:ok(?:hdfcbank|axis|icici|sbi|bizaxis)|paytm|ybl|upi|apl|ibl|axl|barodampay|mahb|cnrb|pnb|sib|federal|kotak|indus|citi|rbl|idbi|aubank|dlb|kvb|csbpay|idfcfirst|freecharge|slice|jupiter|fi|gpay|oksbi)\\b",
+          "regex": "\\b[\\w.+-]{1,256}@(?:ok(?:hdfcbank|axis|icici|sbi|bizaxis)|paytm|ybl|upi|apl|ibl|axl|barodampay|mahb|cnrb|pnb|sib|federal|kotak|indus|citi|rbl|idbi|aubank|dlb|kvb|csbpay|idfcfirst|freecharge|slice|jupiter|fi|gpay|oksbi)\\b",
           "score": 0.9,
           "uses_lookaround_or_backreference": false
         },
@@ -742,7 +745,7 @@
         "block"
       ],
       "rule_based": true,
-      "rule_based_path": "PIIDetector._fallback_detection (used when Presidio is absent)",
+      "rule_based_path": "PIIDetector._fallback_detection -> _scan_patterns (used when Presidio is absent)",
       "threshold_when_configured_from_environment": 0.5
     },
     "prompt_injection": {
@@ -754,6 +757,7 @@
       ],
       "config_defaults": {
         "block_on_detection": false,
+        "cache_size": 256,
         "check_patterns": true,
         "enabled": false,
         "log_attempts": true,
@@ -774,14 +778,14 @@
             {
               "flags": "IGNORECASE",
               "has_non_ascii": false,
-              "regex": "---+\\s*(?:end|stop|ignore)",
-              "uses_lookaround_or_backreference": false
+              "regex": "---(?<!----)-*\\s*(?:end|stop|ignore)",
+              "uses_lookaround_or_backreference": true
             },
             {
               "flags": "IGNORECASE",
               "has_non_ascii": false,
-              "regex": "```+\\s*(?:end|stop)",
-              "uses_lookaround_or_backreference": false
+              "regex": "```(?<!````)`*\\s*(?:end|stop)",
+              "uses_lookaround_or_backreference": true
             },
             {
               "flags": "IGNORECASE",
@@ -1025,6 +1029,7 @@
       ],
       "config_defaults": {
         "block_on_detection": false,
+        "cache_size": 256,
         "enabled": false,
         "restricted_topics": null,
         "threshold": 0.5
@@ -1069,7 +1074,7 @@
             {
               "flags": "IGNORECASE",
               "has_non_ascii": false,
-              "regex": "(?:you|we)\\s+should\\s+(?:definitely|absolutely)?\\s*(?:buy|sell|invest\\s+in|trade)\\s+(?:these\\s+)?(?:stocks?|crypto|bitcoin)",
+              "regex": "(?:you|we)\\s+should\\s+(?:(?:definitely|absolutely)\\s*)?(?:buy|sell|invest\\s+in|trade)\\s+(?:these\\s+)?(?:stocks?|crypto|bitcoin)",
               "uses_lookaround_or_backreference": false
             },
             {
@@ -1384,6 +1389,7 @@
         "allow_external_egress": true,
         "api_timeout": 30,
         "block_on_detection": false,
+        "cache_size": 256,
         "categories": [
           "identity_attack",
           "insult",
@@ -1394,7 +1400,9 @@
         ],
         "enabled": false,
         "perspective_api_key": null,
+        "quantize": false,
         "threshold": 0.7,
+        "torch_threads": null,
         "use_local_model": true,
         "use_perspective_api": false
       },
@@ -1424,7 +1432,7 @@
       "threshold_when_configured_from_environment": 0.7
     }
   },
-  "extraction": "mixed. Pattern tables, word lists and config defaults are RUNTIME (class attributes and dataclass instances of the imported library). PII fallback regexes, scoring constants, the toxicity category maps, the bias substitutions and hallucination `inline_rule_data` are STATIC (read with ast from literals inside the detector methods, because they are locals). `algorithm` is prose written by hand from the source; eval_vectors.json is what verifies a port, not the prose.",
+  "extraction": "mixed. Pattern tables, word lists and config defaults are RUNTIME (class attributes and dataclass instances of the imported library). PII fallback regexes, scoring constants, the toxicity category maps, the bias substitutions and hallucination `inline_rule_data` are STATIC (read with ast from literals inside the detector methods, because they are locals), except the two `number_pattern`s, read at runtime from module-level compiled regexes. `algorithm` is prose written by hand from the source; eval_vectors.json is what verifies a port, not the prose.",
   "regex_dialect": {
     "engine": "Python `re`",
     "flag_IGNORECASE": "Unicode-aware case-insensitive matching",

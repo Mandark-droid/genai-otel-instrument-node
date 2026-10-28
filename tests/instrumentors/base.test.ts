@@ -19,6 +19,7 @@ import {
   type UsageDict,
 } from '../../src/instrumentors/base';
 import { extractBudgetAttributes } from '../../src/agent-budget';
+import { CostCalculator, getDefaultCostCalculator } from '../../src/cost';
 import { startHarness, type Harness } from '../helpers/harness';
 
 class TestInstrumentor extends BaseInstrumentor {
@@ -400,7 +401,12 @@ describe('the span wrapper, on call shapes other than an SDK promise', () => {
   });
 
   it('a pricing-table entry the calculator cannot price is counted as pricing missing, and the call is unharmed', async () => {
-    // One of the 13 shipped entries in the wrong shape: the calculator raises on it.
+    // The shipped table has no entry in the wrong shape since v1.46 (a bare image price is a flat
+    // price per image now), so the calculator is given one it raises on.
+    const pricing = getDefaultCostCalculator().pricingData;
+    (instrumentor as unknown as { costCalculator: CostCalculator }).costCalculator = new CostCalculator({
+      pricingData: { ...pricing, images: { ...(pricing.images as object), 'bad/image-model': 'cheap' } },
+    });
     const extract: AttributeExtractor = (_instance, _args, params) => ({
       'gen_ai.system': 'test',
       'gen_ai.request.model': params.model,
@@ -408,12 +414,12 @@ describe('the span wrapper, on call shapes other than an SDK promise', () => {
     });
     instrumentor.usage = { size: '1024x1024', n: 1 };
     const wrapped = instrumentor.wrap('test.image', (_params: { model: string }) => 'image', extract);
-    expect(wrapped({ model: 'recraft/recraftv3' })).toBe('image');
+    expect(wrapped({ model: 'bad/image-model' })).toBe('image');
     const span = harness.span('test.image');
     expect(span.status.code).toBe(SpanStatusCode.OK);
     expect('gen_ai.usage.cost.total' in span.attributes).toBe(false);
     expect((await harness.metric('gen_ai.usage.cost.pricing_missing'))?.points).toEqual([
-      { attributes: { model: 'recraft/recraftv3', call_type: 'image' }, value: 1 },
+      { attributes: { model: 'bad/image-model', call_type: 'image' }, value: 1 },
     ]);
     expect(harness.logs.warn.some((line) => line.includes('Failed to calculate cost'))).toBe(true);
   });

@@ -12,6 +12,7 @@
  */
 import { logger } from '../logger';
 import { findIter, pyEscape, pySplit, pyStrip, search, sliceCodePoints } from './pyre';
+import { ResultCache } from './result-cache';
 import { EVAL_RULES_DATA } from './rules.generated';
 
 interface PatternEntry {
@@ -65,6 +66,8 @@ export interface PIIConfig {
   airGapped: boolean;
   /** Upper bound for redacted text, in characters; 0 is unlimited. */
   contentMaxLength: number;
+  /** Detection results kept in memory, keyed by a digest of the analysed text; 0 keeps none. `GENAI_EVALUATION_CACHE_SIZE`. */
+  cacheSize: number;
 }
 
 export interface PIIEntity {
@@ -85,6 +88,12 @@ export interface PIIDetectionResult {
   originalText: string | null;
   score: number;
   blocked: boolean;
+  /**
+   * Characters at the end of the text that a NER model read, when it was
+   * limited to part of it; null when it read all of it. The pattern path
+   * always covers the whole text, so here it is always null.
+   */
+  modelAnalyzedLength: number | null;
 }
 
 function piiDefaults(): PIIConfig {
@@ -102,11 +111,16 @@ function piiDefaults(): PIIConfig {
     allowList: d.allow_list,
     airGapped: d.air_gapped,
     contentMaxLength: d.content_max_length,
+    cacheSize: d.cache_size,
   };
 }
 
+/** What the PII cache keeps: where things were found, not what they were. */
+type RememberedPII = Omit<PIIDetectionResult, 'entities' | 'redactedText' | 'originalText'> & { entities: Omit<PIIEntity, 'text'>[] };
+
 export class PIIDetector {
   readonly config: PIIConfig;
+  private readonly cache: ResultCache<RememberedPII>;
 
   constructor(config: Partial<PIIConfig> = {}) {
     const merged = { ...piiDefaults(), ...config };
@@ -118,6 +132,7 @@ export class PIIDetector {
     if (merged.pciDssMode) for (const type of ['CREDIT_CARD', 'US_BANK_NUMBER']) types.add(type);
     merged.entityTypes = [...types];
     this.config = merged;
+    this.cache = new ResultCache(merged.cacheSize);
   }
 
   /** Whether a model backs the detector. The pattern path does not count: this is the reference's meaning. */
@@ -126,8 +141,50 @@ export class PIIDetector {
   }
 
   detect(text: string): PIIDetectionResult {
-    if (!this.config.enabled) return { hasPii: false, entities: [], entityCounts: {}, redactedText: null, originalText: text, score: 0.0, blocked: false };
+    if (!this.config.enabled) {
+      return { hasPii: false, entities: [], entityCounts: {}, redactedText: null, originalText: text, score: 0.0, blocked: false, modelAnalyzedLength: null };
+    }
+    const key = this.cacheKey(text);
+    const cached = this.cache.get(key);
+    if (cached !== undefined) return this.remembered(cached, text);
+    const result = this.analyse(text);
+    this.cache.put(key, {
+      ...result,
+      entities: result.entities.map(({ type, start, end, score }) => ({ type, start, end, score })),
+      entityCounts: { ...result.entityCounts },
+    });
+    return result;
+  }
 
+  /** The key for a result: the text and every setting the result depends on. */
+  private cacheKey(text: string): string | undefined {
+    if (!this.cache.enabled) return undefined;
+    const c = this.config;
+    return this.cache.key(
+      text,
+      c.mode,
+      c.threshold,
+      new Set(c.entityTypes),
+      [...(c.allowList ?? [])],
+      c.customPatterns && Object.keys(c.customPatterns).length > 0 ? JSON.stringify(c.customPatterns) : '',
+      c.redactionChar,
+      c.contentMaxLength,
+    );
+  }
+
+  /** A cached entry made whole again for `text`, the text it was computed from. */
+  private remembered(cached: RememberedPII, text: string): PIIDetectionResult {
+    const entities = cached.entities.map((entity) => ({ ...entity, text: sliceCodePoints(text, entity.start, entity.end) }));
+    return {
+      ...cached,
+      entities,
+      entityCounts: { ...cached.entityCounts },
+      redactedText: this.config.mode === 'redact' && cached.hasPii ? this.redact(text, entities) : null,
+      originalText: cached.hasPii && this.config.mode !== 'detect' ? null : text,
+    };
+  }
+
+  private analyse(text: string): PIIDetectionResult {
     const entities: PIIEntity[] = [];
     const entityCounts: Record<string, number> = {};
     const add = (type: string, pattern: string, score: number): void => {
@@ -146,27 +203,30 @@ export class PIIDetector {
 
     const hasPii = entities.length > 0;
     const { mode } = this.config;
-    let redactedText: string | null = null;
-    if (mode === 'redact' && hasPii) {
-      let points = Array.from(text);
-      // By start, descending; equal starts keep their order, as Python's stable sort does.
-      const ordered = entities.map((entity, index) => ({ entity, index })).sort((a, b) => b.entity.start - a.entity.start || a.index - b.index);
-      for (const { entity } of ordered) {
-        const replacement = Array.from(this.config.redactionChar.repeat(entity.end - entity.start));
-        points = [...points.slice(0, entity.start), ...replacement, ...points.slice(entity.end)];
-      }
-      redactedText = points.join('');
-      if (this.config.contentMaxLength > 0) redactedText = sliceCodePoints(redactedText, 0, this.config.contentMaxLength);
-    }
     return {
       hasPii,
       entities,
       entityCounts,
-      redactedText,
+      redactedText: mode === 'redact' && hasPii ? this.redact(text, entities) : null,
       originalText: hasPii && mode !== 'detect' ? null : text,
       score: maxOf(entities.map((entity) => entity.score)),
       blocked: mode === 'block' && hasPii,
+      // The patterns read the whole text: there is no model here to limit.
+      modelAnalyzedLength: null,
     };
+  }
+
+  /** Each finding replaced by the redaction character, then capped at `contentMaxLength`. */
+  private redact(text: string, entities: readonly PIIEntity[]): string {
+    let points = Array.from(text);
+    // By start, descending; equal starts keep their order, as Python's stable sort does.
+    const ordered = entities.map((entity, index) => ({ entity, index })).sort((a, b) => b.entity.start - a.entity.start || a.index - b.index);
+    for (const { entity } of ordered) {
+      const replacement = Array.from(this.config.redactionChar.repeat(entity.end - entity.start));
+      points = [...points.slice(0, entity.start), ...replacement, ...points.slice(entity.end)];
+    }
+    const redacted = points.join('');
+    return this.config.contentMaxLength > 0 ? sliceCodePoints(redacted, 0, this.config.contentMaxLength) : redacted;
   }
 }
 
@@ -183,6 +243,17 @@ export interface ToxicityConfig {
   airGapped: boolean;
   allowExternalEgress: boolean;
   apiTimeout: number;
+  /**
+   * The reference runs its local model (Detoxify) with 8-bit weights when set.
+   * There is no local model here: it is kept for a scorer to honour, and a
+   * result measured under one setting is never answered under the other.
+   * `GENAI_TOXICITY_QUANTIZE`.
+   */
+  quantize: boolean;
+  /** Threads the reference's local model (torch) may use; null leaves it to the application. Kept for a scorer. `GENAI_TOXICITY_TORCH_THREADS`. */
+  torchThreads: number | null;
+  /** Detection results kept in memory, keyed by a digest of the analysed text; 0 keeps none. `GENAI_EVALUATION_CACHE_SIZE`. */
+  cacheSize: number;
 }
 
 export interface ToxicityDetectionResult {
@@ -215,7 +286,15 @@ function toxicityDefaults(): ToxicityConfig {
     airGapped: d.air_gapped,
     allowExternalEgress: d.allow_external_egress,
     apiTimeout: d.api_timeout,
+    quantize: d.quantize,
+    torchThreads: d.torch_threads,
+    cacheSize: d.cache_size,
   };
+}
+
+/** A positive whole number of threads, else null: the reference's `_positive_int_from_env`. */
+function positiveIntOrNull(value: unknown): number | null {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : null;
 }
 
 /**
@@ -228,11 +307,15 @@ function toxicityDefaults(): ToxicityConfig {
 export class ToxicityDetector {
   readonly config: ToxicityConfig;
   private readonly scorer: ToxicityScorer | undefined;
+  private readonly cache: ResultCache<ToxicityDetectionResult>;
 
   constructor(config: Partial<ToxicityConfig> = {}, scorer?: ToxicityScorer) {
     this.config = { ...toxicityDefaults(), ...config };
     if (!(this.config.threshold >= 0.0 && this.config.threshold <= 1.0)) throw new RangeError('threshold must be between 0.0 and 1.0');
+    this.config.quantize = this.config.quantize === true;
+    this.config.torchThreads = positiveIntOrNull(this.config.torchThreads);
     this.scorer = scorer;
+    this.cache = new ResultCache(this.config.cacheSize);
   }
 
   isAvailable(): boolean {
@@ -269,21 +352,40 @@ export class ToxicityDetector {
   score(text: string): ToxicityDetectionResult | undefined | Promise<ToxicityDetectionResult | undefined> {
     if (!this.config.enabled || !this.scorer) return undefined;
     try {
+      const key = this.cacheKey(text);
+      const cached = this.cache.get(key);
+      if (cached !== undefined) return { ...cached, originalText: text };
       const measured = this.scorer(text, this.config.categories);
       if (isPromiseLike(measured)) {
         return Promise.resolve(measured).then(
-          (scores) => this.resultOf(text, scores),
+          (scores) => this.remember(key, this.resultOf(text, scores)),
           (error: unknown) => {
             logger.error(`Error detecting toxicity: ${String(error)}`);
             return undefined;
           },
         );
       }
-      return this.resultOf(text, measured);
+      return this.remember(key, this.resultOf(text, measured));
     } catch (error) {
       logger.error(`Error detecting toxicity: ${String(error)}`);
       return undefined;
     }
+  }
+
+  /** The key for a result: the text and every setting the result depends on. */
+  private cacheKey(text: string): string | undefined {
+    if (!this.cache.enabled) return undefined;
+    const c = this.config;
+    return this.cache.key(text, c.quantize === true, c.threshold, new Set(c.categories), c.blockOnDetection === true);
+  }
+
+  /**
+   * Keeps a result that has scores, without its text. A scorer that failed or
+   * answered with no scores is not remembered: it is asked again next time.
+   */
+  private remember(key: string | undefined, result: ToxicityDetectionResult | undefined): ToxicityDetectionResult | undefined {
+    if (result && Object.keys(result.scores).length > 0) this.cache.put(key, { ...result, originalText: null });
+    return result;
   }
 
   private resultOf(text: string, measured: ToxicityScores): ToxicityDetectionResult | undefined {
@@ -314,6 +416,8 @@ export interface BiasConfig {
   checkPrompts: boolean;
   checkResponses: boolean;
   blockOnDetection: boolean;
+  /** Detection results kept in memory, keyed by a digest of the analysed text; 0 keeps none. `GENAI_EVALUATION_CACHE_SIZE`. */
+  cacheSize: number;
 }
 
 export interface BiasDetectionResult {
@@ -336,15 +440,18 @@ function biasDefaults(): BiasConfig {
     checkPrompts: d.check_prompts,
     checkResponses: d.check_responses,
     blockOnDetection: d.block_on_detection,
+    cacheSize: d.cache_size,
   };
 }
 
 export class BiasDetector {
   readonly config: BiasConfig;
+  private readonly cache: ResultCache<BiasDetectionResult>;
 
   constructor(config: Partial<BiasConfig> = {}) {
     this.config = { ...biasDefaults(), ...config };
     if (!(this.config.threshold >= 0.0 && this.config.threshold <= 1.0)) throw new RangeError('threshold must be between 0.0 and 1.0');
+    this.cache = new ResultCache(this.config.cacheSize);
   }
 
   isAvailable(): boolean {
@@ -354,6 +461,9 @@ export class BiasDetector {
   detect(text: string): BiasDetectionResult {
     if (!this.config.enabled) return { hasBias: false, biasScores: {}, maxScore: 0.0, detectedBiases: [], patternsMatched: {}, originalText: text };
     try {
+      const key = this.cache.key(text, this.config.threshold, new Set(this.config.biasTypes));
+      const cached = this.cache.get(key);
+      if (cached !== undefined) return { ...cached, originalText: text };
       const biasScores: Record<string, number> = {};
       const patternsMatched: Record<string, string[]> = {};
       const groups = RULES.bias.patterns as Record<string, PatternGroup>;
@@ -365,7 +475,10 @@ export class BiasDetector {
         if (matched.length > 0) patternsMatched[type] = matched;
       }
       const detectedBiases = Object.keys(biasScores).filter((type) => (biasScores[type] as number) >= this.config.threshold);
-      return { hasBias: detectedBiases.length > 0, biasScores, maxScore: maxOf(Object.values(biasScores)), detectedBiases, patternsMatched, originalText: text };
+      const result = { hasBias: detectedBiases.length > 0, biasScores, maxScore: maxOf(Object.values(biasScores)), detectedBiases, patternsMatched, originalText: text };
+      // Stored without the text; a failure is not stored, so it is asked again.
+      this.cache.put(key, { ...result, originalText: null });
+      return result;
     } catch (error) {
       logger.error(`Error detecting bias: ${String(error)}`);
       return { hasBias: false, biasScores: {}, maxScore: 0.0, detectedBiases: [], patternsMatched: {}, originalText: text };
@@ -418,6 +531,8 @@ export interface PromptInjectionConfig {
   blockOnDetection: boolean;
   /** Ignored, as in the reference. */
   logAttempts: boolean;
+  /** Detection results kept in memory, keyed by a digest of the analysed text; 0 keeps none. `GENAI_EVALUATION_CACHE_SIZE`. */
+  cacheSize: number;
 }
 
 export interface PromptInjectionResult {
@@ -439,15 +554,18 @@ function promptInjectionDefaults(): PromptInjectionConfig {
     patterns: d.patterns,
     blockOnDetection: d.block_on_detection,
     logAttempts: d.log_attempts,
+    cacheSize: d.cache_size,
   };
 }
 
 export class PromptInjectionDetector {
   readonly config: PromptInjectionConfig;
+  private readonly cache: ResultCache<PromptInjectionResult>;
 
   constructor(config: Partial<PromptInjectionConfig> = {}) {
     this.config = { ...promptInjectionDefaults(), ...config };
     if (!(this.config.threshold >= 0.0 && this.config.threshold <= 1.0)) throw new RangeError('threshold must be between 0.0 and 1.0');
+    this.cache = new ResultCache(this.config.cacheSize);
   }
 
   isAvailable(): boolean {
@@ -458,6 +576,9 @@ export class PromptInjectionDetector {
     const none: PromptInjectionResult = { isInjection: false, injectionScore: 0.0, injectionTypes: [], patternsMatched: {}, originalText: text, blocked: false };
     if (!this.config.enabled) return none;
     try {
+      const key = this.cache.key(text, this.config.threshold, this.config.blockOnDetection === true);
+      const cached = this.cache.get(key);
+      if (cached !== undefined) return { ...cached, originalText: text };
       const scores: Record<string, number> = {};
       const patternsMatched: Record<string, string[]> = {};
       const groups = RULES.prompt_injection.patterns as Record<string, PatternGroup>;
@@ -471,7 +592,7 @@ export class PromptInjectionDetector {
       }
       const injectionTypes = Object.keys(scores).filter((type) => (scores[type] as number) >= this.config.threshold);
       const isInjection = injectionTypes.length > 0;
-      return {
+      const result: PromptInjectionResult = {
         isInjection,
         injectionScore: maxOf(Object.values(scores)),
         injectionTypes,
@@ -479,6 +600,8 @@ export class PromptInjectionDetector {
         originalText: text,
         blocked: this.config.blockOnDetection && isInjection,
       };
+      this.cache.put(key, { ...result, originalText: null });
+      return result;
     } catch (error) {
       logger.error(`Error detecting prompt injection: ${String(error)}`);
       return none;
@@ -494,6 +617,8 @@ export interface RestrictedTopicsConfig {
   /** Null or empty: every topic. An unknown name is skipped. */
   restrictedTopics: string[] | null;
   blockOnDetection: boolean;
+  /** Detection results kept in memory, keyed by a digest of the analysed text; 0 keeps none. `GENAI_EVALUATION_CACHE_SIZE`. */
+  cacheSize: number;
 }
 
 export interface RestrictedTopicsResult {
@@ -508,15 +633,23 @@ export interface RestrictedTopicsResult {
 
 function restrictedTopicsDefaults(): RestrictedTopicsConfig {
   const d = RULES.restricted_topics.config_defaults;
-  return { enabled: d.enabled, threshold: d.threshold, restrictedTopics: d.restricted_topics, blockOnDetection: d.block_on_detection };
+  return {
+    enabled: d.enabled,
+    threshold: d.threshold,
+    restrictedTopics: d.restricted_topics,
+    blockOnDetection: d.block_on_detection,
+    cacheSize: d.cache_size,
+  };
 }
 
 export class RestrictedTopicsDetector {
   readonly config: RestrictedTopicsConfig;
+  private readonly cache: ResultCache<RestrictedTopicsResult>;
 
   constructor(config: Partial<RestrictedTopicsConfig> = {}) {
     this.config = { ...restrictedTopicsDefaults(), ...config };
     if (!(this.config.threshold >= 0.0 && this.config.threshold <= 1.0)) throw new RangeError('threshold must be between 0.0 and 1.0');
+    this.cache = new ResultCache(this.config.cacheSize);
   }
 
   isAvailable(): boolean {
@@ -535,6 +668,9 @@ export class RestrictedTopicsDetector {
     };
     if (!this.config.enabled) return none;
     try {
+      const key = this.cache.key(text, this.config.threshold, [...(this.config.restrictedTopics ?? [])], this.config.blockOnDetection === true);
+      const cached = this.cache.get(key);
+      if (cached !== undefined) return { ...cached, originalText: text };
       const topicScores: Record<string, number> = {};
       const patternsMatched: Record<string, string[]> = {};
       const groups = RULES.restricted_topics.patterns as Record<string, PatternGroup>;
@@ -556,7 +692,7 @@ export class RestrictedTopicsDetector {
       }
       const detectedTopics = Object.keys(topicScores).filter((topic) => (topicScores[topic] as number) >= this.config.threshold);
       const hasRestrictedTopic = detectedTopics.length > 0;
-      return {
+      const result: RestrictedTopicsResult = {
         hasRestrictedTopic,
         detectedTopics,
         topicScores,
@@ -565,6 +701,8 @@ export class RestrictedTopicsDetector {
         originalText: text,
         blocked: this.config.blockOnDetection && hasRestrictedTopic,
       };
+      this.cache.put(key, { ...result, originalText: null });
+      return result;
     } catch (error) {
       logger.error(`Error detecting restricted topics: ${String(error)}`);
       return none;
@@ -579,6 +717,8 @@ export interface HallucinationConfig {
   threshold: number;
   checkCitations: boolean;
   checkHedging: boolean;
+  /** Detection results kept in memory, keyed by digests of the analysed texts; 0 keeps none. `GENAI_EVALUATION_CACHE_SIZE`. */
+  cacheSize: number;
 }
 
 export interface HallucinationResult {
@@ -595,7 +735,7 @@ export interface HallucinationResult {
 
 function hallucinationDefaults(): HallucinationConfig {
   const d = RULES.hallucination.config_defaults;
-  return { enabled: d.enabled, threshold: d.threshold, checkCitations: d.check_citations, checkHedging: d.check_hedging };
+  return { enabled: d.enabled, threshold: d.threshold, checkCitations: d.check_citations, checkHedging: d.check_hedging, cacheSize: d.cache_size };
 }
 
 const HALLUCINATION = RULES.hallucination;
@@ -616,10 +756,20 @@ const NUMBER_ONLY = ((): string => {
 
 export class HallucinationDetector {
   readonly config: HallucinationConfig;
+  private readonly cache: ResultCache<HallucinationResult>;
 
   constructor(config: Partial<HallucinationConfig> = {}) {
     this.config = { ...hallucinationDefaults(), ...config };
     if (!(this.config.threshold >= 0.0 && this.config.threshold <= 1.0)) throw new RangeError('threshold must be between 0.0 and 1.0');
+    this.cache = new ResultCache(this.config.cacheSize);
+  }
+
+  /** The key for a result: both texts and every setting the result depends on. An empty context counts as none. */
+  private cacheKey(text: string, context: string | null): string | undefined {
+    if (!this.cache.enabled) return undefined;
+    const contextKey = context ? this.cache.key(context) : [];
+    if (contextKey === undefined) return undefined;
+    return this.cache.key(text, contextKey, this.config.threshold, this.config.checkCitations === true, this.config.checkHedging === true);
   }
 
   isAvailable(): boolean {
@@ -642,6 +792,9 @@ export class HallucinationDetector {
     };
     if (!this.config.enabled) return none;
     try {
+      const key = this.cacheKey(text, contextText);
+      const cached = this.cache.get(key);
+      if (cached !== undefined) return { ...cached, originalText: text, contextText };
       const indicators: string[] = [];
       const unsupportedClaims: string[] = [];
       const claims = groupsOf(HALLUCINATION.factual_claim_patterns);
@@ -666,7 +819,7 @@ export class HallucinationDetector {
         if (!indicators.includes('context_contradiction')) indicators.push('context_contradiction');
         score = Math.min(score + 0.3, 1.0);
       }
-      return {
+      const result: HallucinationResult = {
         hasHallucination: score >= this.config.threshold,
         hallucinationScore: score,
         hallucinationIndicators: indicators,
@@ -677,6 +830,8 @@ export class HallucinationDetector {
         originalText: text,
         contextText,
       };
+      this.cache.put(key, { ...result, originalText: null, contextText: null });
+      return result;
     } catch (error) {
       logger.error(`Error detecting hallucinations: ${String(error)}`);
       return none;

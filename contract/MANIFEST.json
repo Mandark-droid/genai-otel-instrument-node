@@ -1,8 +1,8 @@
 {
   "counts": {
-    "attributes": 592,
-    "cost_vectors": 2545,
-    "env_vars": 95,
+    "attributes": 640,
+    "cost_vectors": 2763,
+    "env_vars": 113,
     "eval_vectors": 194,
     "eval_vectors_bias": 32,
     "eval_vectors_hallucination": 32,
@@ -10,30 +10,30 @@
     "eval_vectors_prompt_injection": 40,
     "eval_vectors_restricted_topics": 32,
     "eval_vectors_toxicity": 24,
-    "instrumentor_ids": 44,
-    "metrics": 79,
-    "span_names": 117
+    "instrumentor_ids": 51,
+    "metrics": 86,
+    "span_names": 143
   },
-  "generated_at": "2026-10-02T08:57:44+00:00",
+  "generated_at": "2026-10-28T13:49:14+00:00",
   "generator": {
-    "opentelemetry_sdk": "1.44.0",
+    "opentelemetry_sdk": "1.45.1",
     "platform": "win32",
-    "python": "3.12.13"
+    "python": "3.14.0"
   },
-  "git_commit": "fe157f23c8054c8cd8a3b28a6c4d38be3f434476",
-  "git_describe": "v1.30.0-1-gfe157f2",
+  "git_commit": "dba7cb0da3318bdcf7f94fd7532c14a11926c6c7",
+  "git_describe": "v1.46.0",
   "library_identical_to_tag": true,
-  "pricing_sha256": "0cdd007a4f4b93a505be6a1a00cd151552ca9a1cccf7c41e8f52fd3c2cd71639",
-  "python_package_version": "1.27.1.dev1",
-  "python_tag": "v1.30.0",
+  "pricing_sha256": "9b0187e94576fc9740b504ecb3b84478a90313c7d0ff03f24988be1282dc0dba",
+  "python_package_version": "1.46.0",
+  "python_tag": "v1.46.0",
   "schema_version": 1,
   "sha256": {
-    "SCHEMA.md": "a2b8407abaf594c83f25026575e9b00622de4afcc959cb2696d7b050df76de6e",
-    "config.json": "3f3ef5fbfecc885412f7b4893cd3774a187bd285f2e176a8b1c3eb28c5f87d75",
-    "cost_vectors.json": "cf8c870813233ee5e623e93cdd4433b28ba21e2434e43257431c3b66b10a703a",
-    "eval_rules.json": "720a534d5da784e81997a1d4d80ee60adab9368ad12db0f7fa445d7f2898673e",
-    "eval_vectors.json": "5c212f46d871a7419f226ea431a5d9b02946f6bb1eed31f9ec134720bd989cf7",
-    "metrics.json": "db52c9f372fb9965c8af01dafd6bc36cfa9149b7771c7a653e351bc06f4f97fa",
-    "semconv.json": "ca7a397404524834421ac591573bb049c42dae8f34cd19bf285ac5ac6aa6bf23"
+    "SCHEMA.md": "4d0cccb709fee450b62895bf7039fd0e446a2cdd67c2f0164dd35f5ffbcb81c3",
+    "config.json": "67ea401fdadd03fd6ae8682dfd38515b44f9fd0d53f95d5d612ad1be54cdc427",
+    "cost_vectors.json": "95a97e2c08dfe284d122d556e8dd4aea07364c8df6061d89f547a81444cdb4a7",
+    "eval_rules.json": "9bfe67f47878aa0e8e7ec0510c7c2e69fc46fb283dce1334d936590d52b703c0",
+    "eval_vectors.json": "117fa5db7d82d135715e1187052f86cd30af2cb3eeb4430993adeee925233c0c",
+    "metrics.json": "619ea0341b5819f04e08198df3bfbe9894494ccd45c94647b5a44bb3c9241346",
+    "semconv.json": "9531aa3e60a1741f1f2b30153529e17cfb7b54712803426dc4b50847e9dfeecc"
   }
 }

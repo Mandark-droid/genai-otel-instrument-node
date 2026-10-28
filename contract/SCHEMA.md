@@ -90,6 +90,7 @@ library really produced zero.
   "agent_operation_markers": [str],    // substrings of gen_ai.operation.name that mark an agent invocation
   "instrumentors": {
     "accepted": [{"id": str, "class": str, "default": bool, "opt_in": bool}],  // ids valid in GENAI_ENABLED_INSTRUMENTORS
+                                       // + "openinference_module": str, for OpenInference integrations only
     "default_order": [str],            // order is significant
     "default_ids_without_a_registered_class": [str],
     "opt_in": [str],
@@ -212,6 +213,7 @@ combine; `env` values of `null` were unset.
 {
   "units": {...}, "supported_call_types": [str], "call_type_to_pricing_category": {str: str},
   "metadata_keys": [str], "accepted_custom_pricing_categories": [str],
+  "decision_vendor_prefixes": [str],
   "local_model_price_tiers": [{"param_count_billions": float, "price": {"promptPrice": float, "completionPrice": float}}],
   "case_insensitive_key_collisions": [{"category": str, "lowercase": str, "keys": [str], "resolves_to": str}],
   "vectors": [
@@ -249,9 +251,18 @@ returns `0.0`, not `null`. Use `priced` to tell the two apart:
   attribute. `priced: true, cost: 0.0` means the price applied and the result
   was zero (free model, zero tokens, or a usage/unit mismatch - see `note`).
 
-`pricing_source` is the library's own answer and has a known quirk: it looks the
-`call_type` up as a pricing-table section name, so for `embedding`, `image` and
-unknown call types it consults the **chat** table. Do not derive `priced` from it.
+`pricing_source` is the library's own answer and has known quirks. It maps
+`call_type` to a section with `call_type_to_pricing_category`, but an unmapped
+call type is looked up as a section name itself, falling back to the **chat**
+table (so `embeddings`, plural, reads the embeddings table although
+`calculate_cost` does not price it). For `speech_to_text` it always reads the
+speech_to_text table, even when usage with `seconds` was billed from the audio
+table. Do not derive `priced` from it.
+
+`resolved_category` is the section `calculate_cost` actually read: `audio` for a
+`speech_to_text` call whose usage has `seconds`. `decision` models are resolved
+from the start of the id only (after stripping one of `decision_vendor_prefixes`)
+and never from the chat table.
 
 ---
 

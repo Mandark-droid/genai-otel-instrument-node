@@ -55,6 +55,7 @@ function run(vector: Vector): { result: Record<string, unknown>; available: bool
           original_text: r.originalText,
           score: r.score,
           blocked: r.blocked,
+          model_analyzed_length: r.modelAnalyzedLength,
         },
       };
     }

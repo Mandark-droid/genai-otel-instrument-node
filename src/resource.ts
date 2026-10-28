@@ -11,9 +11,18 @@
  * What differs is identity, deliberately: `telemetry.sdk.language` is `nodejs`
  * and `telemetry.distro.name` is `genai-otel-instrument-node`, so a backend can
  * tell which SDK produced a span - and by nothing else.
+ *
+ * What is on by default is what separates traffic and nothing more: `host.name`,
+ * `host.id`, `host.arch`, `os.*` and `service.instance.id`. The `process` detector
+ * (executable path and full command line) and `host.ip` (every interface address)
+ * describe the developer's workstation on every span a sample app sends, so both
+ * are opt-in, as in the Python library since 1.46: `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS`
+ * naming `process`, and `GENAI_OTEL_RESOURCE_HOST_IP=true`.
  */
 import './node-env';
+import { execFileSync, type ExecFileSyncOptionsWithStringEncoding } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { hostname, networkInterfaces } from 'node:os';
 import {
   defaultResource,
@@ -31,6 +40,7 @@ import { logger } from './logger';
 // Registry names, spelled out rather than imported from an incubating semconv
 // module - a rename there should be a deliberate change here.
 export const DEPLOYMENT_ENVIRONMENT_NAME = 'deployment.environment.name';
+export const HOST_ID = 'host.id';
 export const HOST_IP = 'host.ip';
 export const PROCESS_COMMAND_ARGS = 'process.command_args';
 export const PROCESS_COMMAND_LINE = 'process.command_line';
@@ -49,10 +59,15 @@ export const LEGACY_DISTRO_VERSION = 'telemetry.auto.version';
 export const SDK_LANGUAGE = 'nodejs';
 export const DISTRO_NAME = 'genai-otel-instrument-node';
 
-const DEFAULT_DETECTORS = 'host,os,process';
-// `process.command_line` reproduces whatever was typed to start the process.
-// The hardened profiles exist to keep that class of content off the wire.
+// `process` is not on by default: it reports the executable path and the full
+// command line - on a laptop running a sample app, a description of that
+// person's machine on every span. An operator who wants it names it in
+// OTEL_EXPERIMENTAL_RESOURCE_DETECTORS. The hardened profiles never had it.
+const DEFAULT_DETECTORS = 'host,os';
 const HARDENED_DETECTORS = 'host,os';
+
+/** `host.ip` lists every non-loopback interface (VPN, docker, Wi-Fi), so it is filled only on request. */
+export const HOST_IP_ENV = 'GENAI_OTEL_RESOURCE_HOST_IP';
 const HARDENED_PROFILES = new Set(['strict', 'bfsi', 'bank']);
 
 /** semconv's namespace for a `service.instance.id` derived from an inherent stable id. */
@@ -79,6 +94,74 @@ function isThenable(value: unknown): boolean {
 }
 
 let generatedInstanceId: string | undefined;
+let machineId: { value: string | undefined } | undefined;
+
+/** `_host_ip_requested()`: GENAI_OTEL_RESOURCE_HOST_IP is 1, true, yes or on. */
+export function hostIpRequested(): boolean {
+  return ['1', 'true', 'yes', 'on'].includes((process.env[HOST_IP_ENV] ?? '').trim().toLowerCase());
+}
+
+function machineIdNow(): string | undefined {
+  const options: ExecFileSyncOptionsWithStringEncoding = {
+    encoding: 'utf8',
+    timeout: 2000,
+    windowsHide: true,
+    stdio: ['ignore', 'pipe', 'ignore'],
+  };
+  switch (process.platform) {
+    case 'linux':
+      for (const path of ['/etc/machine-id', '/var/lib/dbus/machine-id']) {
+        try {
+          return readFileSync(path, 'utf8').trim() || undefined;
+        } catch {
+          // try the next location
+        }
+      }
+      return undefined;
+    case 'win32': {
+      const windir = process.env.windir ?? process.env.WINDIR ?? 'C:\\Windows';
+      // A 32-bit process on 64-bit Windows reads the 64-bit registry view through sysnative.
+      const reg =
+        process.arch === 'ia32' && 'PROCESSOR_ARCHITEW6432' in process.env
+          ? `${windir}\\sysnative\\reg.exe`
+          : `${windir}\\System32\\reg.exe`;
+      const out = execFileSync(reg, ['QUERY', 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Cryptography', '/v', 'MachineGuid'], options);
+      const parts = out.split('REG_SZ');
+      return parts.length === 2 ? parts[1]?.trim() || undefined : undefined;
+    }
+    case 'darwin': {
+      const out = execFileSync('ioreg', ['-rd1', '-c', 'IOPlatformExpertDevice'], options);
+      const line = out.split('\n').find((candidate) => candidate.includes('IOPlatformUUID'));
+      const parts = line?.split('" = "');
+      return parts?.length === 2 ? parts[1]?.slice(0, -1) || undefined : undefined;
+    }
+    case 'freebsd':
+      try {
+        return readFileSync('/etc/hostid', 'utf8').trim() || undefined;
+      } catch {
+        return execFileSync('kenv', ['-q', 'smbios.system.uuid'], options).trim() || undefined;
+      }
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * `host.id`, read the way the SDK's host detector reads it, but synchronously and
+ * once per process, so the resource stays fully known at startup and no span
+ * waits on it before export. Best-effort: undefined where it cannot be read.
+ */
+export function hostMachineId(): string | undefined {
+  if (machineId === undefined) {
+    try {
+      machineId = { value: machineIdNow() };
+    } catch (error) {
+      logger.debug(`host.id detection failed: ${String(error)}`);
+      machineId = { value: undefined };
+    }
+  }
+  return machineId.value;
+}
 
 /** Test hook: forget the per-process random instance id. */
 export function resetGeneratedInstanceId(): void {
@@ -365,16 +448,19 @@ export function buildResource(serviceName: string, distroVersion: string, profil
   for (const detector of detectors) {
     try {
       for (const [key, value] of Object.entries(detector.detect().attributes ?? {})) {
-        // Only what is known now. The one attribute that resolves later is
-        // `host.id` (a machine identifier the reference implementation does not
-        // send); leaving it out also keeps the resource fully synchronous, so
-        // no span waits on it before export.
+        // Only what is known now. The one attribute the SDK resolves later is
+        // `host.id`, read synchronously below instead.
         if (value === undefined || isThenable(value)) continue;
         detected[key] = value as AttributeValue;
       }
     } catch (error) {
       logger.debug(`resource detection failed: ${String(error)}`);
     }
+  }
+
+  if (names.has('host') && detected[HOST_ID] === undefined) {
+    const id = hostMachineId();
+    if (id) detected[HOST_ID] = id;
   }
 
   if (names.has('process')) {
@@ -396,7 +482,7 @@ export function buildResource(serviceName: string, distroVersion: string, profil
 
   // Fill in only what neither a detector nor OTEL_RESOURCE_ATTRIBUTES gave us.
   const fallbacks: Attributes = {};
-  if (!detected[HOST_IP]) {
+  if (hostIpRequested() && !detected[HOST_IP]) {
     const addresses = hostIpAddresses();
     if (addresses.length > 0) fallbacks[HOST_IP] = addresses;
   }

@@ -145,9 +145,9 @@ export class TransformersInstrumentor extends PatchingInstrumentor {
           [ATTR.GEN_AI_OPERATION_NAME]: 'load_model',
           ...webGpuFacts(),
         };
-        if (typeof options.device === 'string') attributes['transformers.device.requested'] = options.device;
+        if (typeof options.device === 'string') attributes['transformers.requested_device'] = options.device;
         if (options.dtype !== undefined && options.dtype !== null) {
-          attributes['transformers.dtype.requested'] = typeof options.dtype === 'string' ? options.dtype : JSON.stringify(options.dtype);
+          attributes['transformers.requested_dtype'] = typeof options.dtype === 'string' ? options.dtype : JSON.stringify(options.dtype);
         }
         return attributes;
       },

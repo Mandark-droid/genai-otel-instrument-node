@@ -30,10 +30,43 @@ function characterCount(text: unknown): number {
   return text ? [...String(text)].length : 0;
 }
 
-/** The SDK spells the TTS model `bulbul:v2`; the pricing table keys it `bulbul-v2`. */
-function normaliseTtsModel(model: string): string {
-  return model.startsWith('bulbul') ? model.replace(/:/g, '-') : model;
+/**
+ * Duration of a WAV payload in seconds, or undefined when it cannot be read - a port of the
+ * Python library's `_wav_seconds`. Sarvam bills speech-to-text per second of audio, so a
+ * transcription is priced from the audio it was sent, never from the transcript: no readable WAV,
+ * no duration, no cost - never a guess. Accepts raw bytes, a `[name, bytes]` upload pair or a file
+ * path; a stream or Blob is left alone (reading it would consume the upload).
+ */
+export function wavSeconds(audio: unknown): number | undefined {
+  try {
+    if (Array.isArray(audio) && audio.length >= 2) audio = audio[1];
+    let bytes: Uint8Array | undefined;
+    if (audio instanceof Uint8Array) bytes = audio;
+    else if (audio instanceof ArrayBuffer) bytes = new Uint8Array(audio);
+    else if (typeof audio === 'string' && audio) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports -- Node-only instrumentor
+      bytes = (require('node:fs') as typeof import('node:fs')).readFileSync(audio);
+    }
+    if (!bytes || bytes.length < 44) return undefined;
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const tag = (at: number) => String.fromCharCode(...bytes!.subarray(at, at + 4));
+    if (tag(0) !== 'RIFF' || tag(8) !== 'WAVE') return undefined;
+    let byteRate = 0;
+    for (let at = 12; at + 8 <= bytes.length; ) {
+      const id = tag(at);
+      const size = view.getUint32(at + 4, true);
+      if (id === 'fmt ' && size >= 16) byteRate = view.getUint32(at + 16, true);
+      if (id === 'data') return byteRate > 0 ? Math.min(size, bytes.length - at - 8) / byteRate : undefined;
+      at += 8 + size + (size % 2);
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
 }
+
+/** Speech operations are priced from the `audio` section under `sarvam/<model>`. */
+const SPEECH_OPERATIONS = new Set(['tts', 'tts_stream', 'stt', 'stt_translate']);
 
 /** A parameter under its snake_case (wire) or camelCase name; `fallback` when not given. */
 function param(params: Params, snake: string, fallback?: unknown): unknown {
@@ -90,12 +123,15 @@ export class SarvamInstrumentor extends OpenAIShapeInstrumentor {
       case 'stt_translate':
         return String(param(params, 'model', 'saaras:v2.5'));
       default:
-        return normaliseTtsModel(String(param(params, 'model', 'bulbul-v2')));
+        // The name exactly as requested; the SDK default when none is given.
+        return String(param(params, 'model', 'bulbul:v2'));
     }
   }
 
   private requestAttributes(operation: Operation, params: Params): Obj {
     const attributes: Obj = { [ATTR.GEN_AI_SYSTEM]: 'sarvam', [ATTR.GEN_AI_REQUEST_MODEL]: this.modelOf(operation, params) };
+    // Measured before the call: the SDK uploads (reads) the file, after which it is empty.
+    if (operation === 'stt' || operation === 'stt_translate') params.__audioSeconds = wavSeconds(params.file);
     const set = (name: string, key: string, convert: (value: unknown) => unknown = String): void => {
       const value = param(params, key);
       if (value !== undefined) attributes[name] = convert(value);
@@ -230,11 +266,14 @@ export class SarvamInstrumentor extends OpenAIShapeInstrumentor {
         case 'stt':
         case 'stt_translate': {
           const transcript = isObject(result) ? result.transcript : undefined;
-          if (typeof transcript === 'string') {
-            characters = characterCount(transcript);
-            span.setAttribute('sarvam.transcript_length', characters);
+          if (typeof transcript === 'string') span.setAttribute('sarvam.transcript_length', characterCount(transcript));
+          // Billed per second of audio sent, never from the transcript.
+          const seconds = params.__audioSeconds;
+          if (typeof seconds === 'number' && seconds > 0) {
+            span.setAttribute(ATTR.GEN_AI_USAGE_AUDIO_DURATION_SECONDS, Math.round(seconds * 1000) / 1000);
+            this.recordAudioCost(span, model, { seconds });
           }
-          break;
+          return;
         }
         case 'tts': {
           const duration = pick(result, 'audio_duration_seconds', 'audioDurationSeconds', 'duration');
@@ -246,13 +285,37 @@ export class SarvamInstrumentor extends OpenAIShapeInstrumentor {
           characters = characterCount(params.text);
           break;
       }
-      this.recordCharacterCost(span, model, characters);
+      if (SPEECH_OPERATIONS.has(operation)) {
+        // Billed per 1,000 characters of input text.
+        span.setAttribute(ATTR.GEN_AI_USAGE_CHARACTERS, characters);
+        if (characters > 0) this.recordAudioCost(span, model, { characters });
+      } else {
+        this.recordCharacterCost(span, model, characters);
+      }
     } catch (error) {
       logger.debug(`Failed to record Sarvam result: ${String(error)}`);
     }
   }
 
-  /** `characters / 1000 * promptPrice`, from the `speech_to_text` pricing section. */
+  /**
+   * A speech call, from the `audio` pricing section under `sarvam/<model>` (the name exactly as
+   * requested), as the Python library's `_record_sarvam_audio_cost`. Recorded only when a rate is
+   * found: a zero for an unpriced model would read as free.
+   */
+  private recordAudioCost(span: Span, model: string, usage: { seconds?: number; characters?: number }): void {
+    if (!this.config?.enableCostTracking) return;
+    try {
+      const cost = this.costCalculator.calculateCost(`sarvam/${model}`, usage as never, 'audio');
+      if (typeof cost === 'number' && cost > 0) {
+        span.setAttribute(ATTR.GEN_AI_USAGE_COST_TOTAL, cost);
+        this.metrics.counters.cost.add(cost, { model });
+      }
+    } catch (error) {
+      logger.debug(`No audio pricing for Sarvam model '${model}': ${String(error)}`);
+    }
+  }
+
+  /** `characters / 1000 * promptPrice`, from the `speech_to_text` pricing section (text operations). */
   private recordCharacterCost(span: Span, model: string, characters: number): void {
     span.setAttribute(ATTR.GEN_AI_USAGE_CHARACTERS, characters);
     if (!this.config?.enableCostTracking || characters <= 0) return;

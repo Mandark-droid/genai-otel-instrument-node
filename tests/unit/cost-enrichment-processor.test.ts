@@ -1,4 +1,4 @@
-import type { Attributes } from '@opentelemetry/api';
+import { ROOT_CONTEXT, trace, type Attributes } from '@opentelemetry/api';
 import { BasicTracerProvider, InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CostCalculator, getDefaultCostCalculator } from '../../src/cost';
@@ -186,10 +186,107 @@ describe('CostEnrichmentSpanProcessor', () => {
   });
 
   it('a table entry the calculator raises on is counted as pricing missing', async () => {
-    finish({ 'gen_ai.request.model': 'nvidia/NV-Embed-v2', 'gen_ai.operation.name': 'embeddings', 'gen_ai.usage.input_tokens': 100 });
+    // The shipped table has no such entry since v1.46 (dict-priced embeddings are priced).
+    const odd = new CostCalculator({ pricingData: { embeddings: { 'bad-embed': 'cheap' } } });
+    const local = new BasicTracerProvider({
+      spanProcessors: [new CostEnrichmentSpanProcessor(odd), new SimpleSpanProcessor(exporter)],
+    });
+    local
+      .getTracer('t')
+      .startSpan('s', {
+        attributes: { 'gen_ai.request.model': 'bad-embed', 'gen_ai.operation.name': 'embeddings', 'gen_ai.usage.input_tokens': 100 },
+      })
+      .end();
     const points = await missing();
-    expect(points).toEqual([{ attributes: { model: 'nvidia/NV-Embed-v2', call_type: 'embedding' }, value: 1 }]);
+    expect(points).toEqual([{ attributes: { model: 'bad-embed', call_type: 'embedding' }, value: 1 }]);
+    await local.shutdown();
   });
+
+  it('a dict-priced shipped embedding is priced', () => {
+    const attributes = finish({
+      'gen_ai.request.model': 'nvidia/NV-Embed-v2',
+      'gen_ai.operation.name': 'embeddings',
+      'gen_ai.usage.input_tokens': 100,
+    });
+    expect(attributes['gen_ai.usage.cost.total']).toBe(calculator.calculateCost('nvidia/NV-Embed-v2', { prompt_tokens: 100 }, 'embedding'));
+  });
+
+  it('a DECISION span is priced from the decision table, input only, with gen_ai.usage.cost.decision', () => {
+    const attributes = finish({
+      'openinference.span.kind': 'DECISION',
+      'decision.model_name': 'gpt-6-luna',
+      'decision.token_count.input': 1000,
+      'decision.token_count.output': 500,
+    });
+    expect(attributes['gen_ai.usage.cost.total']).toBe((1000 / 1000) * 0.0001);
+    expect(attributes['gen_ai.usage.cost.decision']).toBe((1000 / 1000) * 0.0001);
+  });
+
+  it('gen_ai.request.type = decision prices from the decision table, never as chat', async () => {
+    const attributes = finish({
+      'gen_ai.request.model': 'gpt-4o',
+      'gen_ai.request.type': 'decision',
+      'gen_ai.usage.input_tokens': 1000,
+    });
+    expect('gen_ai.usage.cost.total' in attributes).toBe(false);
+    expect((await missing())[0]?.attributes).toEqual({ model: 'gpt-4o', call_type: 'decision' });
+  });
+
+  it('cache tokens come out of the prompt bucket and are priced at their own rates', () => {
+    const attributes = finish({
+      'gen_ai.request.model': 'claude-sonnet-4-5',
+      'gen_ai.usage.input_tokens': 1000,
+      'gen_ai.usage.cache_read.input_tokens': 300,
+      'gen_ai.usage.cache_write.input_tokens': 200,
+      'gen_ai.usage.output_tokens': 100,
+    });
+    const expected = calculator.calculateGranularCost(
+      'claude-sonnet-4-5',
+      { prompt_tokens: 500, completion_tokens: 100, total_tokens: 1100, cache_read_input_tokens: 300, cache_creation_input_tokens: 200 },
+      'chat',
+    );
+    expect(expected?.cache_read).toBeGreaterThan(0);
+    expect(attributes['gen_ai.usage.cost.total']).toBe(expected?.total);
+    expect(attributes['gen_ai.usage.cost.prompt']).toBe(expected?.prompt);
+  });
+
+  it('an agent span is not priced when a model span in its trace carried usage', () => {
+    const tracer = provider.getTracer('third-party-instrumentation');
+    const agentSpan = tracer.startSpan('agent', { attributes: { 'openinference.span.kind': 'AGENT' } });
+    tracer
+      .startSpan(
+        'llm',
+        {
+          attributes: {
+            'openinference.span.kind': 'LLM',
+            'llm.model_name': 'gpt-4o',
+            'llm.token_count.prompt': 1000,
+            'llm.token_count.completion': 500,
+          },
+        },
+        trace.setSpan(ROOT_CONTEXT, agentSpan),
+      )
+      .end();
+    agentSpan.setAttributes({ 'llm.model_name': 'gpt-4o', 'llm.token_count.prompt': 1000, 'llm.token_count.completion': 500 });
+    agentSpan.end();
+    const [llm, agent] = exporter.getFinishedSpans();
+    expect(llm?.attributes['gen_ai.usage.cost.total']).toBeGreaterThan(0);
+    expect(agent?.name).toBe('agent');
+    expect('gen_ai.usage.cost.total' in (agent?.attributes ?? {})).toBe(false);
+
+    // The trace is forgotten when its root ends: an agent span alone in a new trace is priced.
+    const solo = finishSecond({
+      'gen_ai.operation.name': 'invoke_agent',
+      'gen_ai.request.model': 'gpt-4o',
+      'gen_ai.usage.input_tokens': 1000,
+    });
+    expect(solo['gen_ai.usage.cost.total']).toBeGreaterThan(0);
+  });
+
+  function finishSecond(attributes: Attributes): Attributes {
+    provider.getTracer('third-party-instrumentation').startSpan('agent-2', { attributes }).end();
+    return exporter.getFinishedSpans().find((span) => span.name === 'agent-2')?.attributes ?? {};
+  }
 
   it('a calculator failure never reaches the span or the host', () => {
     const broken = new CostCalculator({ pricingData: { chat: { 'bad-entry': 'not-an-object' } } });

@@ -1566,6 +1566,10 @@
     "codecarbon_log_level": "error",
     "content_max_length": 200,
     "custom_pricing_json": null,
+    "decision_http_matcher": true,
+    "decision_legacy_llm_kind": false,
+    "decision_provider": null,
+    "enable_agent_graph_attributes": true,
     "enable_bias_detection": false,
     "enable_co2_tracking": false,
     "enable_concurrency_metrics": true,
@@ -1578,9 +1582,11 @@
     "enable_pii_detection": false,
     "enable_prompt_injection_detection": false,
     "enable_restricted_topics": false,
+    "enable_session_propagation": true,
     "enable_toxicity_detection": false,
     "enabled_instrumentors": [
       "openai",
+      "databricks",
       "openrouter",
       "cometapi",
       "anthropic",
@@ -1596,6 +1602,7 @@
       "ollama",
       "vllm",
       "vertexai",
+      "xai_sdk",
       "replicate",
       "anyscale",
       "sambanova",
@@ -1616,9 +1623,18 @@
       "crewai",
       "smolagents",
       "litellm",
-      "typesafe"
+      "typesafe",
+      "claude_agent_sdk",
+      "agno",
+      "microsoft_agent_framework",
+      "strands_agents"
     ],
     "endpoint": "http://localhost:4318",
+    "evaluation_cache_size": 256,
+    "evaluation_max_chars": 1500,
+    "evaluation_mode": "background",
+    "evaluation_queue_size": 1000,
+    "evaluation_shutdown_timeout": 5.0,
     "exporter_timeout": 60,
     "fail_on_error": false,
     "flush_on_sigterm": false,
@@ -1654,17 +1670,50 @@
     "sampling_rate": 1.0,
     "semconv_stability_opt_in": "gen_ai/dup",
     "service_name": "genai-app",
+    "session_baggage_accept": [],
+    "session_baggage_keys": [],
     "session_id_extractor": null,
     "sigterm_flush_timeout": 5.0,
     "toxicity_block_on_detection": false,
+    "toxicity_max_chars": 500,
     "toxicity_perspective_api_key": null,
+    "toxicity_quantize": false,
     "toxicity_threshold": 0.7,
+    "toxicity_torch_threads": null,
     "toxicity_use_perspective_api": false,
     "user_id_extractor": null
   },
   "schema_version": 1,
   "unresolved_env_accesses": [],
   "variables": [
+    {
+      "cases": [],
+      "default": "",
+      "env": "CREWAI_DISABLE_TELEMETRY",
+      "extraction": "static",
+      "otel_config_fields": [],
+      "read_by_library": true,
+      "readers": [
+        {
+          "access": "read",
+          "default_raw": "",
+          "env": "CREWAI_DISABLE_TELEMETRY",
+          "expression": "os.environ.get(_TELEMETRY_SWITCH, '')",
+          "module": "genai_otel/instrumentors/crewai_instrumentor.py",
+          "scope": "CrewAIInstrumentor.instrument"
+        },
+        {
+          "access": "write",
+          "default_raw": null,
+          "env": "CREWAI_DISABLE_TELEMETRY",
+          "expression": "os.environ[_TELEMETRY_SWITCH]",
+          "module": "genai_otel/instrumentors/crewai_instrumentor.py",
+          "scope": "_disable_crewai_telemetry"
+        }
+      ],
+      "type": "str",
+      "written_by_library": true
+    },
     {
       "cases": [],
       "default": null,
@@ -3313,6 +3362,179 @@
     {
       "cases": [
         {
+          "parsed": true,
+          "raw": "true"
+        },
+        {
+          "parsed": true,
+          "raw": "TRUE"
+        },
+        {
+          "parsed": true,
+          "raw": "True"
+        },
+        {
+          "parsed": true,
+          "raw": " true "
+        },
+        {
+          "parsed": false,
+          "raw": "false"
+        },
+        {
+          "parsed": true,
+          "raw": "1"
+        },
+        {
+          "parsed": true,
+          "raw": "0"
+        },
+        {
+          "parsed": true,
+          "raw": "yes"
+        },
+        {
+          "parsed": true,
+          "raw": "on"
+        },
+        {
+          "parsed": true,
+          "raw": ""
+        },
+        {
+          "parsed": true,
+          "raw": "garbage"
+        }
+      ],
+      "default": true,
+      "env": "GENAI_DECISION_HTTP_MATCHER",
+      "extraction": "runtime:OTelConfig",
+      "otel_config_fields": [
+        "decision_http_matcher"
+      ],
+      "read_by_library": true,
+      "readers": [
+        {
+          "access": "read",
+          "default_raw": "true",
+          "env": "GENAI_DECISION_HTTP_MATCHER",
+          "expression": "os.getenv('GENAI_DECISION_HTTP_MATCHER', 'true').strip().lower() != 'false'",
+          "module": "genai_otel/config.py",
+          "scope": "OTelConfig"
+        }
+      ],
+      "type": "bool",
+      "written_by_library": false
+    },
+    {
+      "cases": [
+        {
+          "parsed": true,
+          "raw": "true"
+        },
+        {
+          "parsed": true,
+          "raw": "TRUE"
+        },
+        {
+          "parsed": true,
+          "raw": "True"
+        },
+        {
+          "parsed": true,
+          "raw": " true "
+        },
+        {
+          "parsed": false,
+          "raw": "false"
+        },
+        {
+          "parsed": false,
+          "raw": "1"
+        },
+        {
+          "parsed": false,
+          "raw": "0"
+        },
+        {
+          "parsed": false,
+          "raw": "yes"
+        },
+        {
+          "parsed": false,
+          "raw": "on"
+        },
+        {
+          "parsed": false,
+          "raw": ""
+        },
+        {
+          "parsed": false,
+          "raw": "garbage"
+        }
+      ],
+      "default": false,
+      "env": "GENAI_DECISION_LEGACY_LLM_KIND",
+      "extraction": "runtime:OTelConfig",
+      "otel_config_fields": [
+        "decision_legacy_llm_kind"
+      ],
+      "read_by_library": true,
+      "readers": [
+        {
+          "access": "read",
+          "default_raw": "false",
+          "env": "GENAI_DECISION_LEGACY_LLM_KIND",
+          "expression": "os.getenv('GENAI_DECISION_LEGACY_LLM_KIND', 'false').strip().lower() == 'true'",
+          "module": "genai_otel/config.py",
+          "scope": "OTelConfig"
+        }
+      ],
+      "type": "bool",
+      "written_by_library": false
+    },
+    {
+      "cases": [
+        {
+          "parsed": "value",
+          "raw": "value"
+        },
+        {
+          "parsed": "MiXeD Case",
+          "raw": "MiXeD Case"
+        },
+        {
+          "parsed": "padded",
+          "raw": " padded "
+        },
+        {
+          "parsed": null,
+          "raw": ""
+        }
+      ],
+      "default": null,
+      "env": "GENAI_DECISION_PROVIDER",
+      "extraction": "runtime:OTelConfig",
+      "otel_config_fields": [
+        "decision_provider"
+      ],
+      "read_by_library": true,
+      "readers": [
+        {
+          "access": "read",
+          "default_raw": null,
+          "env": "GENAI_DECISION_PROVIDER",
+          "expression": "(os.getenv('GENAI_DECISION_PROVIDER') or '').strip() or None",
+          "module": "genai_otel/config.py",
+          "scope": "OTelConfig"
+        }
+      ],
+      "type": "str",
+      "written_by_library": false
+    },
+    {
+      "cases": [
+        {
           "parsed": "value",
           "raw": "value"
         },
@@ -3380,6 +3602,7 @@
         {
           "parsed": [
             "openai",
+            "databricks",
             "openrouter",
             "cometapi",
             "anthropic",
@@ -3395,6 +3618,7 @@
             "ollama",
             "vllm",
             "vertexai",
+            "xai_sdk",
             "replicate",
             "anyscale",
             "sambanova",
@@ -3415,13 +3639,18 @@
             "crewai",
             "smolagents",
             "litellm",
-            "typesafe"
+            "typesafe",
+            "claude_agent_sdk",
+            "agno",
+            "microsoft_agent_framework",
+            "strands_agents"
           ],
           "raw": ""
         }
       ],
       "default": [
         "openai",
+        "databricks",
         "openrouter",
         "cometapi",
         "anthropic",
@@ -3437,6 +3666,7 @@
         "ollama",
         "vllm",
         "vertexai",
+        "xai_sdk",
         "replicate",
         "anyscale",
         "sambanova",
@@ -3457,7 +3687,11 @@
         "crewai",
         "smolagents",
         "litellm",
-        "typesafe"
+        "typesafe",
+        "claude_agent_sdk",
+        "agno",
+        "microsoft_agent_framework",
+        "strands_agents"
       ],
       "env": "GENAI_ENABLED_INSTRUMENTORS",
       "extraction": "runtime:OTelConfig",
@@ -3476,6 +3710,73 @@
         }
       ],
       "type": "list",
+      "written_by_library": false
+    },
+    {
+      "cases": [
+        {
+          "parsed": true,
+          "raw": "true"
+        },
+        {
+          "parsed": true,
+          "raw": "TRUE"
+        },
+        {
+          "parsed": true,
+          "raw": "True"
+        },
+        {
+          "parsed": false,
+          "raw": " true "
+        },
+        {
+          "parsed": false,
+          "raw": "false"
+        },
+        {
+          "parsed": false,
+          "raw": "1"
+        },
+        {
+          "parsed": false,
+          "raw": "0"
+        },
+        {
+          "parsed": false,
+          "raw": "yes"
+        },
+        {
+          "parsed": false,
+          "raw": "on"
+        },
+        {
+          "parsed": false,
+          "raw": ""
+        },
+        {
+          "parsed": false,
+          "raw": "garbage"
+        }
+      ],
+      "default": true,
+      "env": "GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES",
+      "extraction": "runtime:OTelConfig",
+      "otel_config_fields": [
+        "enable_agent_graph_attributes"
+      ],
+      "read_by_library": true,
+      "readers": [
+        {
+          "access": "read",
+          "default_raw": "true",
+          "env": "GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES",
+          "expression": "os.getenv('GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES', 'true').lower() == 'true'",
+          "module": "genai_otel/config.py",
+          "scope": "OTelConfig"
+        }
+      ],
+      "type": "bool",
       "written_by_library": false
     },
     {
@@ -4402,6 +4703,73 @@
           "raw": "garbage"
         }
       ],
+      "default": true,
+      "env": "GENAI_ENABLE_SESSION_PROPAGATION",
+      "extraction": "runtime:OTelConfig",
+      "otel_config_fields": [
+        "enable_session_propagation"
+      ],
+      "read_by_library": true,
+      "readers": [
+        {
+          "access": "read",
+          "default_raw": "true",
+          "env": "GENAI_ENABLE_SESSION_PROPAGATION",
+          "expression": "os.getenv('GENAI_ENABLE_SESSION_PROPAGATION', 'true').lower() == 'true'",
+          "module": "genai_otel/config.py",
+          "scope": "OTelConfig"
+        }
+      ],
+      "type": "bool",
+      "written_by_library": false
+    },
+    {
+      "cases": [
+        {
+          "parsed": true,
+          "raw": "true"
+        },
+        {
+          "parsed": true,
+          "raw": "TRUE"
+        },
+        {
+          "parsed": true,
+          "raw": "True"
+        },
+        {
+          "parsed": false,
+          "raw": " true "
+        },
+        {
+          "parsed": false,
+          "raw": "false"
+        },
+        {
+          "parsed": false,
+          "raw": "1"
+        },
+        {
+          "parsed": false,
+          "raw": "0"
+        },
+        {
+          "parsed": false,
+          "raw": "yes"
+        },
+        {
+          "parsed": false,
+          "raw": "on"
+        },
+        {
+          "parsed": false,
+          "raw": ""
+        },
+        {
+          "parsed": false,
+          "raw": "garbage"
+        }
+      ],
       "default": false,
       "env": "GENAI_ENABLE_TOXICITY_DETECTION",
       "extraction": "runtime:OTelConfig",
@@ -4420,6 +4788,297 @@
         }
       ],
       "type": "bool",
+      "written_by_library": false
+    },
+    {
+      "cases": [
+        {
+          "parsed": 10,
+          "raw": "10"
+        },
+        {
+          "parsed": 0,
+          "raw": "0"
+        },
+        {
+          "parsed": 0,
+          "raw": "-1"
+        },
+        {
+          "parsed": 7,
+          "raw": " 7 "
+        },
+        {
+          "parsed": 256,
+          "raw": "1.5"
+        },
+        {
+          "parsed": 256,
+          "raw": "1e3"
+        },
+        {
+          "parsed": 256,
+          "raw": ""
+        },
+        {
+          "parsed": 256,
+          "raw": "abc"
+        }
+      ],
+      "default": 256,
+      "env": "GENAI_EVALUATION_CACHE_SIZE",
+      "extraction": "runtime:OTelConfig",
+      "otel_config_fields": [
+        "evaluation_cache_size"
+      ],
+      "read_by_library": true,
+      "readers": [
+        {
+          "access": "read",
+          "default_raw": {
+            "expression": "DEFAULT_EVALUATION_CACHE_SIZE"
+          },
+          "env": "GENAI_EVALUATION_CACHE_SIZE",
+          "expression": "_number_from_env('GENAI_EVALUATION_CACHE_SIZE', DEFAULT_EVALUATION_CACHE_SIZE)",
+          "module": "genai_otel/config.py",
+          "scope": "OTelConfig"
+        },
+        {
+          "access": "read",
+          "default_raw": {
+            "expression": "str(DEFAULT_CACHE_SIZE)"
+          },
+          "env": "GENAI_EVALUATION_CACHE_SIZE",
+          "expression": "os.getenv('GENAI_EVALUATION_CACHE_SIZE', str(DEFAULT_CACHE_SIZE))",
+          "module": "genai_otel/evaluation/config.py",
+          "scope": "_cache_size_from_env"
+        }
+      ],
+      "type": "int",
+      "written_by_library": false
+    },
+    {
+      "cases": [
+        {
+          "parsed": 10,
+          "raw": "10"
+        },
+        {
+          "parsed": 0,
+          "raw": "0"
+        },
+        {
+          "parsed": 0,
+          "raw": "-1"
+        },
+        {
+          "parsed": 7,
+          "raw": " 7 "
+        },
+        {
+          "parsed": 1500,
+          "raw": "1.5"
+        },
+        {
+          "parsed": 1500,
+          "raw": "1e3"
+        },
+        {
+          "parsed": 1500,
+          "raw": ""
+        },
+        {
+          "parsed": 1500,
+          "raw": "abc"
+        }
+      ],
+      "default": 1500,
+      "env": "GENAI_EVALUATION_MAX_CHARS",
+      "extraction": "runtime:OTelConfig",
+      "otel_config_fields": [
+        "evaluation_max_chars"
+      ],
+      "read_by_library": true,
+      "readers": [
+        {
+          "access": "read",
+          "default_raw": null,
+          "env": "GENAI_EVALUATION_MAX_CHARS",
+          "expression": "_characters_from_env('GENAI_EVALUATION_MAX_CHARS')",
+          "module": "genai_otel/config.py",
+          "scope": "OTelConfig"
+        }
+      ],
+      "type": "int",
+      "written_by_library": false
+    },
+    {
+      "cases": [
+        {
+          "parsed": "background",
+          "raw": "background"
+        },
+        {
+          "parsed": "inline",
+          "raw": "inline"
+        },
+        {
+          "parsed": "inline",
+          "raw": "INLINE"
+        },
+        {
+          "parsed": "inline",
+          "raw": " inline "
+        },
+        {
+          "parsed": "background",
+          "raw": "sync"
+        },
+        {
+          "parsed": "background",
+          "raw": ""
+        }
+      ],
+      "default": "background",
+      "env": "GENAI_EVALUATION_MODE",
+      "extraction": "runtime:OTelConfig",
+      "otel_config_fields": [
+        "evaluation_mode"
+      ],
+      "read_by_library": true,
+      "readers": [
+        {
+          "access": "read",
+          "default_raw": "background",
+          "env": "GENAI_EVALUATION_MODE",
+          "expression": "os.getenv('GENAI_EVALUATION_MODE', EVALUATION_MODE_BACKGROUND)",
+          "module": "genai_otel/config.py",
+          "scope": "OTelConfig"
+        }
+      ],
+      "type": "str",
+      "written_by_library": false
+    },
+    {
+      "cases": [
+        {
+          "parsed": 10,
+          "raw": "10"
+        },
+        {
+          "parsed": 1,
+          "raw": "0"
+        },
+        {
+          "parsed": 1,
+          "raw": "-1"
+        },
+        {
+          "parsed": 7,
+          "raw": " 7 "
+        },
+        {
+          "parsed": 1000,
+          "raw": "1.5"
+        },
+        {
+          "parsed": 1000,
+          "raw": "1e3"
+        },
+        {
+          "parsed": 1000,
+          "raw": ""
+        },
+        {
+          "parsed": 1000,
+          "raw": "abc"
+        }
+      ],
+      "default": 1000,
+      "env": "GENAI_EVALUATION_QUEUE_SIZE",
+      "extraction": "runtime:OTelConfig",
+      "otel_config_fields": [
+        "evaluation_queue_size"
+      ],
+      "read_by_library": true,
+      "readers": [
+        {
+          "access": "read",
+          "default_raw": {
+            "expression": "DEFAULT_EVALUATION_QUEUE_SIZE"
+          },
+          "env": "GENAI_EVALUATION_QUEUE_SIZE",
+          "expression": "_number_from_env('GENAI_EVALUATION_QUEUE_SIZE', DEFAULT_EVALUATION_QUEUE_SIZE)",
+          "module": "genai_otel/config.py",
+          "scope": "OTelConfig"
+        }
+      ],
+      "type": "int",
+      "written_by_library": false
+    },
+    {
+      "cases": [
+        {
+          "parsed": 0.25,
+          "raw": "0.25"
+        },
+        {
+          "parsed": 0.0,
+          "raw": "0"
+        },
+        {
+          "parsed": 5.0,
+          "raw": "-0.5"
+        },
+        {
+          "parsed": 2.0,
+          "raw": " 2 "
+        },
+        {
+          "parsed": 3600.0,
+          "raw": "3600"
+        },
+        {
+          "parsed": 3600.0,
+          "raw": "7200"
+        },
+        {
+          "parsed": 5.0,
+          "raw": "nan"
+        },
+        {
+          "parsed": 5.0,
+          "raw": "inf"
+        },
+        {
+          "parsed": 5.0,
+          "raw": ""
+        },
+        {
+          "parsed": 5.0,
+          "raw": "abc"
+        }
+      ],
+      "default": 5.0,
+      "env": "GENAI_EVALUATION_SHUTDOWN_TIMEOUT",
+      "extraction": "runtime:OTelConfig",
+      "otel_config_fields": [
+        "evaluation_shutdown_timeout"
+      ],
+      "read_by_library": true,
+      "readers": [
+        {
+          "access": "read",
+          "default_raw": {
+            "expression": "DEFAULT_EVALUATION_SHUTDOWN_TIMEOUT"
+          },
+          "env": "GENAI_EVALUATION_SHUTDOWN_TIMEOUT",
+          "expression": "_number_from_env('GENAI_EVALUATION_SHUTDOWN_TIMEOUT', DEFAULT_EVALUATION_SHUTDOWN_TIMEOUT, float)",
+          "module": "genai_otel/config.py",
+          "scope": "OTelConfig"
+        }
+      ],
+      "type": "float",
       "written_by_library": false
     },
     {
@@ -5369,6 +6028,26 @@
           "expression": "os.getenv('GENAI_OTEL_MEDIA_STORE_SECRET_KEY')",
           "module": "genai_otel/config.py",
           "scope": "OTelConfig"
+        }
+      ],
+      "type": "str",
+      "written_by_library": false
+    },
+    {
+      "cases": [],
+      "default": "",
+      "env": "GENAI_OTEL_RESOURCE_HOST_IP",
+      "extraction": "static",
+      "otel_config_fields": [],
+      "read_by_library": true,
+      "readers": [
+        {
+          "access": "read",
+          "default_raw": "",
+          "env": "GENAI_OTEL_RESOURCE_HOST_IP",
+          "expression": "os.getenv(_HOST_IP_ENV, '')",
+          "module": "genai_otel/resource.py",
+          "scope": "_host_ip_requested"
         }
       ],
       "type": "str",
@@ -6588,6 +7267,182 @@
     {
       "cases": [
         {
+          "parsed": [
+            "session.id"
+          ],
+          "raw": "session.id"
+        },
+        {
+          "parsed": [
+            "user.id"
+          ],
+          "raw": "user.id"
+        },
+        {
+          "parsed": [
+            "session.id",
+            "user.id"
+          ],
+          "raw": "session.id,user.id"
+        },
+        {
+          "parsed": [
+            "session.id",
+            "user.id"
+          ],
+          "raw": "user.id,session.id"
+        },
+        {
+          "parsed": [
+            "session.id",
+            "user.id"
+          ],
+          "raw": " user.id , session.id "
+        },
+        {
+          "parsed": [
+            "session.id"
+          ],
+          "raw": "session.id,,session.id"
+        },
+        {
+          "parsed": [],
+          "raw": "Session.Id"
+        },
+        {
+          "parsed": [
+            "session.id"
+          ],
+          "raw": "session.id,gen_ai.conversation.id"
+        },
+        {
+          "parsed": [],
+          "raw": "nonexistent"
+        },
+        {
+          "parsed": [],
+          "raw": ""
+        }
+      ],
+      "default": [],
+      "env": "GENAI_SESSION_BAGGAGE_ACCEPT",
+      "extraction": "runtime:OTelConfig",
+      "otel_config_fields": [
+        "session_baggage_accept"
+      ],
+      "read_by_library": true,
+      "readers": [
+        {
+          "access": "read",
+          "default_raw": null,
+          "env": "GENAI_SESSION_BAGGAGE_ACCEPT",
+          "expression": "os.getenv('GENAI_SESSION_BAGGAGE_ACCEPT')",
+          "module": "genai_otel/config.py",
+          "scope": "OTelConfig"
+        },
+        {
+          "access": "read",
+          "default_raw": null,
+          "env": "GENAI_SESSION_BAGGAGE_ACCEPT",
+          "expression": "os.getenv(BAGGAGE_ACCEPT_ENV)",
+          "module": "genai_otel/sessions.py",
+          "scope": "<module>"
+        }
+      ],
+      "type": "list",
+      "written_by_library": false
+    },
+    {
+      "cases": [
+        {
+          "parsed": [
+            "session.id"
+          ],
+          "raw": "session.id"
+        },
+        {
+          "parsed": [
+            "user.id"
+          ],
+          "raw": "user.id"
+        },
+        {
+          "parsed": [
+            "session.id",
+            "user.id"
+          ],
+          "raw": "session.id,user.id"
+        },
+        {
+          "parsed": [
+            "session.id",
+            "user.id"
+          ],
+          "raw": "user.id,session.id"
+        },
+        {
+          "parsed": [
+            "session.id",
+            "user.id"
+          ],
+          "raw": " user.id , session.id "
+        },
+        {
+          "parsed": [
+            "session.id"
+          ],
+          "raw": "session.id,,session.id"
+        },
+        {
+          "parsed": [],
+          "raw": "Session.Id"
+        },
+        {
+          "parsed": [
+            "session.id"
+          ],
+          "raw": "session.id,gen_ai.conversation.id"
+        },
+        {
+          "parsed": [],
+          "raw": "nonexistent"
+        },
+        {
+          "parsed": [],
+          "raw": ""
+        }
+      ],
+      "default": [],
+      "env": "GENAI_SESSION_BAGGAGE_KEYS",
+      "extraction": "runtime:OTelConfig",
+      "otel_config_fields": [
+        "session_baggage_keys"
+      ],
+      "read_by_library": true,
+      "readers": [
+        {
+          "access": "read",
+          "default_raw": null,
+          "env": "GENAI_SESSION_BAGGAGE_KEYS",
+          "expression": "os.getenv('GENAI_SESSION_BAGGAGE_KEYS')",
+          "module": "genai_otel/config.py",
+          "scope": "OTelConfig"
+        },
+        {
+          "access": "read",
+          "default_raw": null,
+          "env": "GENAI_SESSION_BAGGAGE_KEYS",
+          "expression": "os.getenv(BAGGAGE_KEYS_ENV)",
+          "module": "genai_otel/sessions.py",
+          "scope": "<module>"
+        }
+      ],
+      "type": "list",
+      "written_by_library": false
+    },
+    {
+      "cases": [
+        {
           "parsed": 0.25,
           "raw": "0.25"
         },
@@ -6826,6 +7681,61 @@
     {
       "cases": [
         {
+          "parsed": 10,
+          "raw": "10"
+        },
+        {
+          "parsed": 0,
+          "raw": "0"
+        },
+        {
+          "parsed": 0,
+          "raw": "-1"
+        },
+        {
+          "parsed": 7,
+          "raw": " 7 "
+        },
+        {
+          "parsed": 500,
+          "raw": "1.5"
+        },
+        {
+          "parsed": 500,
+          "raw": "1e3"
+        },
+        {
+          "parsed": 500,
+          "raw": ""
+        },
+        {
+          "parsed": 500,
+          "raw": "abc"
+        }
+      ],
+      "default": 500,
+      "env": "GENAI_TOXICITY_MAX_CHARS",
+      "extraction": "runtime:OTelConfig",
+      "otel_config_fields": [
+        "toxicity_max_chars"
+      ],
+      "read_by_library": true,
+      "readers": [
+        {
+          "access": "read",
+          "default_raw": null,
+          "env": "GENAI_TOXICITY_MAX_CHARS",
+          "expression": "_characters_from_env('GENAI_TOXICITY_MAX_CHARS')",
+          "module": "genai_otel/config.py",
+          "scope": "OTelConfig"
+        }
+      ],
+      "type": "int",
+      "written_by_library": false
+    },
+    {
+      "cases": [
+        {
           "parsed": "value",
           "raw": "value"
         },
@@ -6860,6 +7770,81 @@
         }
       ],
       "type": "str",
+      "written_by_library": false
+    },
+    {
+      "cases": [
+        {
+          "parsed": true,
+          "raw": "true"
+        },
+        {
+          "parsed": true,
+          "raw": "TRUE"
+        },
+        {
+          "parsed": true,
+          "raw": "True"
+        },
+        {
+          "parsed": true,
+          "raw": " true "
+        },
+        {
+          "parsed": false,
+          "raw": "false"
+        },
+        {
+          "parsed": false,
+          "raw": "1"
+        },
+        {
+          "parsed": false,
+          "raw": "0"
+        },
+        {
+          "parsed": false,
+          "raw": "yes"
+        },
+        {
+          "parsed": false,
+          "raw": "on"
+        },
+        {
+          "parsed": false,
+          "raw": ""
+        },
+        {
+          "parsed": false,
+          "raw": "garbage"
+        }
+      ],
+      "default": false,
+      "env": "GENAI_TOXICITY_QUANTIZE",
+      "extraction": "runtime:OTelConfig",
+      "otel_config_fields": [
+        "toxicity_quantize"
+      ],
+      "read_by_library": true,
+      "readers": [
+        {
+          "access": "read",
+          "default_raw": "false",
+          "env": "GENAI_TOXICITY_QUANTIZE",
+          "expression": "os.getenv('GENAI_TOXICITY_QUANTIZE', 'false').strip().lower() == 'true'",
+          "module": "genai_otel/config.py",
+          "scope": "OTelConfig"
+        },
+        {
+          "access": "read",
+          "default_raw": "false",
+          "env": "GENAI_TOXICITY_QUANTIZE",
+          "expression": "_env_bool('GENAI_TOXICITY_QUANTIZE', 'false')",
+          "module": "genai_otel/evaluation/config.py",
+          "scope": "ToxicityConfig"
+        }
+      ],
+      "type": "bool",
       "written_by_library": false
     },
     {
@@ -6929,6 +7914,69 @@
         }
       ],
       "type": "float",
+      "written_by_library": false
+    },
+    {
+      "cases": [
+        {
+          "parsed": 4,
+          "raw": "4"
+        },
+        {
+          "parsed": 1,
+          "raw": "1"
+        },
+        {
+          "parsed": null,
+          "raw": "0"
+        },
+        {
+          "parsed": null,
+          "raw": "-2"
+        },
+        {
+          "parsed": 3,
+          "raw": " 3 "
+        },
+        {
+          "parsed": null,
+          "raw": "1.5"
+        },
+        {
+          "parsed": null,
+          "raw": ""
+        },
+        {
+          "parsed": null,
+          "raw": "abc"
+        }
+      ],
+      "default": null,
+      "env": "GENAI_TOXICITY_TORCH_THREADS",
+      "extraction": "runtime:OTelConfig",
+      "otel_config_fields": [
+        "toxicity_torch_threads"
+      ],
+      "read_by_library": true,
+      "readers": [
+        {
+          "access": "read",
+          "default_raw": null,
+          "env": "GENAI_TOXICITY_TORCH_THREADS",
+          "expression": "os.getenv('GENAI_TOXICITY_TORCH_THREADS')",
+          "module": "genai_otel/config.py",
+          "scope": "OTelConfig"
+        },
+        {
+          "access": "read",
+          "default_raw": null,
+          "env": "GENAI_TOXICITY_TORCH_THREADS",
+          "expression": "_positive_int_from_env('GENAI_TOXICITY_TORCH_THREADS')",
+          "module": "genai_otel/evaluation/config.py",
+          "scope": "ToxicityConfig"
+        }
+      ],
+      "type": "str",
       "written_by_library": false
     },
     {
@@ -7154,12 +8202,10 @@
           "scope": "_process_detector_enabled"
         },
         {
-          "access": "setdefault",
-          "default_raw": {
-            "expression": "default_detectors"
-          },
+          "access": "write",
+          "default_raw": null,
           "env": "OTEL_EXPERIMENTAL_RESOURCE_DETECTORS",
-          "expression": "os.environ.setdefault('OTEL_EXPERIMENTAL_RESOURCE_DETECTORS', default_detectors)",
+          "expression": "os.environ['OTEL_EXPERIMENTAL_RESOURCE_DETECTORS']",
           "module": "genai_otel/resource.py",
           "scope": "build_resource"
         }
@@ -7456,6 +8502,51 @@
       ],
       "type": "str",
       "written_by_library": true
+    },
+    {
+      "cases": [
+        {
+          "parsed": "value",
+          "raw": "value"
+        },
+        {
+          "parsed": "MiXeD Case",
+          "raw": "MiXeD Case"
+        },
+        {
+          "parsed": " padded ",
+          "raw": " padded "
+        },
+        {
+          "parsed": "",
+          "raw": ""
+        }
+      ],
+      "default": null,
+      "env": "OTEL_PROPAGATORS",
+      "extraction": "runtime:source-expression",
+      "otel_config_fields": [],
+      "read_by_library": true,
+      "readers": [
+        {
+          "access": "read",
+          "default_raw": null,
+          "env": "OTEL_PROPAGATORS",
+          "expression": "os.getenv('OTEL_PROPAGATORS')",
+          "module": "genai_otel/auto_instrument.py",
+          "scope": "_install_propagators"
+        },
+        {
+          "access": "read",
+          "default_raw": null,
+          "env": "OTEL_PROPAGATORS",
+          "expression": "os.getenv('OTEL_PROPAGATORS')",
+          "module": "genai_otel/sessions.py",
+          "scope": "warn_if_propagator_replaced"
+        }
+      ],
+      "type": "str",
+      "written_by_library": false
     },
     {
       "cases": [

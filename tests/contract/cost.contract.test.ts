@@ -8,7 +8,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import contract from '../../contract/cost_vectors.json';
 import pricing from '../../src/pricing/llm_pricing.json';
-import { CALL_TYPE_CATEGORY, CostCalculator, type GranularCost, type Usage } from '../../src/cost/calculator';
+import { CALL_TYPE_CATEGORY, CostCalculator, DECISION_VENDOR_PREFIXES, type GranularCost, type Usage } from '../../src/cost/calculator';
 import { getDefaultCostCalculator } from '../../src/cost';
 import { setLogger } from '../../src/logger';
 
@@ -93,7 +93,7 @@ describe('cost vectors', () => {
       expect(calculator.calculateCost(vector.model, vector.usage, vector.call_type)).toBe(vector.cost);
     }
 
-    expect(calculator.isPriced(vector.model, vector.call_type), 'priced').toBe(vector.priced);
+    expect(calculator.isPriced(vector.model, vector.call_type, vector.usage), 'priced').toBe(vector.priced);
     expect(calculator.pricingSource(vector.model, vector.call_type), 'pricing_source').toBe(vector.pricing_source);
     expect(calculator.deprecation(vector.model, vector.call_type), 'deprecation').toBe(vector.deprecation);
     expect(calculator.priceChecked(vector.model, vector.call_type), 'price_checked').toBe(vector.price_checked);
@@ -116,6 +116,10 @@ describe('cost contract tables', () => {
   it('supported call types and their pricing categories', () => {
     expect(Object.keys(CALL_TYPE_CATEGORY).sort()).toEqual(contract.supported_call_types);
     expect({ ...CALL_TYPE_CATEGORY }).toEqual(contract.call_type_to_pricing_category);
+  });
+
+  it('decision vendor prefixes', () => {
+    expect([...DECISION_VENDOR_PREFIXES]).toEqual(contract.decision_vendor_prefixes);
   });
 
   it('metadata keys are never a pricing category', () => {
@@ -141,15 +145,24 @@ describe('cost contract tables', () => {
     },
   );
 
-  it.each(contract.case_insensitive_key_collisions.map((entry) => [entry.lowercase, entry] as const))(
-    'keys that differ only by case: %s',
-    (_lower, entry) => {
+  // From v1.46.0 the pricing table has no keys that differ only by case, so the list is empty;
+  // the cases still run if a later table brings some back.
+  const collisions = contract.case_insensitive_key_collisions as unknown as {
+    lowercase: string;
+    keys: string[];
+    category: string;
+    resolves_to: string;
+  }[];
+  if (collisions.length === 0) {
+    it('no pricing keys differ only by case', () => expect(collisions).toEqual([]));
+  } else {
+    it.each(collisions.map((entry) => [entry.lowercase, entry] as const))('keys that differ only by case: %s', (_lower, entry) => {
       const calculator = getDefaultCostCalculator();
       for (const key of [...entry.keys, entry.lowercase, entry.lowercase.toUpperCase()]) {
         expect(calculator.normalizeModelName(key, entry.category), key).toBe(entry.resolves_to);
       }
-    },
-  );
+    });
+  }
 
   it('no pricing key is integer-like, which a JavaScript object would silently reorder', () => {
     const offenders: string[] = [];

@@ -44,10 +44,16 @@ function generateSemconv() {
   const constants = Object.entries(semconv.semconv_constants).sort(([a], [b]) => a.localeCompare(b));
 
   const plain = semconv.attributes.filter((attribute) => !attribute.template);
+  // An attribute the reference names with a semconv constant keeps that name; one whose derived
+  // name would collide with it (gen_ai.usage.cache_read_input_tokens, a raw dict key, against
+  // gen_ai.usage.cache_read.input_tokens) is suffixed _ALT. Official names first, so the result
+  // does not depend on the contract's ordering.
+  const ordered = [...plain].sort((a, b) => Number(!a.semconv_constant) - Number(!b.semconv_constant));
   const byConstant = new Map();
-  for (const attribute of plain) {
-    const name = constantName(attribute.name);
+  for (const attribute of ordered) {
+    let name = constantName(attribute.name);
     if (!/^[A-Z_][A-Z0-9_]*$/.test(name)) throw new Error(`cannot derive an identifier for ${attribute.name}`);
+    if (byConstant.has(name) && !attribute.semconv_constant) name = `${name}_ALT`;
     if (byConstant.has(name)) {
       throw new Error(`attribute names collide as ${name}: ${byConstant.get(name)} and ${attribute.name}`);
     }

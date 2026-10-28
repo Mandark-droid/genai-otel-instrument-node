@@ -46,19 +46,32 @@ export interface CostCalculatorOptions {
   customPricingJson?: string;
 }
 
+const DECISION_SECTION = 'decision';
+
 /** `call_type` -> section of the pricing table. Anything else is not priced. */
 export const CALL_TYPE_CATEGORY: Readonly<Record<string, string>> = Object.freeze({
   chat: 'chat',
   embedding: 'embeddings',
   image: 'images',
   audio: 'audio',
+  speech_to_text: 'speech_to_text',
+  decision: DECISION_SECTION,
 });
+
+/**
+ * Vendor prefixes a gateway puts in front of a decision model's own id
+ * (`liquid/d1`). Only these are stripped: a community checkpoint such as
+ * `autotrust/JEV-27B` is self-hosted weights, not the vendor's billed service.
+ */
+export const DECISION_VENDOR_PREFIXES: readonly string[] = Object.freeze(['openai/', 'liquid/', 'liquidai/', 'typesafe/']);
 
 const DEPRECATED_KEY = 'deprecated';
 const PRICES_CHECKED_KEY = 'prices_checked';
 /** Metadata registries, not pricing categories; never indexed for model lookup. */
 const METADATA_KEYS: ReadonlySet<string> = new Set([DEPRECATED_KEY, PRICES_CHECKED_KEY]);
-const CUSTOM_CATEGORIES: ReadonlySet<string> = new Set(['chat', 'embeddings', 'images', 'audio']);
+/** Pricing sections a `GENAI_CUSTOM_PRICING_JSON` may add to, in the order the warning lists them. */
+const CUSTOM_PRICING_CATEGORIES = ['chat', 'embeddings', 'images', 'audio', DECISION_SECTION] as const;
+const CUSTOM_CATEGORIES: ReadonlySet<string> = new Set(CUSTOM_PRICING_CATEGORIES);
 const OTHER_CATEGORIES = ['chat', 'audio', 'embeddings', 'images', 'speech_to_text'] as const;
 
 /** Audio prices carry their unit in the key: unit -> [usage key it bills against, divisor]. */
@@ -161,6 +174,12 @@ function price(pricing: Record<string, unknown>, key: string): number {
   return hasKey(pricing, key) ? quantity(pricing[key], key) : 0.0;
 }
 
+/** Python's `mapping.get(key, 0) or 0`: absent, null and other falsy values read as 0. */
+function numberOrZero(object: Record<string, unknown>, key: string): number {
+  const value = object[key];
+  return hasKey(object, key) && value ? quantity(value, key) : 0;
+}
+
 export class CostCalculator {
   private data: PricingData = {};
   /** category -> lowercased key -> original key */
@@ -225,9 +244,10 @@ export class CostCalculator {
     }
     let copied = false;
     for (const [category, models] of Object.entries(custom)) {
+      // "decision" lets an operator price an on-prem decision model per input token.
       if (!CUSTOM_CATEGORIES.has(category)) {
         logger.warn(
-          `Unknown pricing category '${category}' in custom pricing. Valid categories: chat, embeddings, images, audio`,
+          `Unknown pricing category '${category}' in custom pricing. Valid categories: ${CUSTOM_PRICING_CATEGORIES.join(', ')}`,
         );
         continue;
       }
@@ -279,6 +299,7 @@ export class CostCalculator {
   private resolveModelKey(model: string, category: string): string | null {
     const exact = this.exactIndex.get(category);
     if (!exact || exact.size === 0) return null;
+    if (category === DECISION_SECTION) return this.resolveDecisionKey(model);
     const normalized = model.toLowerCase();
     const hit = exact.get(normalized);
     if (hit !== undefined) return hit;
@@ -286,6 +307,33 @@ export class CostCalculator {
       // Containment alone is not enough: a short key ("o1", "o3", "auto")
       // matches inside an unrelated name and bills that model's price.
       if (normalized.includes(lowerKey) && matchesOnTokenBoundary(normalized, lowerKey)) return originalKey;
+    }
+    return null;
+  }
+
+  /**
+   * Resolve a decision model id: exact, or a dated / suffixed variant of a key.
+   * Anchored at the start of the id, unlike the chat lookup's token-boundary
+   * substring match: `autotrust/JEV-27B` must not bill as TypeSafe's hosted Jev.
+   * One of `DECISION_VENDOR_PREFIXES` may be stripped first.
+   */
+  private resolveDecisionKey(model: string): string | null {
+    const exact = this.exactIndex.get(DECISION_SECTION);
+    if (!exact || exact.size === 0 || !model) return null;
+    const lowered = model.toLowerCase();
+    const candidates = [lowered];
+    for (const prefix of DECISION_VENDOR_PREFIXES) {
+      if (lowered.startsWith(prefix)) candidates.push(lowered.slice(prefix.length));
+    }
+    for (const name of candidates) {
+      const hit = exact.get(name);
+      if (hit !== undefined) return hit;
+    }
+    for (const name of candidates) {
+      // Longest key first; the key must be followed by a non-alphanumeric character.
+      for (const [lowerKey, originalKey] of this.substrIndex.get(DECISION_SECTION) ?? []) {
+        if (name.startsWith(lowerKey) && !isAlnum(name[lowerKey.length])) return originalKey;
+      }
     }
     return null;
   }
@@ -353,13 +401,32 @@ export class CostCalculator {
   /**
    * Whether `calculateCost` has a price to apply for this model and call type.
    * False means the result is `null`: not measured, as opposed to free.
+   *
+   * `usage` matters for `speech_to_text` only: usage with `seconds` is billed
+   * from the audio table, anything else from the speech_to_text table.
    */
-  isPriced(model: string, callType: string): boolean {
+  isPriced(model: string, callType: string, usage?: Usage): boolean {
     if (!this.hasPricingData()) return false;
-    const category = CALL_TYPE_CATEGORY[callType];
-    if (category === undefined) return false;
+    if (!hasKey(CALL_TYPE_CATEGORY, callType)) return false;
     if (callType === 'chat') return this.resolveChatPricing(model) !== null;
+    const category =
+      callType === 'speech_to_text' && usage !== undefined && hasKey(usage, 'seconds')
+        ? 'audio'
+        : (CALL_TYPE_CATEGORY[callType] as string);
     return this.normalizeModelName(model, category) !== null;
+  }
+
+  /**
+   * The pricing section `pricingSource`, `deprecation` and `priceChecked` read
+   * for a call type. Call types are singular, sections plural; an unmapped call
+   * type is looked up as a section name itself, and falls back to chat when no
+   * such section exists. Decision never falls back to chat, even when no
+   * decision section is loaded.
+   */
+  private sectionFor(callType: string): string {
+    const category = hasKey(CALL_TYPE_CATEGORY, callType) ? (CALL_TYPE_CATEGORY[callType] as string) : callType;
+    if (category === DECISION_SECTION) return category;
+    return hasKey(this.data, category) ? category : 'chat';
   }
 
   /**
@@ -378,6 +445,14 @@ export class CostCalculator {
         return this.imageCost(model, usage);
       case 'audio':
         return this.audioCost(model, usage);
+      case 'speech_to_text':
+        // Some STT vendors bill by audio duration, older integrations report
+        // tokens against the speech_to_text table. Duration goes to the
+        // unit-aware audio table.
+        if (hasKey(usage, 'seconds')) return this.audioCost(model, usage);
+        return this.speechToTextCost(model, usage);
+      case 'decision':
+        return this.decisionCost(model, usage);
       default:
         logger.warn(`Unknown call type '${callType}' for cost calculation.`);
         return null;
@@ -407,13 +482,15 @@ export class CostCalculator {
     const completion = (completionTokens / 1000) * price(pricing, 'completionPrice');
 
     // Reasoning tokens (OpenAI o-series), priced only where the entry says so.
+    // Providers send completion_tokens_details = null, or reasoning_tokens =
+    // null, for models that do not reason: both read as 0.
     let reasoningTokens = 0;
-    if (hasKey(usage, 'completion_tokens_details')) {
-      const details = usage.completion_tokens_details;
+    const details = usage.completion_tokens_details;
+    if (hasKey(usage, 'completion_tokens_details') && details) {
       if (!isPlainObject(details)) {
         throw new TypeError(`usage.completion_tokens_details must be an object, got ${typeName(details)}`);
       }
-      reasoningTokens = usageNumber(details, 'reasoning_tokens', 0);
+      reasoningTokens = numberOrZero(details, 'reasoning_tokens');
     }
     let reasoning = 0.0;
     if (reasoningTokens > 0 && hasKey(pricing, 'reasoningPrice')) {
@@ -443,10 +520,62 @@ export class CostCalculator {
       logger.debug(`Pricing not found for embedding model: ${model}`);
       return null;
     }
-    const pricePer1k = quantity(this.category('embeddings')?.[modelKey], modelKey);
+    const entry = this.category('embeddings')?.[modelKey];
+    // Most entries are a bare per-1k-token price; some are {"promptPrice": ...} objects.
+    const pricePer1k = isPlainObject(entry) ? price(entry, 'promptPrice') : quantity(entry, modelKey);
     // prompt_tokens, or total_tokens when that is absent or zero.
     const totalTokens = usageNumber(usage, 'prompt_tokens', 0) || usageNumber(usage, 'total_tokens', 0);
     return (totalTokens / 1000) * pricePer1k;
+  }
+
+  /** Speech-to-text entries are priced like chat: per 1,000 prompt / completion tokens. */
+  private speechToTextCost(model: string, usage: Usage): number | null {
+    const modelKey = this.normalizeModelName(model, 'speech_to_text');
+    if (modelKey === null) {
+      logger.debug(`Pricing not found for speech-to-text model: ${model}`);
+      return null;
+    }
+    const entry = this.category('speech_to_text')?.[modelKey];
+    if (!isPlainObject(entry)) return 0.0;
+    const promptTokens = numberOrZero(usage, 'prompt_tokens');
+    const completionTokens = numberOrZero(usage, 'completion_tokens');
+    return (promptTokens / 1000) * price(entry, 'promptPrice') + (completionTokens / 1000) * price(entry, 'completionPrice');
+  }
+
+  /**
+   * Cost of a decision-model call, from the `decision` section only: a model
+   * missing from it is unpriced, never priced as chat. Every verified decision
+   * provider bills input only. Cached input is billed at the entry's
+   * `cacheReadPrice` / `cacheWritePrice` when it has one (capped at the prompt
+   * tokens), and as input otherwise.
+   */
+  private decisionCost(model: string, usage: Usage): number | null {
+    const modelKey = this.normalizeModelName(model, DECISION_SECTION);
+    if (modelKey === null) {
+      logger.debug(`Pricing not found for decision model: ${model}`);
+      return null;
+    }
+    const entry = this.category(DECISION_SECTION)?.[modelKey];
+    if (!isPlainObject(entry)) return 0.0;
+    const promptPrice = numberOrZero(entry, 'promptPrice');
+    let inputTokens = numberOrZero(usage, 'prompt_tokens');
+    let cached = numberOrZero(usage, 'cache_read_input_tokens');
+    let cost = 0.0;
+    if (cached && hasKey(entry, 'cacheReadPrice')) {
+      cached = Math.min(cached, inputTokens);
+      inputTokens -= cached;
+      cost += (cached / 1000) * numberOrZero(entry, 'cacheReadPrice');
+    }
+    let cacheWrite = numberOrZero(usage, 'cache_creation_input_tokens');
+    if (cacheWrite && hasKey(entry, 'cacheWritePrice')) {
+      cacheWrite = Math.min(cacheWrite, inputTokens);
+      inputTokens -= cacheWrite;
+      cost += (cacheWrite / 1000) * numberOrZero(entry, 'cacheWritePrice');
+    }
+    cost += (inputTokens / 1000) * promptPrice;
+    const completion = numberOrZero(usage, 'completion_tokens');
+    cost += (completion / 1000) * numberOrZero(entry, 'completionPrice');
+    return cost;
   }
 
   private imageCost(model: string, usage: Usage): number | null {
@@ -460,6 +589,8 @@ export class CostCalculator {
     const size = usage.size;
     const n = usageNumber(usage, 'n', 1);
 
+    // A bare number is a flat price per image, whatever the size or quality.
+    if (typeof pricingInfo === 'number' || typeof pricingInfo === 'boolean') return quantity(pricingInfo, modelKey) * n;
     if (!isPlainObject(pricingInfo)) {
       throw new TypeError(`images.${modelKey} must be an object, got ${typeName(pricingInfo)}`);
     }
@@ -538,12 +669,13 @@ export class CostCalculator {
    * the parameter count in the model name (indicative only). `unpriced`: no
    * price could be determined.
    *
-   * The call type selects a section of the table only when a section has that
-   * exact name; otherwise the chat section is consulted. That is the Python
-   * behaviour, and it means `embedding` (singular) looks in `chat`.
+   * The section is the call type's own (`embedding` reads `embeddings`); an
+   * unmapped call type is looked up as a section name, else chat. For
+   * `speech_to_text` it is always the speech_to_text section, even when usage
+   * with `seconds` is billed from the audio table, as in Python.
    */
   pricingSource(model: string, callType = 'chat'): PricingSource {
-    const category = hasKey(this.data, callType) ? callType : 'chat';
+    const category = this.sectionFor(callType);
     if (this.normalizeModelName(model, category)) return 'table';
     if (category === 'chat' && this.extractParamCountFromModelName(model) !== null) return 'estimated';
     return 'unpriced';
@@ -552,7 +684,7 @@ export class CostCalculator {
   private registryLookup(registryKey: string, model: string, callType: string): string | null {
     const registry = this.data[registryKey];
     if (!isPlainObject(registry) || Object.keys(registry).length === 0) return null;
-    const category = hasKey(this.data, callType) ? callType : 'chat';
+    const category = this.sectionFor(callType);
     const key = this.normalizeModelName(model, category);
     if (key && hasKey(registry, key)) return String(registry[key]);
     // A model may be priced in one category but registered under a key

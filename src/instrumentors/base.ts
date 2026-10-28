@@ -27,6 +27,7 @@ import {
   type Attributes,
   type AttributeValue,
   type Context,
+  type Counter,
   type Span,
   type Tracer,
 } from '@opentelemetry/api';
@@ -248,6 +249,42 @@ const now = epochSeconds;
 const wallClockMs = (): number => epochSeconds() * 1000;
 
 /** `gen_ai.operation.name` marks an agent invocation (`agent.run`, `graph.execution`, `runner.run`, ...). */
+/** Operations that are not one inference: kept off the #374 inference instruments. */
+const NON_INFERENCE_OPERATIONS = new Set(['embeddings', 'fetch_response']);
+
+/** Span attributes copied onto the inference token instruments, each only when the span has it. */
+const INFERENCE_METRIC_ATTRIBUTES = [
+  'gen_ai.operation.name',
+  'gen_ai.provider.name',
+  'gen_ai.request.model',
+  'gen_ai.response.model',
+  'server.address',
+  'server.port',
+] as const;
+
+/** `value` as a token count, or 0 when it is not a real positive number. */
+function positiveCount(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.trunc(value) : 0;
+}
+
+/**
+ * `total` split over the modalities the provider reported; what they do not account for is
+ * `unknown`, so the contributions sum to the total. A breakdown larger than the total contradicts
+ * it and is not used. Only positive contributions are returned (#602).
+ */
+function modalityContributions(total: number, usage: Record<string, unknown>, template: string): Record<string, number> {
+  const reported: Record<string, number> = {};
+  for (const modality of TOKEN_MODALITIES) {
+    const count = positiveCount(usage[template.replace('{modality}', modality)]);
+    if (count) reported[modality] = count;
+  }
+  if (!total) return reported;
+  const accounted = Object.values(reported).reduce((a, b) => a + b, 0);
+  if (accounted > total) return { [SC.TOKEN_MODALITY_UNKNOWN]: total };
+  if (total > accounted) reported[SC.TOKEN_MODALITY_UNKNOWN] = total - accounted;
+  return reported;
+}
+
 function isAgentInvocation(attributes: Attributes): boolean {
   const operation = String(attributes[ATTR.GEN_AI_OPERATION_NAME] ?? '').toLowerCase();
   return operation !== '' && AGENT_OPERATION_MARKERS.some((marker) => operation.includes(marker));
@@ -1150,6 +1187,8 @@ export abstract class BaseInstrumentor implements Instrumentor {
       if (usage && typeof usage === 'object' && this.mayRecordUsage(span)) {
         if (estimated) span.setAttribute(ATTR.GEN_AI_USAGE_TOKEN_COUNT_ESTIMATED, true);
         this.recordUsage(span, spanName, usage, { recordTokenHistograms, recordGranular, deprecation: true });
+        // Counts this library estimated stay off the inference instruments (#374).
+        if (!estimated) this.recordInferenceUsageMetrics(span, usage);
         this.markUsageRecorded(span);
       }
     } catch (error) {
@@ -1179,6 +1218,69 @@ export abstract class BaseInstrumentor implements Instrumentor {
       }
     } catch (error) {
       logger.debug(`Failed to extract or record finish reason for span '${spanName}': ${String(error)}`);
+    }
+  }
+
+  /**
+   * `usage` on the token instruments of semantic-conventions-genai#374, beside
+   * `gen_ai.client.token.usage`, never instead of it: a port of the Python library's
+   * `_record_inference_usage_metrics`. Only provider-reported counts. The counters carry only
+   * known, strictly positive contributions (#602), split by modality; the histograms describe one
+   * operation each, so they record its totals whenever usage was reported, zero included, and
+   * nothing for an agent run.
+   */
+  private recordInferenceUsageMetrics(span: Span, usage: UsageDict): void {
+    try {
+      const attributes = spanAttributes(span);
+      const operation = attributes[ATTR.GEN_AI_OPERATION_NAME];
+      if (NON_INFERENCE_OPERATIONS.has(String(operation)) || attributes[ATTR.GEN_AI_REQUEST_TYPE] === 'embedding') return;
+
+      const labels: Attributes = {};
+      for (const key of INFERENCE_METRIC_ATTRIBUTES) {
+        const value = attributes[key];
+        if ((typeof value === 'string' && value !== '') || (typeof value === 'number' && Number.isInteger(value))) labels[key] = value;
+      }
+      if (!(SC.GEN_AI_PROVIDER_NAME in labels)) {
+        const superseded = attributes[SC.GEN_AI_SYSTEM];
+        if (typeof superseded === 'string' && superseded) labels[SC.GEN_AI_PROVIDER_NAME] = superseded;
+      }
+
+      const raw = usage as unknown as Record<string, unknown>;
+      const cacheRead = positiveCount(raw.cache_read_input_tokens);
+      const cacheWrite = positiveCount(raw.cache_creation_input_tokens);
+      let inputTotal = positiveCount(raw.prompt_tokens);
+      // Anthropic counts only uncached input; the conventions count it all.
+      if (raw.prompt_tokens_excludes_cache === true) inputTotal += cacheRead + cacheWrite;
+      const outputTotal = positiveCount(raw.completion_tokens);
+      const details = raw.completion_tokens_details;
+      const reasoning = details && typeof details === 'object' ? positiveCount((details as Record<string, unknown>).reasoning_tokens) : 0;
+
+      const counters = this.metrics.counters;
+      const plan: [Counter, number, string | undefined][] = [
+        [counters.inferenceInputTokens, inputTotal, '{modality}_input_tokens'],
+        [counters.inferenceOutputTokens, outputTotal, '{modality}_output_tokens'],
+        [counters.inferenceCacheReadTokens, cacheRead, '{modality}_cache_read_input_tokens'],
+        [counters.inferenceCacheWriteTokens, cacheWrite, undefined],
+        [counters.inferenceReasoningTokens, reasoning, undefined],
+      ];
+      for (const [counter, total, template] of plan) {
+        const contributions = template
+          ? modalityContributions(total, raw, template)
+          : total
+            ? { [SC.TOKEN_MODALITY_UNKNOWN]: total }
+            : {};
+        for (const [modality, count] of Object.entries(contributions)) {
+          counter.add(count, { ...labels, [SC.GEN_AI_TOKEN_MODALITY]: modality });
+        }
+      }
+
+      // A framework span accounting several model calls: its tokens belong in the totals above,
+      // but its total is not the size of any one inference.
+      if (isAgentInvocation(attributes)) return;
+      this.metrics.histograms.inferenceOperationInputTokens.record(inputTotal, labels);
+      this.metrics.histograms.inferenceOperationOutputTokens.record(outputTotal, labels);
+    } catch (error) {
+      logger.debug(`Failed to record inference token-usage metrics: ${String(error)}`);
     }
   }
 
@@ -1269,11 +1371,14 @@ export abstract class BaseInstrumentor implements Instrumentor {
         }
       } else {
         // Non-chat requests (image, audio, embedding, ...): the total only.
+        // Non-chat requests (image, audio, embedding, speech_to_text, decision, ...): the cost
+        // when there is one, and always where the price came from, as for chat (Python 1.46.0).
         const cost = this.costCalculator.calculateCost(model, usage, callType);
         if (cost !== null && cost > 0) {
           metrics.counters.cost.add(cost, { model });
           span.setAttribute(ATTR.GEN_AI_USAGE_COST_TOTAL, cost);
         }
+        span.setAttribute(ATTR.GEN_AI_USAGE_COST_PRICING_SOURCE, this.costCalculator.pricingSource(model, callType));
         if (cost === null) recordPricingMissing(model, callType);
       }
     } catch (error) {

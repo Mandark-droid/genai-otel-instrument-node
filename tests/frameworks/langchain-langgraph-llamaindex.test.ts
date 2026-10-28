@@ -223,7 +223,7 @@ describe('LangGraph', () => {
       'graph.node.id': 'think',
       'graph.node.parent_id': 'LangGraph',
       'openinference.span.kind': 'CHAIN',
-      'langgraph.node.attempt': 1,
+      'langgraph.attempt': 1,
     });
     expect(typeof think.attributes['langgraph.step']).toBe('number');
     expect(JSON.parse(String(think.attributes.metadata))).toEqual({ langgraph_node: 'think', langgraph_step: think.attributes['langgraph.step'] });

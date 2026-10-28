@@ -58,11 +58,10 @@ import {
 import { logger } from './logger';
 import { metricViews, resetSharedMetrics } from './metrics';
 import { buildResource } from './resource';
-import { AgentGraphSpanProcessor, agentGraphEnabled } from './agent-graph';
+import { AgentGraphSpanProcessor } from './agent-graph';
 import { setAppSpanContentCapture } from './app-spans';
 import {
   configureSessionPropagation,
-  parseBaggageKeys,
   SessionBaggagePropagator,
   SessionSpanProcessor,
   sessionBaggageEnabled,
@@ -424,11 +423,11 @@ function installSigtermFlushHandler(config: OTelConfig, state: ActiveState): voi
  * _ACCEPT), as the Python library's _install_propagators: a service that does not opt in
  * propagates exactly what it did before.
  */
-function sessionPropagator() {
+function sessionPropagator(config: OTelConfig) {
   configureSessionPropagation({
-    enabled: (process.env.GENAI_ENABLE_SESSION_PROPAGATION ?? 'true').trim().toLowerCase() === 'true',
-    send: parseBaggageKeys(process.env.GENAI_SESSION_BAGGAGE_KEYS),
-    accept: parseBaggageKeys(process.env.GENAI_SESSION_BAGGAGE_ACCEPT),
+    enabled: config.enableSessionPropagation,
+    send: config.sessionBaggageKeys,
+    accept: config.sessionBaggageAccept,
   });
   return sessionBaggageEnabled()
     ? new CompositePropagator({ propagators: [new W3CTraceContextPropagator(), new SessionBaggagePropagator()] })
@@ -445,7 +444,7 @@ function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumen
   // First, so the session is on the span before any other processor reads it.
   const spanProcessors: SpanProcessor[] = [new SessionSpanProcessor()];
   // Arize agent graph keys on agent spans (the Python library's 1.44.0 processor).
-  if (agentGraphEnabled(process.env.GENAI_ENABLE_AGENT_GRAPH_ATTRIBUTES)) spanProcessors.push(new AgentGraphSpanProcessor());
+  if (config.enableAgentGraphAttributes) spanProcessors.push(new AgentGraphSpanProcessor());
   // Before the cost processor: it fills in what that one prices from.
   spanProcessors.push(new AiSdkSpanProcessor({ contentCapture: config.enableContentCapture }));
   try {
@@ -537,7 +536,7 @@ function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumen
     contextManager: undefined,
     registeredTracer: trace.setGlobalTracerProvider(tracerProvider),
     registeredMeter: metrics.setGlobalMeterProvider(meterProvider),
-    registeredPropagator: propagation.setGlobalPropagator(sessionPropagator()),
+    registeredPropagator: propagation.setGlobalPropagator(sessionPropagator(config)),
     onBeforeExit: undefined,
     onSigterm: undefined,
   };

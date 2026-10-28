@@ -4,6 +4,7 @@ import {
   buildResource,
   DISTRO_NAME,
   hostIpAddresses,
+  hostMachineId,
   redactCommandArgs,
   resetGeneratedInstanceId,
   uuidV5,
@@ -15,6 +16,7 @@ const ENV_KEYS = [
   'OTEL_ENVIRONMENT',
   'OTEL_EXPERIMENTAL_RESOURCE_DETECTORS',
   'GENAI_SERVICE_INSTANCE_ID_MODE',
+  'GENAI_OTEL_RESOURCE_HOST_IP',
 ];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -112,14 +114,28 @@ describe('buildResource', () => {
     expect('environment' in attrs).toBe(false);
   });
 
-  it('runs the host, os and process detectors by default', () => {
+  it('runs the host and os detectors by default, not process', () => {
     const attrs = buildResource('svc', '0.1.0').attributes;
     expect(typeof attrs['host.name']).toBe('string');
     expect(typeof attrs['os.type']).toBe('string');
+    expect('process.pid' in attrs).toBe(false);
+    expect('process.command_line' in attrs).toBe(false);
+    expect(process.env.OTEL_EXPERIMENTAL_RESOURCE_DETECTORS).toBe('host,os');
+  });
+
+  it('the process detector runs when named, with the command line redacted', () => {
+    process.env.OTEL_EXPERIMENTAL_RESOURCE_DETECTORS = 'host,os,process';
+    const attrs = buildResource('svc', '0.1.0').attributes;
     expect(typeof attrs['process.pid']).toBe('number');
     expect(Array.isArray(attrs['process.command_args'])).toBe(true);
     expect(attrs['process.command_line']).toBe((attrs['process.command_args'] as string[]).join(' '));
-    expect(process.env.OTEL_EXPERIMENTAL_RESOURCE_DETECTORS).toBe('host,os,process');
+  });
+
+  it('host.id is known synchronously, as the host detector reads it', () => {
+    const attrs = buildResource('svc', '0.1.0').attributes;
+    const id = hostMachineId();
+    if (id) expect(attrs['host.id']).toBe(id);
+    else expect('host.id' in attrs).toBe(false);
   });
 
   it('a hardened profile leaves the process detector, and so the command line, out', () => {
@@ -138,7 +154,9 @@ describe('buildResource', () => {
     expect(typeof attrs['os.type']).toBe('string');
   });
 
-  it('host.ip, when present, lists no loopback address', () => {
+  it('host.ip is left out unless GENAI_OTEL_RESOURCE_HOST_IP asks for it', () => {
+    expect('host.ip' in buildResource('svc', '0.1.0').attributes).toBe(false);
+    process.env.GENAI_OTEL_RESOURCE_HOST_IP = 'true';
     const ips = buildResource('svc', '0.1.0').attributes['host.ip'] as string[] | undefined;
     for (const ip of ips ?? []) {
       expect(ip.startsWith('127.')).toBe(false);

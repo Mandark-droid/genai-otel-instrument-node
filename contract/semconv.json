@@ -12,6 +12,20 @@
     {
       "also_a_metric_name": false,
       "modules": [
+        "genai_otel/agent_graph.py"
+      ],
+      "name": "agent.name",
+      "namespace": "agent",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "set_attribute_call"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
         "genai_otel/instrumentors/autogen_instrumentor.py"
       ],
       "name": "autogen.agent.name",
@@ -1332,6 +1346,7 @@
       "modules": [
         "genai_otel/mcp_instrumentors/falkordb_instrumentor.py",
         "genai_otel/mcp_instrumentors/minio_instrumentor.py",
+        "genai_otel/mcp_instrumentors/s3_instrumentor.py",
         "genai_otel/mcp_instrumentors/timescaledb_instrumentor.py",
         "genai_otel/mcp_instrumentors/vector_db_instrumentor.py"
       ],
@@ -1375,6 +1390,7 @@
         "genai_otel/mcp_instrumentors/database_instrumentor.py",
         "genai_otel/mcp_instrumentors/falkordb_instrumentor.py",
         "genai_otel/mcp_instrumentors/minio_instrumentor.py",
+        "genai_otel/mcp_instrumentors/s3_instrumentor.py",
         "genai_otel/mcp_instrumentors/timescaledb_instrumentor.py",
         "genai_otel/mcp_instrumentors/vector_db_instrumentor.py"
       ],
@@ -1400,6 +1416,104 @@
       "template": false,
       "via": [
         "set_attribute_call"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "decision.model_name",
+      "namespace": "decision",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "decision.provider",
+      "namespace": "decision",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "decision.request.model_name",
+      "namespace": "decision",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "decision.response.model_name",
+      "namespace": "decision",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "decision.system",
+      "namespace": "decision",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "dict_key"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "decision.token_count.input",
+      "namespace": "decision",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "decision.token_count.output",
+      "namespace": "decision",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "subscript_assignment"
       ]
     },
     {
@@ -1949,9 +2063,12 @@
     {
       "also_a_metric_name": false,
       "modules": [
+        "genai_otel/instrumentors/antigravity_instrumentor.py",
+        "genai_otel/instrumentors/decision.py",
         "genai_otel/instrumentors/hyperbolic_instrumentor.py",
         "genai_otel/instrumentors/mistralai_instrumentor.py",
-        "genai_otel/instrumentors/strands_harness_instrumentor.py"
+        "genai_otel/instrumentors/strands_harness_instrumentor.py",
+        "genai_otel/mcp_instrumentors/s3_instrumentor.py"
       ],
       "name": "error.type",
       "namespace": "error",
@@ -1967,7 +2084,8 @@
       "also_a_metric_name": false,
       "modules": [
         "genai_otel/evaluation/span_processor.py",
-        "genai_otel/evaluation_enriching_exporter.py"
+        "genai_otel/evaluation_enriching_exporter.py",
+        "genai_otel/instrumentors/base.py"
       ],
       "name": "evaluation.bias.error",
       "namespace": "evaluation",
@@ -2225,7 +2343,8 @@
       "also_a_metric_name": false,
       "modules": [
         "genai_otel/evaluation/span_processor.py",
-        "genai_otel/evaluation_enriching_exporter.py"
+        "genai_otel/evaluation_enriching_exporter.py",
+        "genai_otel/instrumentors/base.py"
       ],
       "name": "evaluation.hallucination.error",
       "namespace": "evaluation",
@@ -2359,8 +2478,23 @@
     {
       "also_a_metric_name": false,
       "modules": [
+        "genai_otel/instrumentors/base.py"
+      ],
+      "name": "evaluation.outcome",
+      "namespace": "evaluation",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "set_attribute_call"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
         "genai_otel/evaluation/span_processor.py",
-        "genai_otel/evaluation_enriching_exporter.py"
+        "genai_otel/evaluation_enriching_exporter.py",
+        "genai_otel/instrumentors/base.py"
       ],
       "name": "evaluation.pii.error",
       "namespace": "evaluation",
@@ -2438,6 +2572,34 @@
       "via": [
         "set_attribute_call",
         "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/base.py"
+      ],
+      "name": "evaluation.pii.prompt.model_analyzed_length",
+      "namespace": "evaluation",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "set_attribute_call"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/base.py"
+      ],
+      "name": "evaluation.pii.prompt.pattern_analyzed_length",
+      "namespace": "evaluation",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "set_attribute_call"
       ]
     },
     {
@@ -2606,6 +2768,20 @@
     {
       "also_a_metric_name": false,
       "modules": [
+        "genai_otel/instrumentors/base.py"
+      ],
+      "name": "evaluation.prompt.length",
+      "namespace": "evaluation",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "set_attribute_call"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
         "genai_otel/evaluation/span_processor.py",
         "genai_otel/evaluation_enriching_exporter.py"
       ],
@@ -2640,7 +2816,8 @@
       "also_a_metric_name": false,
       "modules": [
         "genai_otel/evaluation/span_processor.py",
-        "genai_otel/evaluation_enriching_exporter.py"
+        "genai_otel/evaluation_enriching_exporter.py",
+        "genai_otel/instrumentors/base.py"
       ],
       "name": "evaluation.prompt_injection.error",
       "namespace": "evaluation",
@@ -2707,7 +2884,8 @@
       "also_a_metric_name": false,
       "modules": [
         "genai_otel/evaluation/span_processor.py",
-        "genai_otel/evaluation_enriching_exporter.py"
+        "genai_otel/evaluation_enriching_exporter.py",
+        "genai_otel/instrumentors/base.py"
       ],
       "name": "evaluation.restricted_topics.error",
       "namespace": "evaluation",
@@ -2886,8 +3064,41 @@
     {
       "also_a_metric_name": false,
       "modules": [
+        "genai_otel/instrumentors/base.py"
+      ],
+      "name": "evaluation.skipped",
+      "namespace": "evaluation",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "set_attribute_call",
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
         "genai_otel/evaluation/span_processor.py",
-        "genai_otel/evaluation_enriching_exporter.py"
+        "genai_otel/evaluation_enriching_exporter.py",
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "evaluation.skipped_reason",
+      "namespace": "evaluation",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "set_attribute_call",
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/evaluation/span_processor.py",
+        "genai_otel/evaluation_enriching_exporter.py",
+        "genai_otel/instrumentors/base.py"
       ],
       "name": "evaluation.toxicity.error",
       "namespace": "evaluation",
@@ -2897,6 +3108,20 @@
       "via": [
         "set_attribute_call",
         "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/base.py"
+      ],
+      "name": "evaluation.toxicity.prompt.analyzed_length",
+      "namespace": "evaluation",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "set_attribute_call"
       ]
     },
     {
@@ -3068,7 +3293,49 @@
       "modules": [
         "genai_otel/instrumentors/base.py"
       ],
+      "name": "evaluation.truncated",
+      "namespace": "evaluation",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "set_attribute_call"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/base.py"
+      ],
+      "name": "evaluation.{name}.error",
+      "namespace": "evaluation",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": true,
+      "via": [
+        "set_attribute_call"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/base.py"
+      ],
       "name": "evaluation.{name}.prompt.blocked",
+      "namespace": "evaluation",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": true,
+      "via": [
+        "set_attribute_call"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/base.py"
+      ],
+      "name": "evaluation.{name}.prompt.detected",
       "namespace": "evaluation",
       "semconv_constant": null,
       "superseded_by": null,
@@ -3153,7 +3420,6 @@
       "template": false,
       "via": [
         "dict_key",
-        "set_attribute_call",
         "subscript_assignment"
       ]
     },
@@ -3321,7 +3587,9 @@
         "genai_otel/instrumentors/langchain_instrumentor.py",
         "genai_otel/instrumentors/langgraph_instrumentor.py",
         "genai_otel/instrumentors/openai_agents_instrumentor.py",
-        "genai_otel/mcp_semconv/client_instrumentor.py"
+        "genai_otel/instrumentors/pydantic_ai_instrumentor.py",
+        "genai_otel/mcp_semconv/client_instrumentor.py",
+        "genai_otel/sessions.py"
       ],
       "name": "gen_ai.conversation.id",
       "namespace": "gen_ai",
@@ -3624,19 +3892,25 @@
     {
       "also_a_metric_name": false,
       "modules": [
+        "genai_otel/instrumentors/anthropic_instrumentor.py",
+        "genai_otel/instrumentors/antigravity_instrumentor.py",
         "genai_otel/instrumentors/autogen_agentchat_instrumentor.py",
         "genai_otel/instrumentors/autogen_instrumentor.py",
         "genai_otel/instrumentors/aws_bedrock_instrumentor.py",
         "genai_otel/instrumentors/azure_ai_inference_instrumentor.py",
+        "genai_otel/instrumentors/azure_openai_instrumentor.py",
         "genai_otel/instrumentors/base.py",
         "genai_otel/instrumentors/bedrock_agents_instrumentor.py",
         "genai_otel/instrumentors/cohere_instrumentor.py",
         "genai_otel/instrumentors/cometapi_instrumentor.py",
         "genai_otel/instrumentors/crewai_instrumentor.py",
+        "genai_otel/instrumentors/databricks_instrumentor.py",
+        "genai_otel/instrumentors/decision.py",
         "genai_otel/instrumentors/dspy_instrumentor.py",
         "genai_otel/instrumentors/elevenlabs_instrumentor.py",
         "genai_otel/instrumentors/google_adk_instrumentor.py",
         "genai_otel/instrumentors/google_ai_instrumentor.py",
+        "genai_otel/instrumentors/groq_instrumentor.py",
         "genai_otel/instrumentors/guardrails_ai_instrumentor.py",
         "genai_otel/instrumentors/haystack_instrumentor.py",
         "genai_otel/instrumentors/huggingface_instrumentor.py",
@@ -3647,6 +3921,7 @@
         "genai_otel/instrumentors/liquid_audio_instrumentor.py",
         "genai_otel/instrumentors/litellm_latency_instrumentor.py",
         "genai_otel/instrumentors/llamacpp_instrumentor.py",
+        "genai_otel/instrumentors/mistralai_instrumentor.py",
         "genai_otel/instrumentors/ollama_instrumentor.py",
         "genai_otel/instrumentors/openai_agents_instrumentor.py",
         "genai_otel/instrumentors/openai_instrumentor.py",
@@ -3658,9 +3933,9 @@
         "genai_otel/instrumentors/sentence_transformers_instrumentor.py",
         "genai_otel/instrumentors/strands_harness_instrumentor.py",
         "genai_otel/instrumentors/togetherai_instrumentor.py",
-        "genai_otel/instrumentors/typesafe_instrumentor.py",
         "genai_otel/instrumentors/vertexai_instrumentor.py",
-        "genai_otel/instrumentors/vllm_instrumentor.py"
+        "genai_otel/instrumentors/vllm_instrumentor.py",
+        "genai_otel/instrumentors/xai_instrumentor.py"
       ],
       "name": "gen_ai.operation.name",
       "namespace": "gen_ai",
@@ -3818,6 +4093,7 @@
       "also_a_metric_name": false,
       "modules": [
         "genai_otel/instrumentors/base.py",
+        "genai_otel/instrumentors/databricks_instrumentor.py",
         "genai_otel/instrumentors/elevenlabs_instrumentor.py"
       ],
       "name": "gen_ai.provider.name",
@@ -3826,6 +4102,7 @@
       "superseded_by": null,
       "template": false,
       "via": [
+        "dict_key",
         "observed_on_span",
         "set_attribute_call",
         "subscript_assignment"
@@ -3849,7 +4126,8 @@
     {
       "also_a_metric_name": false,
       "modules": [
-        "genai_otel/instrumentors/base.py"
+        "genai_otel/instrumentors/base.py",
+        "genai_otel/instrumentors/vllm_instrumentor.py"
       ],
       "name": "gen_ai.request.choice.count",
       "namespace": "gen_ai",
@@ -3914,6 +4192,7 @@
         "genai_otel/instrumentors/azure_openai_instrumentor.py",
         "genai_otel/instrumentors/cohere_instrumentor.py",
         "genai_otel/instrumentors/cometapi_instrumentor.py",
+        "genai_otel/instrumentors/databricks_instrumentor.py",
         "genai_otel/instrumentors/groq_instrumentor.py",
         "genai_otel/instrumentors/huggingface_instrumentor.py",
         "genai_otel/instrumentors/hyperbolic_instrumentor.py",
@@ -3938,7 +4217,6 @@
     {
       "also_a_metric_name": false,
       "modules": [
-        "genai_otel/instrumentors/openai_instrumentor.py",
         "genai_otel/instrumentors/openrouter_instrumentor.py"
       ],
       "name": "gen_ai.request.frequency_penalty",
@@ -3971,6 +4249,7 @@
         "genai_otel/instrumentors/azure_ai_inference_instrumentor.py",
         "genai_otel/instrumentors/cohere_instrumentor.py",
         "genai_otel/instrumentors/cometapi_instrumentor.py",
+        "genai_otel/instrumentors/databricks_instrumentor.py",
         "genai_otel/instrumentors/google_ai_instrumentor.py",
         "genai_otel/instrumentors/huggingface_instrumentor.py",
         "genai_otel/instrumentors/litellm_latency_instrumentor.py",
@@ -4034,11 +4313,11 @@
         "genai_otel/instrumentors/huggingface_instrumentor.py",
         "genai_otel/instrumentors/hyperbolic_instrumentor.py",
         "genai_otel/instrumentors/mistralai_instrumentor.py",
-        "genai_otel/instrumentors/openai_instrumentor.py",
         "genai_otel/instrumentors/openrouter_instrumentor.py",
         "genai_otel/instrumentors/pydantic_ai_instrumentor.py",
         "genai_otel/instrumentors/sambanova_instrumentor.py",
-        "genai_otel/instrumentors/togetherai_instrumentor.py"
+        "genai_otel/instrumentors/togetherai_instrumentor.py",
+        "genai_otel/instrumentors/vllm_instrumentor.py"
       ],
       "name": "gen_ai.request.max_tokens",
       "namespace": "gen_ai",
@@ -4057,6 +4336,7 @@
         "genai_otel/instrumentors/aws_bedrock_instrumentor.py",
         "genai_otel/instrumentors/cohere_instrumentor.py",
         "genai_otel/instrumentors/cometapi_instrumentor.py",
+        "genai_otel/instrumentors/databricks_instrumentor.py",
         "genai_otel/instrumentors/hyperbolic_instrumentor.py",
         "genai_otel/instrumentors/langchain_instrumentor.py",
         "genai_otel/instrumentors/ollama_instrumentor.py",
@@ -4079,6 +4359,7 @@
       "also_a_metric_name": false,
       "modules": [
         "genai_otel/instrumentors/anthropic_instrumentor.py",
+        "genai_otel/instrumentors/antigravity_instrumentor.py",
         "genai_otel/instrumentors/autogen_agentchat_instrumentor.py",
         "genai_otel/instrumentors/autogen_instrumentor.py",
         "genai_otel/instrumentors/aws_bedrock_instrumentor.py",
@@ -4088,6 +4369,8 @@
         "genai_otel/instrumentors/cohere_instrumentor.py",
         "genai_otel/instrumentors/cometapi_instrumentor.py",
         "genai_otel/instrumentors/crewai_instrumentor.py",
+        "genai_otel/instrumentors/databricks_instrumentor.py",
+        "genai_otel/instrumentors/decision.py",
         "genai_otel/instrumentors/elevenlabs_instrumentor.py",
         "genai_otel/instrumentors/google_adk_instrumentor.py",
         "genai_otel/instrumentors/google_ai_instrumentor.py",
@@ -4112,9 +4395,9 @@
         "genai_otel/instrumentors/sentence_transformers_instrumentor.py",
         "genai_otel/instrumentors/strands_harness_instrumentor.py",
         "genai_otel/instrumentors/togetherai_instrumentor.py",
-        "genai_otel/instrumentors/typesafe_instrumentor.py",
         "genai_otel/instrumentors/vertexai_instrumentor.py",
-        "genai_otel/instrumentors/vllm_instrumentor.py"
+        "genai_otel/instrumentors/vllm_instrumentor.py",
+        "genai_otel/instrumentors/xai_instrumentor.py"
       ],
       "name": "gen_ai.request.model",
       "namespace": "gen_ai",
@@ -4161,7 +4444,6 @@
     {
       "also_a_metric_name": false,
       "modules": [
-        "genai_otel/instrumentors/openai_instrumentor.py",
         "genai_otel/instrumentors/openrouter_instrumentor.py"
       ],
       "name": "gen_ai.request.presence_penalty",
@@ -4190,7 +4472,8 @@
     {
       "also_a_metric_name": false,
       "modules": [
-        "genai_otel/instrumentors/base.py"
+        "genai_otel/instrumentors/base.py",
+        "genai_otel/instrumentors/vllm_instrumentor.py"
       ],
       "name": "gen_ai.request.seed",
       "namespace": "gen_ai",
@@ -4263,11 +4546,11 @@
         "genai_otel/instrumentors/huggingface_instrumentor.py",
         "genai_otel/instrumentors/hyperbolic_instrumentor.py",
         "genai_otel/instrumentors/mistralai_instrumentor.py",
-        "genai_otel/instrumentors/openai_instrumentor.py",
         "genai_otel/instrumentors/openrouter_instrumentor.py",
         "genai_otel/instrumentors/pydantic_ai_instrumentor.py",
         "genai_otel/instrumentors/sambanova_instrumentor.py",
-        "genai_otel/instrumentors/togetherai_instrumentor.py"
+        "genai_otel/instrumentors/togetherai_instrumentor.py",
+        "genai_otel/instrumentors/vllm_instrumentor.py"
       ],
       "name": "gen_ai.request.temperature",
       "namespace": "gen_ai",
@@ -4282,7 +4565,8 @@
     {
       "also_a_metric_name": false,
       "modules": [
-        "genai_otel/instrumentors/base.py"
+        "genai_otel/instrumentors/base.py",
+        "genai_otel/instrumentors/vllm_instrumentor.py"
       ],
       "name": "gen_ai.request.top_k",
       "namespace": "gen_ai",
@@ -4305,11 +4589,11 @@
         "genai_otel/instrumentors/huggingface_instrumentor.py",
         "genai_otel/instrumentors/hyperbolic_instrumentor.py",
         "genai_otel/instrumentors/mistralai_instrumentor.py",
-        "genai_otel/instrumentors/openai_instrumentor.py",
         "genai_otel/instrumentors/openrouter_instrumentor.py",
         "genai_otel/instrumentors/pydantic_ai_instrumentor.py",
         "genai_otel/instrumentors/sambanova_instrumentor.py",
-        "genai_otel/instrumentors/togetherai_instrumentor.py"
+        "genai_otel/instrumentors/togetherai_instrumentor.py",
+        "genai_otel/instrumentors/vllm_instrumentor.py"
       ],
       "name": "gen_ai.request.top_p",
       "namespace": "gen_ai",
@@ -4324,10 +4608,13 @@
     {
       "also_a_metric_name": false,
       "modules": [
+        "genai_otel/instrumentors/antigravity_instrumentor.py",
         "genai_otel/instrumentors/aws_bedrock_instrumentor.py",
         "genai_otel/instrumentors/azure_ai_inference_instrumentor.py",
         "genai_otel/instrumentors/cohere_instrumentor.py",
         "genai_otel/instrumentors/cometapi_instrumentor.py",
+        "genai_otel/instrumentors/databricks_instrumentor.py",
+        "genai_otel/instrumentors/decision.py",
         "genai_otel/instrumentors/elevenlabs_instrumentor.py",
         "genai_otel/instrumentors/google_ai_instrumentor.py",
         "genai_otel/instrumentors/huggingface_instrumentor.py",
@@ -4342,8 +4629,8 @@
         "genai_otel/instrumentors/sarvam_instrumentor.py",
         "genai_otel/instrumentors/sentence_transformers_instrumentor.py",
         "genai_otel/instrumentors/togetherai_instrumentor.py",
-        "genai_otel/instrumentors/typesafe_instrumentor.py",
-        "genai_otel/instrumentors/vllm_instrumentor.py"
+        "genai_otel/instrumentors/vllm_instrumentor.py",
+        "genai_otel/instrumentors/xai_instrumentor.py"
       ],
       "name": "gen_ai.request.type",
       "namespace": "gen_ai",
@@ -4375,6 +4662,20 @@
     {
       "also_a_metric_name": false,
       "modules": [
+        "genai_otel/instrumentors/databricks_instrumentor.py"
+      ],
+      "name": "gen_ai.request.{key}",
+      "namespace": "gen_ai",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": true,
+      "via": [
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
         "genai_otel/instrumentors/anthropic_instrumentor.py",
         "genai_otel/instrumentors/aws_bedrock_instrumentor.py",
         "genai_otel/instrumentors/azure_openai_instrumentor.py",
@@ -4388,7 +4689,8 @@
         "genai_otel/instrumentors/openrouter_instrumentor.py",
         "genai_otel/instrumentors/sambanova_instrumentor.py",
         "genai_otel/instrumentors/sarvam_instrumentor.py",
-        "genai_otel/instrumentors/typesafe_instrumentor.py"
+        "genai_otel/instrumentors/typesafe_instrumentor.py",
+        "genai_otel/instrumentors/xai_instrumentor.py"
       ],
       "name": "gen_ai.response",
       "namespace": "gen_ai",
@@ -4524,6 +4826,7 @@
       "also_a_metric_name": false,
       "modules": [
         "genai_otel/instrumentors/cometapi_instrumentor.py",
+        "genai_otel/instrumentors/decision.py",
         "genai_otel/instrumentors/google_ai_instrumentor.py",
         "genai_otel/instrumentors/hyperbolic_instrumentor.py",
         "genai_otel/instrumentors/llamacpp_instrumentor.py",
@@ -4744,6 +5047,7 @@
       "also_a_metric_name": false,
       "modules": [
         "genai_otel/instrumentors/anthropic_instrumentor.py",
+        "genai_otel/instrumentors/antigravity_instrumentor.py",
         "genai_otel/instrumentors/autogen_agentchat_instrumentor.py",
         "genai_otel/instrumentors/autogen_instrumentor.py",
         "genai_otel/instrumentors/aws_bedrock_instrumentor.py",
@@ -4754,6 +5058,8 @@
         "genai_otel/instrumentors/cohere_instrumentor.py",
         "genai_otel/instrumentors/cometapi_instrumentor.py",
         "genai_otel/instrumentors/crewai_instrumentor.py",
+        "genai_otel/instrumentors/databricks_instrumentor.py",
+        "genai_otel/instrumentors/decision.py",
         "genai_otel/instrumentors/dspy_instrumentor.py",
         "genai_otel/instrumentors/elevenlabs_instrumentor.py",
         "genai_otel/instrumentors/google_adk_instrumentor.py",
@@ -4781,9 +5087,9 @@
         "genai_otel/instrumentors/sentence_transformers_instrumentor.py",
         "genai_otel/instrumentors/strands_harness_instrumentor.py",
         "genai_otel/instrumentors/togetherai_instrumentor.py",
-        "genai_otel/instrumentors/typesafe_instrumentor.py",
         "genai_otel/instrumentors/vertexai_instrumentor.py",
         "genai_otel/instrumentors/vllm_instrumentor.py",
+        "genai_otel/instrumentors/xai_instrumentor.py",
         "genai_otel/mcp_instrumentors/api_instrumentor.py"
       ],
       "name": "gen_ai.system",
@@ -4796,6 +5102,20 @@
         "observed_on_span",
         "set_attribute_call",
         "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/base.py"
+      ],
+      "name": "gen_ai.token.modality",
+      "namespace": "gen_ai",
+      "semconv_constant": "GEN_AI_TOKEN_MODALITY",
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "dict_key"
       ]
     },
     {
@@ -4916,6 +5236,20 @@
     {
       "also_a_metric_name": false,
       "modules": [
+        "genai_otel/instrumentors/antigravity_instrumentor.py"
+      ],
+      "name": "gen_ai.usage.cache_read_input_tokens",
+      "namespace": "gen_ai",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "dict_key"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
         "genai_otel/instrumentors/base.py"
       ],
       "name": "gen_ai.usage.cache_write.input_tokens",
@@ -5002,6 +5336,22 @@
       "template": false,
       "via": [
         "observed_on_span",
+        "set_attribute_call",
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/cost_enriching_exporter.py",
+        "genai_otel/instrumentors/base.py"
+      ],
+      "name": "gen_ai.usage.cost.decision",
+      "namespace": "gen_ai",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
         "set_attribute_call",
         "subscript_assignment"
       ]
@@ -5104,8 +5454,11 @@
     {
       "also_a_metric_name": false,
       "modules": [
+        "genai_otel/instrumentors/antigravity_instrumentor.py",
         "genai_otel/instrumentors/base.py",
-        "genai_otel/instrumentors/strands_harness_instrumentor.py"
+        "genai_otel/instrumentors/decision.py",
+        "genai_otel/instrumentors/strands_harness_instrumentor.py",
+        "genai_otel/instrumentors/xai_instrumentor.py"
       ],
       "name": "gen_ai.usage.input_tokens",
       "namespace": "gen_ai",
@@ -5113,6 +5466,7 @@
       "superseded_by": null,
       "template": false,
       "via": [
+        "dict_key",
         "observed_on_span",
         "set_attribute_call",
         "subscript_assignment"
@@ -5121,7 +5475,10 @@
     {
       "also_a_metric_name": false,
       "modules": [
-        "genai_otel/instrumentors/base.py"
+        "genai_otel/instrumentors/antigravity_instrumentor.py",
+        "genai_otel/instrumentors/base.py",
+        "genai_otel/instrumentors/decision.py",
+        "genai_otel/instrumentors/xai_instrumentor.py"
       ],
       "name": "gen_ai.usage.output_tokens",
       "namespace": "gen_ai",
@@ -5129,8 +5486,10 @@
       "superseded_by": null,
       "template": false,
       "via": [
+        "dict_key",
         "observed_on_span",
-        "set_attribute_call"
+        "set_attribute_call",
+        "subscript_assignment"
       ]
     },
     {
@@ -5165,6 +5524,36 @@
     },
     {
       "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/antigravity_instrumentor.py",
+        "genai_otel/instrumentors/xai_instrumentor.py"
+      ],
+      "name": "gen_ai.usage.reasoning_tokens",
+      "namespace": "gen_ai",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "dict_key",
+        "set_attribute_call"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/base.py"
+      ],
+      "name": "gen_ai.usage.recorded_by",
+      "namespace": "gen_ai",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "set_attribute_call"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
       "modules": [],
       "name": "gen_ai.usage.text.input_tokens",
       "namespace": "gen_ai",
@@ -5193,9 +5582,11 @@
     {
       "also_a_metric_name": false,
       "modules": [
+        "genai_otel/instrumentors/antigravity_instrumentor.py",
         "genai_otel/instrumentors/base.py",
         "genai_otel/instrumentors/huggingface_instrumentor.py",
-        "genai_otel/instrumentors/hyperbolic_instrumentor.py"
+        "genai_otel/instrumentors/hyperbolic_instrumentor.py",
+        "genai_otel/instrumentors/xai_instrumentor.py"
       ],
       "name": "gen_ai.usage.total_tokens",
       "namespace": "gen_ai",
@@ -5203,8 +5594,10 @@
       "superseded_by": null,
       "template": false,
       "via": [
+        "dict_key",
         "observed_on_span",
-        "set_attribute_call"
+        "set_attribute_call",
+        "subscript_assignment"
       ]
     },
     {
@@ -5250,6 +5643,175 @@
       "superseded_by": null,
       "template": true,
       "via": []
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "genai.decision.choice",
+      "namespace": "genai",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "genai.decision.confidence",
+      "namespace": "genai",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "genai.decision.margin",
+      "namespace": "genai",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "genai.decision.min_confidence",
+      "namespace": "genai",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "genai.decision.option_count",
+      "namespace": "genai",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "genai.decision.probability",
+      "namespace": "genai",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "genai.decision.protocol",
+      "namespace": "genai",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "dict_key"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "genai.decision.question.names",
+      "namespace": "genai",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "genai.decision.question.types",
+      "namespace": "genai",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "genai.decision.question_count",
+      "namespace": "genai",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "dict_key",
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "genai.decision.refusal_count",
+      "namespace": "genai",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "genai.decision.score",
+      "namespace": "genai",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "subscript_assignment"
+      ]
     },
     {
       "also_a_metric_name": false,
@@ -5403,6 +5965,64 @@
       "template": false,
       "via": [
         "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/agent_graph.py"
+      ],
+      "name": "graph.node.display_name",
+      "namespace": "graph",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "set_attribute_call"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/agent_graph.py",
+        "genai_otel/instrumentors/langgraph_instrumentor.py"
+      ],
+      "name": "graph.node.id",
+      "namespace": "graph",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "set_attribute_call",
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/agent_graph.py"
+      ],
+      "name": "graph.node.name",
+      "namespace": "graph",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "set_attribute_call"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/agent_graph.py"
+      ],
+      "name": "graph.node.parent_id",
+      "namespace": "graph",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "set_attribute_call"
       ]
     },
     {
@@ -6052,8 +6672,23 @@
     {
       "also_a_metric_name": false,
       "modules": [
-        "genai_otel/instrumentors/strands_harness_instrumentor.py",
-        "genai_otel/instrumentors/typesafe_instrumentor.py"
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "input.mime_type",
+      "namespace": "input",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "dict_key"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/antigravity_instrumentor.py",
+        "genai_otel/instrumentors/decision.py",
+        "genai_otel/instrumentors/strands_harness_instrumentor.py"
       ],
       "name": "input.value",
       "namespace": "input",
@@ -6061,6 +6696,7 @@
       "superseded_by": null,
       "template": false,
       "via": [
+        "dict_key",
         "set_attribute_call",
         "subscript_assignment"
       ]
@@ -6328,7 +6964,7 @@
       "superseded_by": null,
       "template": false,
       "via": [
-        "set_attribute_call"
+        "subscript_assignment"
       ]
     },
     {
@@ -6426,7 +7062,8 @@
       "superseded_by": null,
       "template": false,
       "via": [
-        "set_attribute_call"
+        "set_attribute_call",
+        "subscript_assignment"
       ]
     },
     {
@@ -6546,6 +7183,34 @@
       "modules": [
         "genai_otel/instrumentors/langgraph_instrumentor.py"
       ],
+      "name": "langgraph.node",
+      "namespace": "langgraph",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "dict_key"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/langgraph_instrumentor.py"
+      ],
+      "name": "langgraph.node.interrupted",
+      "namespace": "langgraph",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "set_attribute_call"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/langgraph_instrumentor.py"
+      ],
       "name": "langgraph.node_count",
       "namespace": "langgraph",
       "semconv_constant": null,
@@ -6630,6 +7295,20 @@
       "modules": [
         "genai_otel/instrumentors/langgraph_instrumentor.py"
       ],
+      "name": "langgraph.step",
+      "namespace": "langgraph",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/langgraph_instrumentor.py"
+      ],
       "name": "langgraph.steps",
       "namespace": "langgraph",
       "semconv_constant": null,
@@ -6645,6 +7324,20 @@
         "genai_otel/instrumentors/langgraph_instrumentor.py"
       ],
       "name": "langgraph.thread_id",
+      "namespace": "langgraph",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/langgraph_instrumentor.py"
+      ],
+      "name": "langgraph.triggers",
       "namespace": "langgraph",
       "semconv_constant": null,
       "superseded_by": null,
@@ -6684,6 +7377,7 @@
     {
       "also_a_metric_name": false,
       "modules": [
+        "genai_otel/instrumentors/antigravity_instrumentor.py",
         "genai_otel/instrumentors/typesafe_instrumentor.py"
       ],
       "name": "llm.request.model_name",
@@ -6692,7 +7386,8 @@
       "superseded_by": null,
       "template": false,
       "via": [
-        "dict_key"
+        "dict_key",
+        "subscript_assignment"
       ]
     },
     {
@@ -7489,7 +8184,10 @@
     {
       "also_a_metric_name": false,
       "modules": [
-        "genai_otel/instrumentors/typesafe_instrumentor.py"
+        "genai_otel/agent_graph.py",
+        "genai_otel/instrumentors/antigravity_instrumentor.py",
+        "genai_otel/instrumentors/decision.py",
+        "genai_otel/instrumentors/langgraph_instrumentor.py"
       ],
       "name": "openinference.span.kind",
       "namespace": "openinference",
@@ -7497,7 +8195,9 @@
       "superseded_by": null,
       "template": false,
       "via": [
-        "dict_key"
+        "dict_key",
+        "set_attribute_call",
+        "subscript_assignment"
       ]
     },
     {
@@ -7531,8 +8231,23 @@
     {
       "also_a_metric_name": false,
       "modules": [
-        "genai_otel/instrumentors/strands_harness_instrumentor.py",
-        "genai_otel/instrumentors/typesafe_instrumentor.py"
+        "genai_otel/instrumentors/decision.py"
+      ],
+      "name": "output.mime_type",
+      "namespace": "output",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "subscript_assignment"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/instrumentors/antigravity_instrumentor.py",
+        "genai_otel/instrumentors/decision.py",
+        "genai_otel/instrumentors/strands_harness_instrumentor.py"
       ],
       "name": "output.value",
       "namespace": "output",
@@ -7920,6 +8635,34 @@
     {
       "also_a_metric_name": false,
       "modules": [
+        "genai_otel/mcp_instrumentors/s3_instrumentor.py"
+      ],
+      "name": "s3.bucket",
+      "namespace": "s3",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "set_attribute_call"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
+        "genai_otel/mcp_instrumentors/s3_instrumentor.py"
+      ],
+      "name": "s3.object",
+      "namespace": "s3",
+      "semconv_constant": null,
+      "superseded_by": null,
+      "template": false,
+      "via": [
+        "set_attribute_call"
+      ]
+    },
+    {
+      "also_a_metric_name": false,
+      "modules": [
         "genai_otel/instrumentors/sarvam_instrumentor.py"
       ],
       "name": "sarvam.detected_language",
@@ -8284,7 +9027,8 @@
     {
       "also_a_metric_name": false,
       "modules": [
-        "genai_otel/instrumentors/base.py"
+        "genai_otel/instrumentors/base.py",
+        "genai_otel/mcp_instrumentors/s3_instrumentor.py"
       ],
       "name": "server.address",
       "namespace": "server",
@@ -8292,7 +9036,8 @@
       "superseded_by": null,
       "template": false,
       "via": [
-        "dict_key"
+        "dict_key",
+        "set_attribute_call"
       ]
     },
     {
@@ -8349,7 +9094,9 @@
         "genai_otel/instrumentors/langchain_instrumentor.py",
         "genai_otel/instrumentors/langgraph_instrumentor.py",
         "genai_otel/instrumentors/openai_agents_instrumentor.py",
-        "genai_otel/mcp_semconv/client_instrumentor.py"
+        "genai_otel/instrumentors/pydantic_ai_instrumentor.py",
+        "genai_otel/mcp_semconv/client_instrumentor.py",
+        "genai_otel/sessions.py"
       ],
       "name": "session.id",
       "namespace": "session",
@@ -8659,7 +9406,11 @@
     {
       "also_a_metric_name": false,
       "modules": [
-        "genai_otel/instrumentors/base.py"
+        "genai_otel/instrumentors/base.py",
+        "genai_otel/instrumentors/crewai_instrumentor.py",
+        "genai_otel/instrumentors/langgraph_instrumentor.py",
+        "genai_otel/instrumentors/pydantic_ai_instrumentor.py",
+        "genai_otel/sessions.py"
       ],
       "name": "user.id",
       "namespace": "user",
@@ -8667,7 +9418,8 @@
       "superseded_by": null,
       "template": false,
       "via": [
-        "set_attribute_call"
+        "set_attribute_call",
+        "subscript_assignment"
       ]
     },
     {
@@ -8957,10 +9709,23 @@
         "opt_in": false
       },
       {
+        "class": "AgnoInstrumentor",
+        "default": true,
+        "id": "agno",
+        "openinference_module": "openinference.instrumentation.agno",
+        "opt_in": false
+      },
+      {
         "class": "AnthropicInstrumentor",
         "default": true,
         "id": "anthropic",
         "opt_in": false
+      },
+      {
+        "class": "AntigravityInstrumentor",
+        "default": false,
+        "id": "antigravity",
+        "opt_in": true
       },
       {
         "class": "AnyscaleInstrumentor",
@@ -9005,6 +9770,13 @@
         "opt_in": false
       },
       {
+        "class": "ClaudeAgentSDKInstrumentor",
+        "default": true,
+        "id": "claude_agent_sdk",
+        "openinference_module": "openinference.instrumentation.claude_agent_sdk",
+        "opt_in": false
+      },
+      {
         "class": "CohereInstrumentor",
         "default": true,
         "id": "cohere",
@@ -9020,6 +9792,12 @@
         "class": "CrewAIInstrumentor",
         "default": true,
         "id": "crewai",
+        "opt_in": false
+      },
+      {
+        "class": "DatabricksInstrumentor",
+        "default": true,
+        "id": "databricks",
         "opt_in": false
       },
       {
@@ -9119,6 +9897,12 @@
         "opt_in": false
       },
       {
+        "class": "MicrosoftAgentFrameworkInstrumentor",
+        "default": true,
+        "id": "microsoft_agent_framework",
+        "opt_in": false
+      },
+      {
         "class": "MistralAIInstrumentor",
         "default": true,
         "id": "mistralai",
@@ -9185,6 +9969,12 @@
         "opt_in": true
       },
       {
+        "class": "StrandsAgentsInstrumentor",
+        "default": true,
+        "id": "strands_agents",
+        "opt_in": false
+      },
+      {
         "class": "TogetherAIInstrumentor",
         "default": true,
         "id": "together",
@@ -9213,6 +10003,12 @@
         "default": true,
         "id": "vllm",
         "opt_in": false
+      },
+      {
+        "class": "XAIInstrumentor",
+        "default": true,
+        "id": "xai_sdk",
+        "opt_in": false
       }
     ],
     "default_ids_without_a_registered_class": [
@@ -9221,6 +10017,7 @@
     ],
     "default_order": [
       "openai",
+      "databricks",
       "openrouter",
       "cometapi",
       "anthropic",
@@ -9236,6 +10033,7 @@
       "ollama",
       "vllm",
       "vertexai",
+      "xai_sdk",
       "replicate",
       "anyscale",
       "sambanova",
@@ -9256,18 +10054,25 @@
       "crewai",
       "smolagents",
       "litellm",
-      "typesafe"
+      "typesafe",
+      "claude_agent_sdk",
+      "agno",
+      "microsoft_agent_framework",
+      "strands_agents"
     ],
     "openinference_optional": [
+      "agno",
+      "claude_agent_sdk",
       "litellm",
       "mcp",
       "smolagents"
     ],
     "opt_in": [
       "litellm_latency",
-      "strands"
+      "strands",
+      "antigravity"
     ],
-    "python_version_note": "smolagents, litellm and typesafe are appended to the default list only on Python >= 3.10; this file was generated on Python 3.12."
+    "python_version_note": "smolagents, litellm and typesafe are appended to the default list only on Python >= 3.10; this file was generated on Python 3.14."
   },
   "mcp_semconv": {
     "CommerceAttributes": {
@@ -9548,20 +10353,10 @@
       },
       "keys": [
         "host.arch",
-        "host.ip",
+        "host.id",
         "host.name",
         "os.type",
         "os.version",
-        "process.command",
-        "process.command_args",
-        "process.command_line",
-        "process.executable.name",
-        "process.executable.path",
-        "process.parent_pid",
-        "process.pid",
-        "process.runtime.description",
-        "process.runtime.name",
-        "process.runtime.version",
         "service.instance.id",
         "service.name",
         "telemetry.auto.name",
@@ -9573,7 +10368,7 @@
         "telemetry.sdk.version"
       ]
     },
-    "default_detectors": "host,os,process",
+    "default_detectors": "host,os",
     "distro_name": "genai-otel-instrument",
     "extraction": "runtime: genai_otel.resource.build_resource() in a scrubbed environment. `keys` beyond the fixed ones come from the OpenTelemetry SDK's host/os/process detectors and depend on the SDK version and operating system of the generating host; only their names are recorded.",
     "hardened_detectors": "host,os",
@@ -9589,7 +10384,7 @@
       },
       "keys": [
         "host.arch",
-        "host.ip",
+        "host.id",
         "host.name",
         "os.type",
         "os.version",
@@ -9638,20 +10433,10 @@
         "deployment.environment.name",
         "environment",
         "host.arch",
-        "host.ip",
+        "host.id",
         "host.name",
         "os.type",
         "os.version",
-        "process.command",
-        "process.command_args",
-        "process.command_line",
-        "process.executable.name",
-        "process.executable.path",
-        "process.parent_pid",
-        "process.pid",
-        "process.runtime.description",
-        "process.runtime.name",
-        "process.runtime.version",
         "service.instance.id",
         "service.name",
         "telemetry.auto.name",
@@ -9665,20 +10450,10 @@
     },
     "with_otel_service_instance_id": [
       "host.arch",
-      "host.ip",
+      "host.id",
       "host.name",
       "os.type",
       "os.version",
-      "process.command",
-      "process.command_args",
-      "process.command_line",
-      "process.executable.name",
-      "process.executable.path",
-      "process.parent_pid",
-      "process.pid",
-      "process.runtime.description",
-      "process.runtime.name",
-      "process.runtime.version",
       "service.instance.id",
       "service.name",
       "telemetry.auto.name",
@@ -9698,6 +10473,13 @@
     "GEN_AI_AGENT_ITERATION_BUDGET_CONSUMED": "gen_ai.agent.iteration_budget.consumed",
     "GEN_AI_AGENT_TOKEN_BUDGET": "gen_ai.agent.token_budget",
     "GEN_AI_AGENT_TOKEN_BUDGET_CONSUMED": "gen_ai.agent.token_budget.consumed",
+    "GEN_AI_CLIENT_INFERENCE_OPERATION_INPUT_TOKENS": "gen_ai.client.inference.operation.input_tokens",
+    "GEN_AI_CLIENT_INFERENCE_OPERATION_OUTPUT_TOKENS": "gen_ai.client.inference.operation.output_tokens",
+    "GEN_AI_CLIENT_INFERENCE_USAGE_CACHE_READ_INPUT_TOKENS": "gen_ai.client.inference.usage.cache_read.input_tokens",
+    "GEN_AI_CLIENT_INFERENCE_USAGE_CACHE_WRITE_INPUT_TOKENS": "gen_ai.client.inference.usage.cache_write.input_tokens",
+    "GEN_AI_CLIENT_INFERENCE_USAGE_INPUT_TOKENS": "gen_ai.client.inference.usage.input_tokens",
+    "GEN_AI_CLIENT_INFERENCE_USAGE_OUTPUT_TOKENS": "gen_ai.client.inference.usage.output_tokens",
+    "GEN_AI_CLIENT_INFERENCE_USAGE_REASONING_OUTPUT_TOKENS": "gen_ai.client.inference.usage.reasoning.output_tokens",
     "GEN_AI_CLIENT_OPERATION_DURATION": "gen_ai.client.operation.duration",
     "GEN_AI_CLIENT_TOKEN_USAGE": "gen_ai.client.token.usage",
     "GEN_AI_COMPLETION_CONTENT_MEDIA_BYTES": "gen_ai.completion.{n}.content.{m}.media_byte_size",
@@ -9746,6 +10528,7 @@
     "GEN_AI_SERVER_TTFT": "gen_ai.server.ttft",
     "GEN_AI_STREAMING_TPOT_UNAVAILABLE_REASON": "gen_ai.streaming.tpot_unavailable_reason",
     "GEN_AI_SYSTEM": "gen_ai.system",
+    "GEN_AI_TOKEN_MODALITY": "gen_ai.token.modality",
     "GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS": "gen_ai.usage.cache_creation.input_tokens",
     "GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS": "gen_ai.usage.cache_read.input_tokens",
     "GEN_AI_USAGE_CACHE_WRITE_INPUT_TOKENS": "gen_ai.usage.cache_write.input_tokens",
@@ -9769,7 +10552,8 @@
     "MCP_TOOL_CALLS": "mcp.tool_calls",
     "MCP_TRANSPORT_USAGE": "mcp.transport.usage",
     "SERVER_ADDRESS": "server.address",
-    "SERVER_PORT": "server.port"
+    "SERVER_PORT": "server.port",
+    "TOKEN_MODALITY_UNKNOWN": "unknown"
   },
   "semconv_constants_not_found_by_static_scan": [
     "DB_CLIENT_OPERATION_DURATION",
@@ -9795,7 +10579,8 @@
     "MCP_PROMPT_GETS",
     "MCP_RESOURCE_READS",
     "MCP_TOOL_CALLS",
-    "MCP_TRANSPORT_USAGE"
+    "MCP_TRANSPORT_USAGE",
+    "TOKEN_MODALITY_UNKNOWN"
   ],
   "span_emission": [
     {
@@ -9885,6 +10670,7 @@
         "gen_ai.response.id": "resp-contract-1",
         "gen_ai.response.model": "text-embedding-3-small",
         "gen_ai.system": "contract-provider",
+        "gen_ai.usage.cost.pricing_source": "table",
         "gen_ai.usage.cost.total": 1.2800000000000001e-05,
         "gen_ai.usage.input_tokens": 640,
         "gen_ai.usage.prompt_tokens": 640,
@@ -9991,6 +10777,7 @@
         "gen_ai.response.id": "resp-contract-1",
         "gen_ai.response.model": "text-embedding-3-small",
         "gen_ai.system": "contract-provider",
+        "gen_ai.usage.cost.pricing_source": "table",
         "gen_ai.usage.cost.total": 1.2800000000000001e-05,
         "gen_ai.usage.input_tokens": 640,
         "gen_ai.usage.total_tokens": 640
@@ -10103,6 +10890,7 @@
         "gen_ai.response.id": "resp-contract-1",
         "gen_ai.response.model": "text-embedding-3-small",
         "gen_ai.system": "contract-provider",
+        "gen_ai.usage.cost.pricing_source": "table",
         "gen_ai.usage.cost.total": 1.2800000000000001e-05,
         "gen_ai.usage.input_tokens": 640,
         "gen_ai.usage.prompt_tokens": 640,
@@ -10216,6 +11004,7 @@
         "gen_ai.response.id": "resp-contract-1",
         "gen_ai.response.model": "text-embedding-3-small",
         "gen_ai.system": "contract-provider",
+        "gen_ai.usage.cost.pricing_source": "table",
         "gen_ai.usage.cost.total": 1.2800000000000001e-05,
         "gen_ai.usage.input_tokens": 640,
         "gen_ai.usage.prompt_tokens": 640,
@@ -10508,6 +11297,8 @@
         "gen_ai.response.id": "resp-contract-1",
         "gen_ai.response.model": "nvidia/parakeet-tdt-0.6b-v2",
         "gen_ai.system": "contract-provider",
+        "gen_ai.usage.cost.pricing_source": "table",
+        "gen_ai.usage.cost.total": 0.00015,
         "gen_ai.usage.input_tokens": 1000,
         "gen_ai.usage.prompt_tokens": 1000,
         "gen_ai.usage.total_tokens": 1000
@@ -10604,7 +11395,8 @@
       "name": "anthropic.messages.create",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10619,12 +11411,23 @@
     },
     {
       "modules": [
+        "genai_otel/instrumentors/antigravity_instrumentor.py"
+      ],
+      "name": "antigravity.agent.chat",
+      "template": false,
+      "via": [
+        "start_span"
+      ]
+    },
+    {
+      "modules": [
         "genai_otel/instrumentors/autogen_instrumentor.py"
       ],
       "name": "autogen.group_chat.run",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10634,7 +11437,8 @@
       "name": "autogen.group_chat.select_speaker",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10644,7 +11448,8 @@
       "name": "autogen.initiate_chat",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10654,7 +11459,8 @@
       "name": "autogen_agentchat.agent.on_messages",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10664,7 +11470,8 @@
       "name": "autogen_agentchat.agent.run",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10674,7 +11481,8 @@
       "name": "autogen_agentchat.agent.run_stream",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10684,7 +11492,8 @@
       "name": "autogen_agentchat.team.run",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10694,7 +11503,8 @@
       "name": "autogen_agentchat.team.run_stream",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10704,7 +11514,8 @@
       "name": "aws.bedrock.converse",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10724,7 +11535,8 @@
       "name": "aws.bedrock.invoke_model",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10734,7 +11546,7 @@
       "name": "aws.bedrock.invoke_model_with_response_stream",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "start_span"
       ]
     },
     {
@@ -10744,7 +11556,8 @@
       "name": "azure.ai.inference.embeddings",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10764,7 +11577,8 @@
       "name": "bedrock.agents.invoke_agent",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10774,7 +11588,8 @@
       "name": "bedrock.agents.retrieve",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10784,7 +11599,8 @@
       "name": "bedrock.agents.retrieve_and_generate",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10804,7 +11620,8 @@
       "name": "cohere.embeddings",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10814,7 +11631,8 @@
       "name": "cohere.generate",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10824,7 +11642,8 @@
       "name": "cometapi.chat.completion",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10834,7 +11653,8 @@
       "name": "cometapi.embeddings",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10844,7 +11664,18 @@
       "name": "cometapi.messages.create",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/instrumentors/strands_harness_instrumentor.py"
+      ],
+      "name": "context.compaction",
+      "template": false,
+      "via": [
+        "start_span"
       ]
     },
     {
@@ -10854,7 +11685,8 @@
       "name": "crewai.agent.execution",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10864,7 +11696,8 @@
       "name": "crewai.crew.execution",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10874,7 +11707,41 @@
       "name": "crewai.task.execution",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/instrumentors/databricks_instrumentor.py"
+      ],
+      "name": "databricks.mlflow.predict",
+      "template": false,
+      "via": [
+        "create_span_wrapper",
+        "start_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/instrumentors/databricks_instrumentor.py"
+      ],
+      "name": "databricks.mlflow.predict_stream",
+      "template": false,
+      "via": [
+        "create_span_wrapper",
+        "start_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/instrumentors/databricks_instrumentor.py"
+      ],
+      "name": "databricks.serving.query",
+      "template": false,
+      "via": [
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10884,7 +11751,8 @@
       "name": "dspy.chain_of_thought",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10894,7 +11762,8 @@
       "name": "dspy.optimizer.{optimizer_name.lower()}",
       "template": true,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10904,7 +11773,8 @@
       "name": "dspy.predict",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10914,7 +11784,8 @@
       "name": "dspy.react",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -10994,7 +11865,8 @@
       "name": "google.genai.aio.models.embeddings",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11004,7 +11876,8 @@
       "name": "google.genai.aio.models.generate_content",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11014,7 +11887,8 @@
       "name": "google.genai.generate_content",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11024,7 +11898,8 @@
       "name": "google.genai.models.embeddings",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11034,7 +11909,8 @@
       "name": "google.genai.models.generate_content",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11044,7 +11920,8 @@
       "name": "google.generativeai.embeddings",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11054,7 +11931,8 @@
       "name": "google.generativeai.generate_content",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11064,7 +11942,8 @@
       "name": "google_adk.runner.run",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11074,7 +11953,8 @@
       "name": "google_adk.runner.run_debug",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11094,7 +11974,8 @@
       "name": "guardrails.guard.call",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11104,7 +11985,8 @@
       "name": "guardrails.guard.parse",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11114,7 +11996,8 @@
       "name": "guardrails.guard.use",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11124,7 +12007,8 @@
       "name": "guardrails.guard.validate",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11144,7 +12028,8 @@
       "name": "haystack.chat_generator.run",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11154,7 +12039,8 @@
       "name": "haystack.generator.run",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11164,7 +12050,8 @@
       "name": "haystack.pipeline.run",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11174,7 +12061,8 @@
       "name": "haystack.pipeline.run_async",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11184,7 +12072,8 @@
       "name": "haystack.retriever.run",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11194,7 +12083,8 @@
       "name": "huggingface.inference.chat_completion",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11204,7 +12094,8 @@
       "name": "huggingface.inference.text_generation",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11244,7 +12135,8 @@
       "name": "instructor.create_with_completion",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11254,7 +12146,8 @@
       "name": "instructor.from_provider",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11264,7 +12157,8 @@
       "name": "instructor.patch",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11274,7 +12168,8 @@
       "name": "instructor.retry",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11381,10 +12276,52 @@
       "modules": [
         "genai_otel/instrumentors/langgraph_instrumentor.py"
       ],
-      "name": "langgraph.{operation_name}",
+      "name": "langgraph.graph.ainvoke",
+      "template": false,
+      "via": [
+        "create_span_wrapper",
+        "start_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/instrumentors/langgraph_instrumentor.py"
+      ],
+      "name": "langgraph.graph.astream",
+      "template": false,
+      "via": [
+        "start_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/instrumentors/langgraph_instrumentor.py"
+      ],
+      "name": "langgraph.graph.invoke",
+      "template": false,
+      "via": [
+        "create_span_wrapper",
+        "start_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/instrumentors/langgraph_instrumentor.py"
+      ],
+      "name": "langgraph.graph.stream",
+      "template": false,
+      "via": [
+        "start_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/instrumentors/langgraph_instrumentor.py"
+      ],
+      "name": "langgraph.node.{name}",
       "template": true,
       "via": [
-        "create_span_wrapper"
+        "start_as_current_span"
       ]
     },
     {
@@ -11399,12 +12336,72 @@
     },
     {
       "modules": [
+        "genai_otel/instrumentors/litellm_latency_instrumentor.py"
+      ],
+      "name": "litellm.acompletion",
+      "template": false,
+      "via": [
+        "start_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/instrumentors/litellm_latency_instrumentor.py"
+      ],
+      "name": "litellm.completion",
+      "template": false,
+      "via": [
+        "start_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/instrumentors/litellm_latency_instrumentor.py"
+      ],
+      "name": "litellm.embeddings",
+      "template": false,
+      "via": [
+        "start_span"
+      ]
+    },
+    {
+      "modules": [
         "genai_otel/instrumentors/llamaindex_instrumentor.py"
       ],
       "name": "llamaindex.query_engine",
       "template": false,
       "via": [
         "start_as_current_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/instrumentors/strands_harness_instrumentor.py"
+      ],
+      "name": "llm.request",
+      "template": false,
+      "via": [
+        "start_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/instrumentors/strands_harness_instrumentor.py"
+      ],
+      "name": "memory.read",
+      "template": false,
+      "via": [
+        "start_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/instrumentors/strands_harness_instrumentor.py"
+      ],
+      "name": "memory.write",
+      "template": false,
+      "via": [
+        "start_span"
       ]
     },
     {
@@ -11424,7 +12421,8 @@
       "name": "ollama.chat",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11434,7 +12432,8 @@
       "name": "ollama.embeddings",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11444,7 +12443,8 @@
       "name": "ollama.generate",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11452,6 +12452,27 @@
         "genai_otel/instrumentors/openai_instrumentor.py"
       ],
       "name": "openai.chat.completion",
+      "template": false,
+      "via": [
+        "create_span_wrapper",
+        "start_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/instrumentors/openai_instrumentor.py"
+      ],
+      "name": "openai.chat.decision",
+      "template": false,
+      "via": [
+        "create_span_wrapper"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/instrumentors/openai_instrumentor.py"
+      ],
+      "name": "openai.decisions",
       "template": false,
       "via": [
         "create_span_wrapper"
@@ -11464,7 +12485,8 @@
       "name": "openai.embeddings",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11474,7 +12496,8 @@
       "name": "openai.responses",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11484,7 +12507,8 @@
       "name": "openai_agents.runner.run",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11494,7 +12518,8 @@
       "name": "openai_agents.runner.run_sync",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11502,6 +12527,17 @@
         "genai_otel/instrumentors/openrouter_instrumentor.py"
       ],
       "name": "openrouter.chat.completion",
+      "template": false,
+      "via": [
+        "create_span_wrapper",
+        "start_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/instrumentors/openrouter_instrumentor.py"
+      ],
+      "name": "openrouter.decisions",
       "template": false,
       "via": [
         "create_span_wrapper"
@@ -11514,7 +12550,78 @@
       "name": "openrouter.embeddings",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/mcp_instrumentors/vector_db_instrumentor.py"
+      ],
+      "name": "pinecone.delete",
+      "template": false,
+      "via": [
+        "start_as_current_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/mcp_instrumentors/vector_db_instrumentor.py"
+      ],
+      "name": "pinecone.index.delete",
+      "template": false,
+      "via": [
+        "start_as_current_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/mcp_instrumentors/vector_db_instrumentor.py"
+      ],
+      "name": "pinecone.index.query",
+      "template": false,
+      "via": [
+        "start_as_current_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/mcp_instrumentors/vector_db_instrumentor.py"
+      ],
+      "name": "pinecone.index.upsert",
+      "template": false,
+      "via": [
+        "start_as_current_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/mcp_instrumentors/vector_db_instrumentor.py"
+      ],
+      "name": "pinecone.query",
+      "template": false,
+      "via": [
+        "start_as_current_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/mcp_instrumentors/vector_db_instrumentor.py"
+      ],
+      "name": "pinecone.upsert",
+      "template": false,
+      "via": [
+        "start_as_current_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/instrumentors/pydantic_ai_instrumentor.py"
+      ],
+      "name": "pydantic_ai.agent.iter",
+      "template": false,
+      "via": [
+        "start_span"
       ]
     },
     {
@@ -11524,7 +12631,8 @@
       "name": "pydantic_ai.agent.run",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11534,7 +12642,7 @@
       "name": "pydantic_ai.agent.run_stream",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "start_span"
       ]
     },
     {
@@ -11544,7 +12652,8 @@
       "name": "pydantic_ai.agent.run_sync",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11574,7 +12683,8 @@
       "name": "replicate.run",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11584,7 +12694,8 @@
       "name": "sambanova.chat.completion",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11661,8 +12772,8 @@
       "modules": [
         "genai_otel/instrumentors/sarvam_instrumentor.py"
       ],
-      "name": "sarvam.text_to_speech.stream",
-      "template": false,
+      "name": "sarvam.text_to_speech.{method_name}",
+      "template": true,
       "via": [
         "start_span"
       ]
@@ -11674,7 +12785,8 @@
       "name": "sentence_transformers.embeddings",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11694,7 +12806,8 @@
       "name": "together.chat.completion",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11704,7 +12817,8 @@
       "name": "together.complete",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11714,7 +12828,8 @@
       "name": "together.embeddings",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11734,7 +12849,8 @@
       "name": "vertexai.generate_content",
       "template": false,
       "via": [
-        "create_span_wrapper"
+        "create_span_wrapper",
+        "start_span"
       ]
     },
     {
@@ -11755,6 +12871,16 @@
       "template": false,
       "via": [
         "start_as_current_span"
+      ]
+    },
+    {
+      "modules": [
+        "genai_otel/instrumentors/xai_instrumentor.py"
+      ],
+      "name": "xai.chat",
+      "template": false,
+      "via": [
+        "start_span"
       ]
     }
   ],

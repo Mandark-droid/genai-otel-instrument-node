@@ -128,7 +128,7 @@ describe('loadConfig defaults (genai_otel/config.py at v1.30.0)', () => {
   it('enabled instrumentors default to the reference list, as a copy', () => {
     expect(config.enabledInstrumentors).toEqual(DEFAULT_INSTRUMENTORS);
     expect(config.enabledInstrumentors).not.toBe(DEFAULT_INSTRUMENTORS);
-    expect(DEFAULT_INSTRUMENTORS.slice(0, 4)).toEqual(['openai', 'openrouter', 'cometapi', 'anthropic']);
+    expect(DEFAULT_INSTRUMENTORS.slice(0, 5)).toEqual(['openai', 'databricks', 'openrouter', 'cometapi', 'anthropic']);
     expect(DEFAULT_INSTRUMENTORS).toContain('typesafe');
     expect(DEFAULT_INSTRUMENTORS).not.toContain('mcp');
     expect(DEFAULT_INSTRUMENTORS).not.toContain('hyperbolic');
