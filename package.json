@@ -1,6 +1,6 @@
 {
   "name": "@traceverse/genai-otel-instrument-node",
-  "version": "0.1.0-alpha.10",
+  "version": "0.1.0-alpha.11",
   "description": "OpenTelemetry instrumentation for GenAI applications on Node.js, in browsers and in React Native (port of genai_otel_instrument)",
   "keywords": [
     "opentelemetry",
@@ -16,6 +16,8 @@
     "anthropic",
     "langchain",
     "mcp",
+    "a2a",
+    "a2ui",
     "agents",
     "rag",
     "vector-database",
@@ -103,6 +105,8 @@
     "generate": "node scripts/generate-contract-code.mjs",
     "sync": "node scripts/sync-from-python.mjs",
     "sync:check": "node scripts/sync-from-python.mjs --check",
+    "sync:a2a-a2ui": "node scripts/sync-a2a-a2ui-from-python.mjs",
+    "sync:a2a-a2ui:check": "node scripts/sync-a2a-a2ui-from-python.mjs --check",
     "prebuild": "npm run generate",
     "build": "tsup",
     "pretypecheck": "npm run generate",
@@ -130,6 +134,9 @@
     "@opentelemetry/sdk-trace-base": "^2.0.0"
   },
   "peerDependencies": {
+    "@a2a-js/sdk": "*",
+    "@a2ui/agent": "*",
+    "@a2ui/web_core": "*",
     "@anthropic-ai/sdk": ">=0.20.0",
     "@aws-sdk/client-bedrock-agent-runtime": "*",
     "@aws-sdk/client-bedrock-runtime": "*",
@@ -170,6 +177,15 @@
     "together-ai": "*"
   },
   "peerDependenciesMeta": {
+    "@a2a-js/sdk": {
+      "optional": true
+    },
+    "@a2ui/agent": {
+      "optional": true
+    },
+    "@a2ui/web_core": {
+      "optional": true
+    },
     "@anthropic-ai/sdk": {
       "optional": true
     },
@@ -286,6 +302,9 @@
     }
   },
   "devDependencies": {
+    "@a2a-js/sdk": "^1.3.0",
+    "@a2ui/agent": "^0.1.0",
+    "@a2ui/web_core": "^0.15.0",
     "@ai-sdk/openai-compatible": "^3.0.62",
     "@ai-sdk/otel": "^1.0.127",
     "@anthropic-ai/sdk": "^0.131.0",

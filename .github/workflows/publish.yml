@@ -1,0 +1,69 @@
+name: publish
+
+# Publishes to npm when a GitHub release is published.
+#
+# Authentication is npm trusted publishing (OIDC): the workflow asks GitHub for a short-lived identity
+# token and npm exchanges it for a publish credential. There is no NPM_TOKEN secret. It needs, once,
+# on npmjs.com (package settings -> Trusted Publisher): this repository, this workflow file
+# (`publish.yml`) and no environment name.
+#
+# No `--provenance`: the source repository is private, and npm only signs provenance for public ones.
+#
+# The tag of the release must be `v` + the version in package.json, so a release cannot publish a
+# different version than the one it names.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  # Required for the OIDC token npm trusted publishing exchanges.
+  id-token: write
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - uses: actions/setup-node@v4
+        with:
+          # Node 24 ships an npm that supports trusted publishing (11.5.1 or later).
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - name: Check the npm version and that the release names this package version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -eu
+          npm --version
+          node -e "
+            const [major, minor, patch] = process.argv[1].split('.').map(Number);
+            if (major < 11 || (major === 11 && (minor < 5 || (minor === 5 && patch < 1)))) {
+              console.error('npm ' + process.argv[1] + ' cannot publish with trusted publishing (needs 11.5.1 or later)');
+              process.exit(1);
+            }
+          " "$(npm --version)"
+          version="$(node -p "require('./package.json').version")"
+          if [ "v${version}" != "${RELEASE_TAG}" ]; then
+            echo "release tag ${RELEASE_TAG} does not match package.json version v${version}" >&2
+            exit 1
+          fi
+      - run: npm ci
+      # The same gates as the test workflow, so a release cannot ship what a push would not.
+      - run: npm run sync:check
+      - run: npm run sync:a2a-a2ui:check
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npm run check:bundles
+      - run: npm run smoke
+      - run: npm publish

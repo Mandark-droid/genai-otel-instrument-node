@@ -283,3 +283,20 @@ still record usage alongside it. Each SDK documents where the guarantee holds.
 - It reports them as two OBSERVABLE GAUGES (not counters: a counter gains a `_total` suffix in the Prometheus exporter and the platform would not match it): `gen_ai.server.prefix_cache.queries` and `gen_ai.server.prefix_cache.hits`, unit `{token}` (a curly-brace unit is dropped by the Prometheus translator, so the platform reads `gen_ai_server_prefix_cache_queries` / `_hits`), each with `server_metrics_source="engine"` and `model` when vLLM labels it, value = the engine's cumulative counter as read.
 - A server that does not export them (llama.cpp, Ollama, older vLLM without prefix caching) records nothing: absent, never 0. No hit percentage is computed in the SDK; the platform derives it.
 - Meter: the same `genai.server` meter as the other server metrics.
+
+## 14. A2A and A2UI: a scoped addition from Python 1.47.0 / 1.48.0 (lead decision A2UI-D8, 2026-11-12)
+
+The contract above stays pinned at Python v1.46.0. The A2A (1.47.0) and A2UI (1.48.0) instrumentation
+came after that pin, and a full re-pin would also bring in unrelated 1.46.x to 1.48.0 changes, so
+only these names are taken, from one commit:
+
+| | |
+|---|---|
+| Source | genai_otel_instrument tag `v1.48.0` (commit `7762b71`): `genai_otel/a2a_semconv/attributes.py`, `genai_otel/a2ui_semconv/attributes.py`, the span and event names in `a2ui_semconv/instrumentor.py`, and `GENAI_A2A_PROPAGATE` / `GENAI_A2UI_ENABLED` in `config.py` |
+| Vendored as | `contract/a2a-a2ui.json`, written by `scripts/sync-a2a-a2ui-from-python.mjs` (`npm run sync:a2a-a2ui`), with the sha256 of each source file and of the names. Turned into `src/a2a-a2ui.generated.ts` by `npm run generate`. `npm run sync:a2a-a2ui:check` (CI) fails on a hand edit |
+| Not in | `MANIFEST.json`, `config.json`, `semconv.json`: the contract tests are unchanged except that they allow the two settings and the two default-list names listed here |
+| Names | `a2a.*` (OpenTelemetry A2A conventions plus this library's counts), `a2ui.*` (provisional), reused `gen_ai.agent.*`, `gen_ai.conversation.id`, `error.type`, `server.*`; span names `{method} {target}`, `a2ui.parse_response`, `a2ui.parse_stream`; event `a2ui.error` |
+| Settings | `GENAI_A2A_PROPAGATE`, `GENAI_A2UI_ENABLED`: `os.getenv(X, "true").lower() != "false"`, no stripping |
+| Default instrumentors | `a2a`, `a2ui` after `crewai`, as in Python |
+| Not present in Python | the `a2ui_web_core` opt-in adapter and its `a2ui.apply` span; `recordA2uiReceived` / `recordA2uiSent` / `recordA2uiRendererError`; the explicit hand-over functions. Python has no renderer |
+| Not ported | the A2A server side (decision A2UI-D6, later); `a2ui.process` (`@a2ui/agent` 0.1.0 has no renderer-to-agent processor); `a2ui.validation_failed` (Python's workaround for a function that swallows its error) |

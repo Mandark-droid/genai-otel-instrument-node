@@ -1,0 +1,141 @@
+{
+  "scoped_addition": "A2A + A2UI names (decision A2UI-D8). Not part of MANIFEST.json; recorded in SDK_ADDITIONS.md.",
+  "python_commit": "7762b71c5658db65849cf3f82d244becee155e8c",
+  "python_tag": "v1.48.0",
+  "source_sha256": {
+    "genai_otel/a2a_semconv/attributes.py": "7d2b4606bc2f1dd61783a44e0d16f2c220a8bd644ea8de6a8cb82de7037ff7c5",
+    "genai_otel/a2ui_semconv/attributes.py": "d789f0f4be7e6fd1b885ae65a597199e08607659deb4e1e08dcc29af317f88bb",
+    "genai_otel/a2ui_semconv/instrumentor.py": "018df63cfc88cfc244ed10ea12793b1b75dacd06c8bb4526a6f7c1c57ceba2cd",
+    "genai_otel/config.py": "4035e83006cc03755495d3ebd9e0fef00133ffc4c093e49ed42fd6a096d29fe3"
+  },
+  "names_sha256": "5ad3f94d3a5200133c81208d483bc6d18218a41b0eb8cea29b694df3dde3d0dd",
+  "a2a": {
+    "attributes": {
+      "METHOD_NAME": "a2a.method.name",
+      "PROTOCOL_VERSION": "a2a.protocol.version",
+      "TENANT": "a2a.tenant",
+      "MESSAGE_ID": "a2a.message.id",
+      "MESSAGE_REFERENCE_TASK_IDS": "a2a.message.reference_task_ids",
+      "TASK_ID": "a2a.task.id",
+      "TASK_STATE": "a2a.task.state",
+      "PROTOCOL_BINDING": "a2a.protocol.binding",
+      "CONVERSATION_ID": "gen_ai.conversation.id",
+      "OPERATION_NAME": "gen_ai.operation.name",
+      "AGENT_NAME": "gen_ai.agent.name",
+      "AGENT_DESCRIPTION": "gen_ai.agent.description",
+      "AGENT_VERSION": "gen_ai.agent.version",
+      "ERROR_TYPE": "error.type",
+      "SERVER_ADDRESS": "server.address",
+      "SERVER_PORT": "server.port",
+      "MESSAGE_TEXT_PART_COUNT": "a2a.message.text_part_count",
+      "MESSAGE_FILE_PART_COUNT": "a2a.message.file_part_count",
+      "MESSAGE_DATA_PART_COUNT": "a2a.message.data_part_count",
+      "MESSAGE_FILE_MEDIA_TYPES": "a2a.message.file_media_types",
+      "RESPONSE_TEXT_PART_COUNT": "a2a.response.text_part_count",
+      "RESPONSE_FILE_PART_COUNT": "a2a.response.file_part_count",
+      "RESPONSE_DATA_PART_COUNT": "a2a.response.data_part_count",
+      "RESPONSE_FILE_MEDIA_TYPES": "a2a.response.file_media_types",
+      "ARTIFACT_COUNT": "a2a.artifact.count",
+      "AGENT_SKILL_COUNT": "a2a.agent.skill_count",
+      "MESSAGE_TEXT": "a2a.message.text",
+      "MESSAGE_DATA": "a2a.message.data",
+      "RESPONSE_TEXT": "a2a.response.text",
+      "RESPONSE_DATA": "a2a.response.data",
+      "AGENT_SKILL_NAMES": "a2a.agent.skill_names"
+    },
+    "content_keys": [
+      "MESSAGE_TEXT",
+      "MESSAGE_DATA",
+      "RESPONSE_TEXT",
+      "RESPONSE_DATA",
+      "AGENT_SKILL_NAMES"
+    ],
+    "bindings": {
+      "jsonrpc": "jsonrpc",
+      "grpc": "grpc",
+      "http_json": "http_json"
+    },
+    "operation_invoke_agent": "invoke_agent"
+  },
+  "a2ui": {
+    "attributes": {
+      "PROTOCOL_VERSION": "a2ui.protocol.version",
+      "AGENT_MESSAGE_COUNT": "a2ui.agent_message.count",
+      "RENDERER_MESSAGE_COUNT": "a2ui.renderer_message.count",
+      "MESSAGE_TYPES": "a2ui.message.types",
+      "SURFACE_ID": "a2ui.surface.id",
+      "SURFACE_COUNT": "a2ui.surface.count",
+      "CATALOG_ID": "a2ui.catalog.id",
+      "CATALOG_IDS": "a2ui.catalog.ids",
+      "COMPONENT_COUNT": "a2ui.component.count",
+      "RENDERER_SUPPORTED_CATALOG_IDS": "a2ui.renderer.supported_catalog_ids",
+      "ACTION_NAME": "a2ui.action.name",
+      "FUNCTION_NAME": "a2ui.function.name",
+      "ERROR_CODES": "a2ui.error.codes",
+      "ERROR_COUNT": "a2ui.error.count",
+      "VALIDATION_OUTCOME": "a2ui.validation.outcome",
+      "EXTENSION_ACTIVE": "a2ui.extension.active",
+      "ERROR_TYPE": "error.type",
+      "EVENT_ERROR_CODE": "a2ui.error.code",
+      "MESSAGES": "a2ui.messages",
+      "DATA_MODEL": "a2ui.data_model",
+      "ACTION_CONTEXT": "a2ui.action.context",
+      "ERROR_PATHS": "a2ui.error.paths",
+      "ERROR_MESSAGES": "a2ui.error.messages",
+      "COMPONENT_TYPES": "a2ui.component.types"
+    },
+    "content_keys": [
+      "MESSAGES",
+      "DATA_MODEL",
+      "ACTION_CONTEXT",
+      "ERROR_PATHS",
+      "ERROR_MESSAGES",
+      "COMPONENT_TYPES"
+    ],
+    "extension_uri": "https://a2ui.org/a2a-extension/a2ui/v1.0",
+    "extension_uri_prefix": "https://a2ui.org/a2a-extension/a2ui/",
+    "mime_types": [
+      "application/a2ui+json",
+      "application/json+a2ui"
+    ],
+    "capabilities_keys": [
+      "a2uiRendererCapabilities",
+      "a2uiClientCapabilities"
+    ],
+    "error_event": "a2ui.error",
+    "sides": {
+      "agent": "agent",
+      "renderer": "renderer"
+    },
+    "validation": {
+      "valid": "valid",
+      "invalid": "invalid"
+    },
+    "span_names": [
+      "a2ui.parse_response",
+      "a2ui.parse_stream",
+      "a2ui.process"
+    ],
+    "validation_failed_event": "a2ui.validation_failed"
+  },
+  "config": [
+    {
+      "env": "GENAI_A2A_PROPAGATE",
+      "field": "a2a_propagate",
+      "type": "bool",
+      "default": "true",
+      "expression": "os.getenv(\"GENAI_A2A_PROPAGATE\", \"true\").lower() != \"false\""
+    },
+    {
+      "env": "GENAI_A2UI_ENABLED",
+      "field": "a2ui_enabled",
+      "type": "bool",
+      "default": "true",
+      "expression": "os.getenv(\"GENAI_A2UI_ENABLED\", \"true\").lower() != \"false\""
+    }
+  ],
+  "instrumentor_ids": [
+    "a2a",
+    "a2ui"
+  ]
+}

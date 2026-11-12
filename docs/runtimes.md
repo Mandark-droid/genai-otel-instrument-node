@@ -149,10 +149,19 @@ the cache or the network is not reported either: the library does not say.
 Without a context manager in these runtimes, the load, pipeline and generate spans of
 one interaction are separate traces; `setSession()` is what ties them together.
 
+## A2A and A2UI
+
+The A2UI API (`recordA2uiReceived`, `recordA2uiSent`, `recordA2uiRendererError`) is in every entry. The
+A2A client, `@a2ui/agent` and `@a2ui/web_core` are handed over, as the on-device libraries are:
+`instrumentA2aClient(await import('@a2a-js/sdk/client'))`, `instrumentA2uiAgent(agent)`,
+`instrumentA2uiWebCore(webCore)`. A call's span is not made the active span here, and the
+`traceparent` still goes out with it. See [a2a-a2ui.md](a2a-a2ui.md).
+
 ## Not in the browser and React Native entries
 
 - Provider instrumentation by module patching (`OpenAIInstrumentor`,
-  `AnthropicInstrumentor`) and the `register` hook: Node only.
+  `AnthropicInstrumentor`) and the `register` hook: Node only. (The A2A / A2UI libraries are
+  handed over instead: see above.)
 - `buildResource()` and its host / process / OS detection: Node only.
 - gRPC and http/protobuf export: Node only.
 - Trace context is not propagated across `await` (there is no `AsyncLocalStorage`):

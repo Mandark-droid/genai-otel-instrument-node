@@ -36,6 +36,8 @@ import { startOnDeviceInstrumentors, stopOnDeviceInstrumentors } from '../on-dev
 import { manualInstrumentor } from './manual';
 import { AgentGraphSpanProcessor } from '../agent-graph';
 import { setAppSpanContentCapture } from '../app-spans';
+import { configureA2ui } from '../a2ui/settings';
+import { startA2uiInstrumentors, stopA2uiInstrumentors } from '../a2ui/start';
 import { setActivateCallSpans } from '../call-scope';
 import { RootSpanFlushProcessor } from './root-flush';
 import { type Destination, fanOutFetch } from './destinations';
@@ -232,6 +234,7 @@ function setup(
   };
   globalState()[STATE_SLOT] = state;
   setAppSpanContentCapture(config.enableContentCapture, config.contentMaxLength);
+  configureA2ui(config);
   // One shared scope stack here: a model call running in the background must not become the
   // parent of everything started meanwhile. Only the application's context.with() scopes count.
   if (state.registeredContext) setActivateCallSpans(false);
@@ -240,6 +243,7 @@ function setup(
   resetSharedMetrics();
   manualInstrumentor().instrument(config);
   startOnDeviceInstrumentors(config);
+  startA2uiInstrumentors(config);
 
   const appState = options.appState;
   if (appState) {
@@ -328,6 +332,8 @@ export async function uninstrument(timeoutSeconds = 5.0): Promise<void> {
   }
   manualInstrumentor().uninstrument();
   stopOnDeviceInstrumentors();
+  stopA2uiInstrumentors();
+  configureA2ui(undefined);
 
   const timeoutMs = Math.max(1, Math.trunc(timeoutSeconds * 1000));
   await Promise.all(

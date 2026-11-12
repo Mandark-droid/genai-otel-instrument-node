@@ -146,6 +146,16 @@ function devSdkUnsupportedHere() {
   return undefined;
 }
 
+/** The A2A / A2UI API in the four built entries: Node (both formats), browser and React Native. */
+const A2UI_NAMES = ['recordA2uiReceived', 'recordA2uiSent', 'recordA2uiRendererError', 'instrumentA2aClient', 'instrumentA2uiAgent', 'instrumentA2uiWebCore'];
+const a2uiCheck = (load) => `
+${load}
+for (const name of ${JSON.stringify(A2UI_NAMES)}) if (typeof sdk[name] !== 'function') throw new Error(name + ' is not exported');
+sdk.recordA2uiReceived({ version: '1.0', createSurface: { surfaceId: 's', catalogId: 'c' } });
+console.log('a2ui api ok');
+process.exit(0);
+`;
+
 async function loads(name, args) {
   const outcome = await run(args, baseEnv({ OTEL_EXPORTER_OTLP_ENDPOINT: 'http://127.0.0.1:9', OTEL_LOG_LEVEL: 'none' }));
   return { name, ok: outcome.code === 0, detail: outcome.stdout || `exit code ${outcome.code}`, stderr: outcome.stderr };
@@ -156,6 +166,12 @@ async function loads(name, args) {
     await loads('load: commonjs', ['-e', loadCheck]),
     await loads('load: es module', ['--input-type=module', '-e', esmLoadCheck]),
   ];
+  results.push(
+    await loads('a2ui api: commonjs', ['-e', a2uiCheck(`const sdk = require(${JSON.stringify(join(dist, 'index.js'))});`)]),
+    await loads('a2ui api: es module', ['--input-type=module', '-e', a2uiCheck(`import * as sdk from ${JSON.stringify(pathToFileURL(join(dist, 'index.mjs')).href)};`)]),
+    await loads('a2ui api: browser bundle', ['--input-type=module', '-e', a2uiCheck(`import * as sdk from ${JSON.stringify(pathToFileURL(join(dist, 'index.browser.mjs')).href)};`)]),
+    await loads('a2ui api: react-native bundle', ['-e', a2uiCheck(`const sdk = require(${JSON.stringify(join(dist, 'index.react-native.js'))});`)]),
+  );
   const unsupported = devSdkUnsupportedHere();
   if (unsupported) {
     results.push({ name: 'zero-code hooks', ok: true, skipped: true, detail: `not exercised here: ${unsupported}` });

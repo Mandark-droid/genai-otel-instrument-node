@@ -71,6 +71,10 @@ export interface OTelConfig {
   flushOnSigterm: boolean;
   sigtermFlushTimeout: number;
   enableContentCapture: boolean;
+  /** Whether trace context travels between agents on A2A calls (`GENAI_A2A_PROPAGATE`, default true). */
+  a2aPropagate: boolean;
+  /** Whether A2UI attributes and spans are recorded (`GENAI_A2UI_ENABLED`, default true). */
+  a2uiEnabled: boolean;
   captureEmbeddingVectors: boolean;
   contentMaxLength: number;
   customPricingJson: string | undefined;
@@ -181,6 +185,9 @@ export const DEFAULT_INSTRUMENTORS: readonly string[] = Object.freeze([
   'openai_agents',
   'bedrock_agents',
   'crewai',
+  // Both do nothing unless their package is installed (`@a2a-js/sdk`, `@a2ui/agent`). Scoped addition from Python 1.48.0 (A2UI-D8).
+  'a2a',
+  'a2ui',
   'smolagents',
   'litellm',
   'typesafe',
@@ -272,6 +279,8 @@ export type ConfigFieldKind =
   | 'instrumentors'
   /** `os.getenv(X, default).strip().lower() != "false"` */
   | 'bool_not_false'
+  /** `os.getenv(X, default).lower() != "false"` - no stripping, so `"false "` is true */
+  | 'bool_not_false_exact'
   /** `(os.getenv(X) or "").strip() or None` */
   | 'opt_str_strip'
   /** `_parse_session_baggage_keys(os.getenv(X))` */
@@ -343,6 +352,9 @@ export const CONFIG_FIELDS: readonly ConfigField[] = Object.freeze([
   f('decisionLegacyLlmKind', 'GENAI_DECISION_LEGACY_LLM_KIND', 'bool_strip', 'false'),
   f('decisionHttpMatcher', 'GENAI_DECISION_HTTP_MATCHER', 'bool_not_false', 'true'),
   f('decisionProvider', 'GENAI_DECISION_PROVIDER', 'opt_str_strip'),
+  // Scoped addition from Python 1.48.0 (contract/a2a-a2ui.json, A2UI-D8): not in the pinned v1.46.0 contract.
+  f('a2aPropagate', 'GENAI_A2A_PROPAGATE', 'bool_not_false_exact', 'true'),
+  f('a2uiEnabled', 'GENAI_A2UI_ENABLED', 'bool_not_false_exact', 'true'),
   f('enablePiiDetection', 'GENAI_ENABLE_PII_DETECTION', 'bool', 'false'),
   f('piiMode', 'GENAI_PII_MODE', 'str', 'detect'),
   f('piiThreshold', 'GENAI_PII_THRESHOLD', 'float', '0.5'),
@@ -565,6 +577,8 @@ export function parseConfigField(field: ConfigField, env: Env): OTelConfig[keyof
       // An empty string is falsy in Python, so it means "the default list" too.
       if (raw) return raw.split(',').map((name) => name.trim());
       return [...DEFAULT_INSTRUMENTORS];
+    case 'bool_not_false_exact':
+      return withDefault.toLowerCase() !== 'false';
     case 'bool_not_false':
       return withDefault.trim().toLowerCase() !== 'false';
     case 'opt_str_strip':

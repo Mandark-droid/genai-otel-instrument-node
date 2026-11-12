@@ -12,6 +12,7 @@ Read `CLAUDE.md` first: the rules there are not negotiable.
 | `npm run lint` | eslint |
 | `npm run build` | CommonJS + ES-module bundles and type declarations into `dist/` |
 | `npm run sync` / `npm run sync:check` | Vendor / verify the contract and pricing table |
+| `npm run sync:a2a-a2ui` / `npm run sync:a2a-a2ui:check` | Vendor / verify the A2A and A2UI names (`contract/a2a-a2ui.json`), a scoped addition from one Python commit (`contract/SDK_ADDITIONS.md` section 14). Needs a checkout of the Python repository (`--from`, `$GENAI_PYTHON_REPO`, or `../genai_otel_instrument`); `--check` also works without one |
 | `npm run generate` | Regenerate `src/semconv.generated.ts` from `contract/semconv.json` (runs automatically before test, typecheck, lint and build) |
 | `npm run smoke` | The built package: loads in both module formats; an application that never mentions it is traced through both zero-code hooks |
 | `npm run compat` | The built package against each supported major of `openai` and `@anthropic-ai/sdk` (installs them into a temporary directory) |
@@ -65,7 +66,7 @@ tag pinned in `scripts/sync-from-python.mjs`:
 3. `npm test`. Every break is a behaviour that changed upstream; fix the port, not the file.
 
 `contract/SCHEMA.md` is the authority on the file shapes. Never edit a vendored file: CI
-runs `npm run sync:check`, which fails on a hand edit. `.gitattributes` stops git from
+runs `npm run sync:check`, which fails on a hand edit. The A2A and A2UI names are the one exception to "one pinned tag": they come from a later Python commit (`npm run sync:a2a-a2ui`), recorded in `contract/SDK_ADDITIONS.md` section 14, and are checked the same way. `.gitattributes` stops git from
 rewriting their line endings, since they are verified by sha256.
 
 ## Layout

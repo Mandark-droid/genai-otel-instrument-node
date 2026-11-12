@@ -115,3 +115,13 @@ export {
   type WorkflowSpanOptions,
 } from './app-spans';
 export { addRetrievalAttributes, type RetrievalAttributeOptions, type RetrievedDocument } from './retrieval';
+export {
+  A2AAttributes,
+  A2UIAttributes,
+  instrumentA2aClient,
+  instrumentA2uiAgent,
+  instrumentA2uiWebCore,
+  recordA2uiReceived,
+  recordA2uiRendererError,
+  recordA2uiSent,
+} from './a2ui';

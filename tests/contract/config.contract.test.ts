@@ -8,6 +8,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import contract from '../../contract/config.json';
+import scoped from '../../contract/a2a-a2ui.json';
 import {
   CONFIG_FIELDS,
   ConfigError,
@@ -54,16 +55,26 @@ function fromContract(value: unknown): unknown {
   return value;
 }
 
+/** The two instrumentors added from the A2A / A2UI commit (A2UI-D8) are not in the pinned default list. */
+const scopedInstrumentorIds = new Set<string>(scoped.instrumentor_ids);
+
 function expectSame(actual: unknown, expected: unknown): void {
   const want = fromContract(expected);
   if (typeof want === 'number' && Number.isNaN(want)) expect(Number.isNaN(actual as number)).toBe(true);
-  else expect(actual).toEqual(want);
+  else if (Array.isArray(actual) && Array.isArray(want)) {
+    expect(actual.filter((item) => !(scopedInstrumentorIds.has(item as string) && !want.includes(item)))).toEqual(want);
+  } else expect(actual).toEqual(want);
 }
 
 const quiet = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} };
 
 beforeEach(() => setLogger(quiet));
 afterEach(() => setLogger(undefined));
+
+/** Settings added from a later Python commit than the pin (contract/a2a-a2ui.json, A2UI-D8). */
+const scopedConfig = scoped.config as { env: string; field: string; default: string }[];
+const scopedEnv = new Set(scopedConfig.map((entry) => entry.env));
+const scopedFields = new Set(scopedConfig.map((entry) => camel(entry.field) as string));
 
 const configVariables = variables.filter((variable) => variable.extraction === 'runtime:OTelConfig');
 const knownEnv = new Set([...CONFIG_FIELDS.map((field) => field.env), OTEL_GENAI_CAPTURE_MESSAGE_CONTENT]);
@@ -76,7 +87,7 @@ describe('OTelConfig variables', () => {
 
   it('and declares none that the reference implementation does not have', () => {
     const reference = new Set(configVariables.map((variable) => variable.env));
-    expect([...knownEnv].filter((env) => !reference.has(env))).toEqual([]);
+    expect([...knownEnv].filter((env) => !reference.has(env) && !scopedEnv.has(env))).toEqual([]);
   });
 
   describe.each(configVariables.map((variable) => [variable.env, variable] as const))('%s', (_env, variable) => {
@@ -117,7 +128,25 @@ describe('otel_config_defaults', () => {
 
   it('this SDK has no configuration field the reference implementation lacks', () => {
     const reference = new Set(Object.keys(defaults).map((name) => camel(name) as string));
-    expect(Object.keys(config).filter((field) => !reference.has(field))).toEqual([]);
+    expect(Object.keys(config).filter((field) => !reference.has(field) && !scopedFields.has(field))).toEqual([]);
+  });
+});
+
+describe('scoped additions from the A2A / A2UI commit (A2UI-D8)', () => {
+  it.each(scopedConfig.map((entry) => [entry.env, entry] as const))('%s: `.lower() != "false"`, no stripping', (_env, entry) => {
+    const field = camel(entry.field);
+    expect(entry.default).toBe('true');
+    expect(loadConfig({}, {})[field]).toBe(true);
+    for (const raw of ['', 'true', 'TRUE', 'no', '0', 'false ', ' false', 'off']) {
+      expect(loadConfig({}, { [entry.env]: raw })[field], JSON.stringify(raw)).toBe(true);
+    }
+    for (const raw of ['false', 'FALSE', 'False']) expect(loadConfig({}, { [entry.env]: raw })[field], raw).toBe(false);
+  });
+
+  it('the two instrumentors are in the default list, after crewai', () => {
+    const list = loadConfig({}, {}).enabledInstrumentors;
+    for (const id of scoped.instrumentor_ids) expect(list).toContain(id);
+    expect(list.indexOf('a2a')).toBe(list.indexOf('crewai') + 1);
   });
 });
 

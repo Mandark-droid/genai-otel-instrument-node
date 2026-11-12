@@ -79,6 +79,8 @@ before: an ES-module import of a library that cannot run on Node 18 (anything on
 | `GENAI_ENABLE_COST_TRACKING` | `true` | |
 | `GENAI_MCP_HASH_SALT` | | Salt for hashed user identifiers on MCP spans. Unset: a random per-process salt, with a warning; hashes then do not match across processes |
 | `GENAI_ENABLE_HTTP_INSTRUMENTATION` | `false` | A span per outbound `fetch` call (`api.call.<method>.<host>`). Off by default: every provider client already has a span, and its requests go through `fetch` too |
+| `GENAI_A2UI_ENABLED` | `true` | A2UI attributes, events and spans (on A2A spans, `@a2ui/agent`, `@a2ui/web_core`, the `recordA2ui*` API). `false` (any case, no surrounding space) turns them off; A2A is untouched. Python 1.48.0 setting; see [a2a-a2ui.md](a2a-a2ui.md) |
+| `GENAI_A2A_PROPAGATE` | `true` | `false`: no W3C trace context (and baggage) goes out on A2A client calls. Python 1.47.0 setting |
 | `GENAI_ENABLE_MCP_INSTRUMENTATION` | `true` | Datastore and tool instrumentation: one client span and the `mcp.*` metrics per operation. `db.statement` only with content capture on |
 | `GENAI_CUSTOM_PRICING_JSON` | | Same shape as the pricing table; merged over it. Applied by every instrumentor and by the cost-enrichment processor (the Python library v1.30.0 ignores it in most instrumentors) |
 | `GENAI_ENABLE_CONTENT_CAPTURE` | `false` | |

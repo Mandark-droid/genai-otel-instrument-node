@@ -60,6 +60,7 @@ import { metricViews, resetSharedMetrics } from './metrics';
 import { buildResource } from './resource';
 import { AgentGraphSpanProcessor } from './agent-graph';
 import { setAppSpanContentCapture } from './app-spans';
+import { configureA2ui } from './a2ui/settings';
 import {
   configureSessionPropagation,
   SessionBaggagePropagator,
@@ -436,6 +437,7 @@ function sessionPropagator(config: OTelConfig) {
 
 function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumentors: boolean): InstrumentationHandle {
   setAppSpanContentCapture(config.enableContentCapture, config.contentMaxLength);
+  configureA2ui(config);
   logger.info('Starting auto-instrumentation setup...');
   installDiagLogger();
 
@@ -640,6 +642,7 @@ export async function uninstrument(timeoutSeconds = 5.0): Promise<void> {
     return;
   }
   clearStateSlot(STATE_SLOT);
+  configureA2ui(undefined);
 
   if (state.onBeforeExit) process.removeListener('beforeExit', state.onBeforeExit);
   if (state.onSigterm) process.removeListener('SIGTERM', state.onSigterm);

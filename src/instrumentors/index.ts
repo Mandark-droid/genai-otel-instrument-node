@@ -11,6 +11,9 @@ import { GroqInstrumentor } from './groq';
 import { huggingFaceInferenceInstrumentor } from './huggingface';
 import { BedrockAgentsInstrumentor, GoogleADKInstrumentor, OpenAIAgentsInstrumentor } from '../frameworks/agents';
 import { LangChainInstrumentor, LangGraphInstrumentor, LlamaIndexInstrumentor } from '../frameworks/langchain';
+import { a2aClientInstrumentor } from '../a2a/client-instrumentor';
+import { a2uiAgentInstrumentor } from '../a2ui/agent-instrumentor';
+import { a2uiWebCoreInstrumentor } from '../a2ui/web-core-instrumentor';
 import { mcpInstrumentor } from '../mcp/client-instrumentor';
 import { MistralInstrumentor } from './mistral';
 import { OllamaInstrumentor } from './ollama';
@@ -55,6 +58,12 @@ registerInstrumentor('llama_index', () => new LlamaIndexInstrumentor());
 registerInstrumentor('openai_agents', () => new OpenAIAgentsInstrumentor());
 registerInstrumentor('google_adk', () => new GoogleADKInstrumentor());
 registerInstrumentor('bedrock_agents', () => new BedrockAgentsInstrumentor());
+// A2A client (`@a2a-js/sdk`) and the A2UI agent SDK (`@a2ui/agent`): in the default list, as in
+// Python 1.48.0; each does nothing unless its package is installed. `a2ui_web_core` is opt-in and
+// has no Python counterpart (the renderer adapter, decision A2UI-D7).
+registerInstrumentor('a2a', () => a2aClientInstrumentor());
+registerInstrumentor('a2ui', () => a2uiAgentInstrumentor());
+registerInstrumentor('a2ui_web_core', () => a2uiWebCoreInstrumentor());
 // Opt-in, as in the reference: named in GENAI_ENABLED_INSTRUMENTORS.
 registerInstrumentor('mcp_client', () => mcpInstrumentor());
 registerInstrumentor('mcp', () => mcpInstrumentor());

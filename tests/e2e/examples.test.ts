@@ -88,4 +88,27 @@ describe('examples, against a mock provider', () => {
     expect(receiver.spans.map((span) => span.attributes['gen_ai.usage.total_tokens'])).toEqual([468, 34, 34]);
     for (const span of receiver.spans) expect(span.attributes['gen_ai.usage.cost.total'], span.name).toBeGreaterThan(0);
   }, 60000);
+
+  it('examples/a2a-a2ui/renderer-turn.mjs: A2A calls, a surface applied, a rejected update, the tap -> one trace', async () => {
+    const outcome = await run('examples/a2a-a2ui/renderer-turn.mjs', { OTEL_EXPORTER_OTLP_ENDPOINT: receiver.url });
+    expect(outcome.code, outcome.stderr).toBe(0);
+    expect(outcome.stdout).toContain('surfaces: trip');
+    expect(outcome.stdout).toContain('telemetry exported');
+
+    const names = receiver.spans.map((span) => span.name).sort();
+    expect(names).toEqual(['SendMessage travel-agent', 'SendMessage travel-agent', 'a2ui.apply', 'a2ui.apply', 'invoke_agent renderer.turn']);
+    const [first, second] = receiver.spans.filter((span) => span.name === 'SendMessage travel-agent');
+    expect(first?.kind).toBe(3);
+    expect(first?.attributes['a2ui.surface.id']).toBe('trip');
+    expect(first?.attributes['a2ui.agent_message.count']).toBe(2);
+    expect(second?.attributes['a2ui.action.name']).toBe('book_flight');
+    expect(second?.attributes['a2ui.renderer_message.count']).toBe(1);
+    const turn = receiver.spans.find((span) => span.name === 'invoke_agent renderer.turn');
+    // The rejected update is on the turn's own span; the apply spans say it was rejected.
+    expect(turn?.attributes['a2ui.error.codes']).toEqual(['INTEGRITY_ERROR']);
+    expect(receiver.spans.filter((span) => span.name === 'a2ui.apply').map((span) => span.statusCode).sort()).toEqual([0, 2]);
+    // One trace: the calls and the applies are all children of the turn.
+    for (const span of receiver.spans.filter((candidate) => candidate !== turn)) expect(span.parentSpanId, span.name).toBe(turn?.spanId);
+    expect(JSON.stringify(receiver.spans.map((span) => span.attributes))).not.toContain('Book the 9:40');
+  }, 60000);
 });

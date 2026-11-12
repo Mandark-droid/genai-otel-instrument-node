@@ -26,6 +26,8 @@ jobs:
       - run: npm ci
       # Vendored contract + pricing must match the pinned Python tag, untouched.
       - run: npm run sync:check
+      # The A2A / A2UI names (a scoped addition from a later Python commit) match their recorded hash.
+      - run: npm run sync:a2a-a2ui:check
       - run: npm run typecheck
       - run: npm run lint
       # Unit, contract, instrumentor and local end-to-end tests, with the coverage floors enforced.

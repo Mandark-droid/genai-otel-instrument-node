@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+### 0.1.0-alpha.11
+- **A2A client** (Python 1.47.0, `@a2a-js/sdk` 1.x): one `CLIENT` span per call, named
+  `{method} {agent}`, on `Client`'s `sendMessage`, `sendMessageStream`, `getTask`, `listTasks`,
+  `cancelTask`, the push-notification config calls, `resubscribeTask` and `getAgentCard` (when an
+  extended card is fetched). `gen_ai.operation.name = invoke_agent`, the Agent Card's identity,
+  binding, task id and state (a stream records its final state), content only with capture on. A
+  failed or rejected task is not an error span. W3C trace context goes out in the call's
+  `serviceParameters` (`GENAI_A2A_PROPAGATE=false` to stop). Client only; the server side is later.
+- **A2UI** (Python 1.48.0): `a2ui.*` attributes read off A2UI parts on A2A calls (both payload
+  shapes, both media types, both capability keys, both extension header names); spans for
+  `@a2ui/agent` 0.1.0 (`a2ui.parse_response`, `a2ui.parse_stream`); an opt-in adapter for
+  `@a2ui/web_core` 0.15 (`a2ui.apply`, `a2ui.error` events, also for errors the app never sends
+  back); `GENAI_A2UI_ENABLED`.
+- `recordA2uiReceived()`, `recordA2uiSent()`, `recordA2uiRendererError()` in the Node, browser and
+  React Native entries; `instrumentA2aClient()`, `instrumentA2uiAgent()`, `instrumentA2uiWebCore()` for
+  libraries that cannot be found by name.
+- The names are a scoped addition to the contract (`contract/a2a-a2ui.json`, from Python commit
+  `7762b71`; `npm run sync:a2a-a2ui`), not a re-pin: the contract stays at v1.46.0. `a2a` and
+  `a2ui` join the default instrumentor list; `a2ui_web_core` is opt-in.
+- Publishing: `.github/workflows/publish.yml` publishes to npm on a GitHub release, with npm trusted
+  publishing (no token).
+
 ### 0.1.0-alpha.10
 - `detached(fn, parent?)`: starts the calls `fn` makes outside the current trace, opening no
   scope. In React Native and browsers the active context is the most recent open scope, so

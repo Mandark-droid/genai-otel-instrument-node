@@ -145,6 +145,19 @@ export {
 } from './semconv';
 export { addRetrievalAttributes, type RetrievalAttributeOptions, type RetrievedDocument } from './retrieval';
 export {
+  A2AAttributes,
+  A2AClientInstrumentor,
+  A2UIAttributes,
+  A2uiAgentInstrumentor,
+  A2uiWebCoreInstrumentor,
+  instrumentA2aClient,
+  instrumentA2uiAgent,
+  instrumentA2uiWebCore,
+  recordA2uiReceived,
+  recordA2uiRendererError,
+  recordA2uiSent,
+} from './a2ui';
+export {
   traceAgent,
   traceRetrieval,
   traceTool,
