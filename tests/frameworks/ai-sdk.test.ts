@@ -113,11 +113,11 @@ describe('Vercel AI SDK spans', () => {
     }
   });
 
-  it('spans of other libraries are left alone', async () => {
+  it('spans of other libraries are not normalised; their content is removed by the content guard all the same (section 10)', async () => {
     harness = await startHarness({ enabledInstrumentors: [] });
     const { trace } = await import('@opentelemetry/api');
-    const span = trace.getTracer('somebody-else').startSpan('work', { attributes: { 'gen_ai.input.messages': 'kept', 'ai.prompt': 'kept' } });
+    const span = trace.getTracer('somebody-else').startSpan('work', { attributes: { 'gen_ai.input.messages': 'said', 'ai.prompt': 'said', 'ai.model.id': 'gpt-4o-mini' } });
     span.end();
-    expect(harness.span('work').attributes).toMatchObject({ 'gen_ai.input.messages': 'kept', 'ai.prompt': 'kept' });
+    expect(harness.span('work').attributes).toEqual({ 'ai.model.id': 'gpt-4o-mini' });
   });
 });

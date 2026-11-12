@@ -22,30 +22,6 @@ import { logger } from '../logger';
 /** Tracer names of `@ai-sdk/otel`: the `ai.*` style and the GenAI style. */
 const AI_SDK_SCOPES: ReadonlySet<string> = new Set(['ai', 'gen_ai']);
 
-/** Attributes holding what was sent to, or came back from, the model. */
-const CONTENT_ATTRIBUTES: readonly string[] = [
-  'ai.prompt',
-  'ai.prompt.messages',
-  'ai.prompt.tools',
-  'ai.response.text',
-  'ai.response.reasoning',
-  'ai.response.toolCalls',
-  'ai.response.object',
-  'ai.response.files',
-  'ai.toolCall.args',
-  'ai.toolCall.result',
-  'ai.value',
-  'ai.values',
-  'ai.embedding',
-  'ai.embeddings',
-  'ai.schema',
-  'gen_ai.input.messages',
-  'gen_ai.output.messages',
-  'gen_ai.system_instructions',
-  'gen_ai.tool.definitions',
-  'gen_ai.tool.call.arguments',
-  'gen_ai.tool.call.result',
-];
 
 const isAiSdkSpan = (span: ReadableSpan): boolean => AI_SDK_SCOPES.has(span.instrumentationScope?.name ?? '');
 
@@ -59,16 +35,14 @@ export function isAiSdkAggregate(span: ReadableSpan): boolean {
 }
 
 export class AiSdkSpanProcessor implements SpanProcessor {
-  constructor(private readonly options: { contentCapture: boolean }) {}
-
   onStart(): void {}
 
   /** Called by the SDK just before the span is ended, while it is still writable. */
   onEnding(span: Span): void {
     try {
       if (!isAiSdkSpan(span)) return;
+      // What was said is removed by the content guard, with every other framework's (content-guard.ts).
       this.normalise(span);
-      if (!this.options.contentCapture) this.removeContent(span);
     } catch (error) {
       // Never fail span processing here.
       logger.debug(`Could not normalise AI SDK span '${span.name}': ${String(error)}`);
@@ -101,15 +75,6 @@ export class AiSdkSpanProcessor implements SpanProcessor {
     if (span.attributes['gen_ai.usage.total_tokens'] === undefined && (typeof input === 'number' || typeof output === 'number')) {
       span.setAttribute('gen_ai.usage.total_tokens', (typeof input === 'number' ? input : 0) + (typeof output === 'number' ? output : 0));
     }
-  }
-
-  /**
-   * The span is still open, so its attribute table is the live one. The API
-   * has no way to unset an attribute; the entries are deleted from the table.
-   */
-  private removeContent(span: Span): void {
-    const table = span.attributes as Record<string, unknown>;
-    for (const key of CONTENT_ATTRIBUTES) if (key in table) delete table[key];
   }
 
   onEnd(): void {}

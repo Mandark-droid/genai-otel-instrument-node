@@ -195,6 +195,16 @@ describe.each([
     expect('gen_ai.usage.cost.total' in (unsized ?? {})).toBe(false);
   });
 
+  it('content capture off: a span of another framework leaves without what was said (section 10)', async () => {
+    quiet();
+    const { fetch, sent } = fakeFetch();
+    sdk.instrument({ serviceName: 'web-app', endpoint: 'https://c.example', fetch });
+    const span = trace.getTracer('ai').startSpan('ai.generateText', { attributes: { 'ai.prompt': 'What is my balance?', 'ai.response.text': 'It is 42.', 'ai.model.id': 'm' } });
+    span.end();
+    await sdk.flushTelemetry(2);
+    expect(attrs(spansOf(sent)[0] as Any)).toEqual({ 'ai.model.id': 'm', 'openinference.span.kind': 'CHAIN' });
+  });
+
   it('setSession gives every span the session id the platform groups a run by', async () => {
     quiet();
     const { fetch, sent } = fakeFetch();

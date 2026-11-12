@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Fixed
+- A content guard (SDK_ADDITIONS.md section 10): with content capture off, prompts and answers
+  that other frameworks write on their own spans (Genkit, OpenInference, the Vercel AI SDK,
+  GenAI semantic conventions), and content-bearing span events, are removed before export,
+  in the Node and the browser / React Native entries. The SDK's own structure (roles, part
+  types, media metadata, tool calls) stays.
+
 ### 0.1.0-alpha.11
 - **A2A client** (Python 1.47.0, `@a2a-js/sdk` 1.x): one `CLIENT` span per call, named
   `{method} {agent}`, on `Client`'s `sendMessage`, `sendMessageStream`, `getTask`, `listTasks`,

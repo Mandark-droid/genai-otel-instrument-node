@@ -43,6 +43,7 @@ import { RootSpanFlushProcessor } from './root-flush';
 import { type Destination, fanOutFetch } from './destinations';
 import { PromiseScopeContextManager } from './promise-context';
 import { FetchMetricExporter, FetchSpanExporter, signalUrl, type FetchLike } from './otlp-fetch';
+import { ContentGuardSpanProcessor } from '../content-guard';
 
 /** One package, one distro name, whichever runtime it is loaded in. */
 const DISTRO_NAME = 'genai-otel-instrument-node';
@@ -200,6 +201,8 @@ function setup(
   if (config.enableCostTracking) spanProcessors.push(new CostEnrichmentSpanProcessor(costCalculatorFor(config.customPricingJson)));
   spanProcessors.push(...(options.spanProcessors ?? []));
   if (options.openInferenceSpanKinds !== false) spanProcessors.push(new OpenInferenceSpanProcessor());
+  // Before export: nothing leaves with content when capture is off (SDK_ADDITIONS.md section 10).
+  spanProcessors.push(new ContentGuardSpanProcessor({ contentCapture: config.enableContentCapture }));
   // Batched: ending a span only enqueues it. Nothing is sent on the caller's path.
   spanProcessors.push(new BatchSpanProcessor(spanExporter));
   // Then a finished trace is sent at once: the batch timer stalls when the app is in the

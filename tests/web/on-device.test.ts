@@ -563,7 +563,7 @@ describe('cactus-react-native', () => {
       bodies.push(typeof init.body === 'string' ? init.body : new TextDecoder().decode(init.body));
       return { ok: true, status: 200 };
     }) as unknown as typeof fetch;
-    start(native, { fetch: capture, spanProcessors: [] });
+    start(native, { fetch: capture, spanProcessors: [], enableContentCapture: true });
     const tracer = trace.getTracer('app');
     tracer
       .startSpan('execute_tool get_weather', {

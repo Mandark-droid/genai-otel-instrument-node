@@ -45,6 +45,7 @@ import './media/node-stores';
 import { httpToxicityJudge } from './evaluation/http-judge';
 import { onnxToxicityJudge } from './evaluation/onnx-addon';
 import { toxicityWaitSeconds } from './evaluation/engine';
+import { ContentGuardSpanProcessor } from './content-guard';
 import { currentGauges } from './gauge-temporality';
 import { initializeServerMetrics, resetServerMetrics, setVramDetector, startEndpointPollers, type PrometheusServerMetricsPoller } from './server-metrics';
 import { resetPricingMissingCounter } from './cost/pricing-missing';
@@ -448,7 +449,7 @@ function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumen
   // Arize agent graph keys on agent spans (the Python library's 1.44.0 processor).
   if (config.enableAgentGraphAttributes) spanProcessors.push(new AgentGraphSpanProcessor());
   // Before the cost processor: it fills in what that one prices from.
-  spanProcessors.push(new AiSdkSpanProcessor({ contentCapture: config.enableContentCapture }));
+  spanProcessors.push(new AiSdkSpanProcessor());
   try {
     const evaluation = evaluationConfigsFrom(config);
     if (evaluation) {
@@ -486,6 +487,8 @@ function setup(config: OTelConfig, options: InstrumentOptions, explicitInstrumen
     }
   }
   spanProcessors.push(...(options.spanProcessors ?? []));
+  // Last, so that nothing is exported with content when capture is off (SDK_ADDITIONS.md section 10).
+  spanProcessors.push(new ContentGuardSpanProcessor({ contentCapture: config.enableContentCapture }));
 
   let spanExporter: SpanExporter;
   let metricExporter: PushMetricExporter;
