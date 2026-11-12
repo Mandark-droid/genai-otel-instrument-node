@@ -32,7 +32,7 @@
   "homepage": "https://mandark-droid.github.io/genai-otel-instrument-node-docs/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Mandark-droid/genai-otel-instrument-node-docs.git"
+    "url": "git+https://github.com/Mandark-droid/genai-otel-instrument-node.git"
   },
   "bugs": {
     "url": "https://github.com/Mandark-droid/genai-otel-instrument-node-docs/issues"

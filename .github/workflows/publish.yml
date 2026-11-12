@@ -7,7 +7,8 @@ name: publish
 # on npmjs.com (package settings -> Trusted Publisher): this repository, this workflow file
 # (`publish.yml`) and no environment name.
 #
-# No `--provenance`: the source repository is private, and npm only signs provenance for public ones.
+# Provenance: npm signs it automatically for trusted publishing from this public repository, and checks
+# that package.json `repository.url` names this repository.
 #
 # The tag of the release must be `v` + the version in package.json, so a release cannot publish a
 # different version than the one it names.
