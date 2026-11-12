@@ -3,6 +3,10 @@
 ## [Unreleased]
 
 ### Fixed
+- SQL `mcp.response.size` is no longer recorded: it was the reference's 100-bytes-a-row guess
+  (section 10).
+
+### Fixed
 - With content capture off, a streamed answer now reaches the detectors (in-process only);
   before, only buffered answers were evaluated (section 12).
 - `evaluation.completed` is set only when a detector wrote a result (section 12).

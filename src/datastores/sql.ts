@@ -84,11 +84,6 @@ function describeSql(system: string, args: unknown[], connection: Obj): Datastor
   };
 }
 
-/** A hundred bytes a row: the reference's estimate. */
-function rowsSize(count: unknown): number | undefined {
-  return typeof count === 'number' && count > 0 ? count * 100 : undefined;
-}
-
 export class PostgresInstrumentor extends DatastoreInstrumentor {
   protected readonly label = 'PostgreSQL';
   protected readonly packages = ['pg'];
@@ -112,7 +107,6 @@ export class PostgresInstrumentor extends DatastoreInstrumentor {
             return call;
           },
           {
-            responseSize: (result) => rowsSize(isObject(result) ? result.rowCount : undefined),
             sizeLabelsIncludeOperation: false,
           },
         ),
@@ -139,7 +133,6 @@ export class MySQLInstrumentor extends DatastoreInstrumentor {
       wrap: this.datastoreWrapper(
         (instance, args) => describeSql('mysql', args, isObject(instance) && isObject(instance.config) ? instance.config : {}),
         {
-          responseSize: (result) => (Array.isArray(result) ? rowsSize(result.length) : rowsSize(isObject(result) ? result.affectedRows : undefined)),
           sizeLabelsIncludeOperation: false,
         },
       ),

@@ -90,7 +90,8 @@ describe('PostgreSQL', () => {
     expect((await mcp('mcp.requests')).map((point) => point.attributes)).toEqual([labels]);
     expect((await mcp('mcp.client.operation.duration'))[0]?.attributes).toEqual(labels);
     expect((await mcp('mcp.request.size'))[0]?.attributes).toEqual({ 'db.system': 'postgresql' });
-    expect((await mcp('mcp.response.size'))[0]?.attributes).toEqual({ 'db.system': 'postgresql' });
+    // SDK_ADDITIONS.md section 10: the reference guesses 100 bytes a row; no measurement, no point.
+    expect(await mcp('mcp.response.size')).toEqual([]);
   });
 
   it('with content capture on the statement text is recorded, bounded; parameter values never are', async () => {
