@@ -24,7 +24,7 @@ afterEach(async () => {
 
 describe('httpToxicityJudge score mapping', () => {
   it('keeps a score under its own name when the judge names a category the rules do not map', async () => {
-    const url = await judgeAnswering({ custom_harm: 0.7, not_a_number: 'high', infinite: 1e400 });
+    const url = await judgeAnswering({ custom_harm: 0.7, not_a_number: 'high', nothing: null });
     const score = httpToxicityJudge(url, 5);
     expect(score).toBeDefined();
     const scores = await score!('some text', ['toxicity']);
