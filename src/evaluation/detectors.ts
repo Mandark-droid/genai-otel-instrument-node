@@ -743,6 +743,13 @@ const INLINE = HALLUCINATION.inline_rule_data;
 const groupsOf = (table: Record<string, readonly PatternEntry[]>): PatternEntry[] => Object.values(table).flat();
 
 /**
+ * The order of the reference's `factual_claim_patterns` dict, which decides which
+ * unsupported claims are reported first. eval_rules.json sorts its keys, so the
+ * order is taken from the reference's source (SDK_ADDITIONS.md section 12).
+ */
+const FACTUAL_CLAIM_GROUP_ORDER = ['specific_dates', 'specific_numbers', 'specific_names', 'statistics'] as const;
+
+/**
  * The bare number pattern of `_check_internal_contradiction`. In the reference
  * it is a second literal; it is the second capture group of the subject-value
  * pattern, and is taken from there rather than typed again.
@@ -797,7 +804,7 @@ export class HallucinationDetector {
       if (cached !== undefined) return { ...cached, originalText: text, contextText };
       const indicators: string[] = [];
       const unsupportedClaims: string[] = [];
-      const claims = groupsOf(HALLUCINATION.factual_claim_patterns);
+      const claims = FACTUAL_CLAIM_GROUP_ORDER.flatMap((group) => (HALLUCINATION.factual_claim_patterns as Record<string, readonly PatternEntry[]>)[group] ?? []);
       const factualClaimCount = claims.reduce((count, pattern) => count + findIter(pattern.regex, text, true).length, 0);
       const hedgeWordsCount = this.config.checkHedging ? this.countWords(text, HALLUCINATION.hedge_words) : 0;
       const citationCount = this.config.checkCitations

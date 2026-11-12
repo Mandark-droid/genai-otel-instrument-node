@@ -142,6 +142,16 @@ describe('GENAI_TOXICITY_JUDGE_URL', () => {
     expect(Object.keys(harness.span('openai.chat.completion').attributes).filter((key) => key.startsWith('evaluation.toxicity'))).toEqual([]);
   });
 
+  it('nothing measured nothing: no evaluation.completed either (section 12)', async () => {
+    judge = await startJudge(503, { error: 'busy' });
+    process.env.GENAI_TOXICITY_JUDGE_URL = judge.url;
+    harness = await startHarness({ enabledInstrumentors: ['openai'], enableToxicityDetection: true });
+    llm.reply({ json: reply });
+    await ask('hello');
+    await eventually(() => expect(harness?.spans()).toHaveLength(1), 5000);
+    expect(Object.keys(harness.span('openai.chat.completion').attributes).filter((key) => key.startsWith('evaluation.'))).toEqual([]);
+  });
+
   it('a scorer given in code wins over the URL', async () => {
     judge = await startJudge(200, detoxify);
     process.env.GENAI_TOXICITY_JUDGE_URL = judge.url;

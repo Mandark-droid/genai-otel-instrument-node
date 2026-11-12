@@ -328,3 +328,14 @@ describe('reading spans of other instrumentation', () => {
     expect(Object.keys(harness.span('db.query').attributes)).toEqual(['db.system']);
   });
 });
+
+describe('hallucination: the order of the factual-claim groups (SDK_ADDITIONS.md section 12)', () => {
+  // Python's dict order - dates, numbers, names, statistics - decides which three
+  // unsupported claims are reported; eval_rules.json sorts the groups by name.
+  it('dates, then numbers, then names, then statistics', () => {
+    // The expected value is what the reference (v1.30.0) returns for this text.
+    const text = 'It rained, claimed John Smith. Revenue was $5 billion. It opened in 1999. Sales grew 45%.';
+    const result = new HallucinationDetector({ enabled: true }).detect(text);
+    expect(result.unsupportedClaims).toEqual(['It opened in 1999.', 'Revenue was $5 billion.', 'Sales grew 45%.']);
+  });
+});

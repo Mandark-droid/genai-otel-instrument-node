@@ -282,6 +282,11 @@ describe('instrumented calls', () => {
       'evaluation.pii.prompt.blocked': true,
       'evaluation.prompt_injection.prompt.blocked': true,
     });
+    // SDK_ADDITIONS.md section 12: no tokens or cost recorded; the refusal is counted as an error.
+    for (const key of Object.keys(span.attributes)) expect(key, key).not.toMatch(/^gen_ai\.usage\./);
+    expect((await harness!.metric('gen_ai.client.errors'))?.points.map((point) => point.attributes.error_type)).toEqual(['PolicyViolationError']);
+    expect(await harness!.metric('gen_ai.client.token.usage')).toBeUndefined();
+    expect(await harness!.metric('gen_ai.usage.cost')).toBeUndefined();
   });
 
   it('block mode with a clean prompt: the call goes through', async () => {

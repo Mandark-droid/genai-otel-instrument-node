@@ -66,6 +66,13 @@ produced and returned; the span is annotated (`evaluation.<detector>.response.bl
 nothing is withheld from the application. On spans of other instrumentation blocking is
 annotation only.
 
+## Content capture off
+
+The detectors still read this SDK's own calls: the prompt, and the response - a streamed
+answer is assembled for them as it arrives. The text stays in the process; nothing of it is
+written to the span or exported (contract/SDK_ADDITIONS.md section 12). `evaluation.completed`
+is set only when a detector wrote a result.
+
 ## Toxicity
 
 The reference measures toxicity with a model (Detoxify) or a service (Perspective). It

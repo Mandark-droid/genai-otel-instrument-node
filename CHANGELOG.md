@@ -3,6 +3,13 @@
 ## [Unreleased]
 
 ### Fixed
+- With content capture off, a streamed answer now reaches the detectors (in-process only);
+  before, only buffered answers were evaluated (section 12).
+- `evaluation.completed` is set only when a detector wrote a result (section 12).
+- Hallucination: unsupported claims are reported in the reference's group order - dates,
+  numbers, names, statistics (section 12); the sorted rules data had put names second.
+
+### Fixed
 - A content guard (SDK_ADDITIONS.md section 10): with content capture off, prompts and answers
   that other frameworks write on their own spans (Genkit, OpenInference, the Vercel AI SDK,
   GenAI semantic conventions), and content-bearing span events, are removed before export,

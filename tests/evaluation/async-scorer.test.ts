@@ -116,3 +116,22 @@ describe('asynchronous toxicity scorer', () => {
     expect(harness.span('openai.chat.completion').status.code).toBe(SpanStatusCode.ERROR);
   });
 });
+
+describe('evaluation without exporting content (SDK_ADDITIONS.md section 12)', () => {
+  it('content capture off: a streamed answer is assembled in-process for the detectors, and never written to the span', async () => {
+    const seen: string[] = [];
+    setToxicityScorer((text) => {
+      seen.push(text);
+      return { toxicity: 0.01 };
+    });
+    harness = await startHarness({ enabledInstrumentors: ['openai'], enableToxicityDetection: true, enableContentCapture: false });
+    llm.reply({ fixture: 'openai/chat.completion.stream.sse' });
+    const stream = await client().chat.completions.create({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: 'Capital of France?' }], stream: true });
+    for await (const chunk of stream) void chunk;
+    await eventually(() => expect(harness?.spans()).toHaveLength(1), 5000);
+    expect(seen).toEqual(['Capital of France?', 'Paris.']);
+    const span = harness.span('openai.chat.completion');
+    expect(span.attributes['evaluation.toxicity.response.detected']).toBe(false);
+    expect(JSON.stringify([span.attributes, span.events])).not.toContain('Paris');
+  });
+});

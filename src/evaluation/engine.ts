@@ -495,7 +495,12 @@ export class EvaluationEngine {
 
   /** Run every enabled detector and write what it found. Never throws. */
   evaluate(span: Writable, prompt: string | undefined, response: string | undefined, attributes: Attributes = {}): void {
-    const set = (key: string, value: AttributeValue): void => setQuietly(span, key, value);
+    // Whether any detector wrote a result: `evaluation.completed` says something was evaluated (section 12).
+    let results = 0;
+    const set = (key: string, value: AttributeValue): void => {
+      results += 1;
+      setQuietly(span, key, value);
+    };
     const guard = (name: string, check: () => void): void => {
       try {
         check();
@@ -510,7 +515,7 @@ export class EvaluationEngine {
     if (this.promptInjection) guard('prompt_injection', () => this.checkPromptInjection(span, set, prompt));
     if (this.restrictedTopics) guard('restricted_topics', () => this.checkRestrictedTopics(span, set, prompt, response));
     if (this.hallucination) guard('hallucination', () => this.checkHallucination(set, prompt, response, attributes));
-    set('evaluation.completed', true);
+    if (results > 0) set('evaluation.completed', true);
   }
 
   private each(prompt: string | undefined, response: string | undefined, check: (text: string, location: Location, blockedWord: string) => void): void {

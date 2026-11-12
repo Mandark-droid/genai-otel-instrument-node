@@ -314,6 +314,9 @@ function operationFor(spanName: string, requestType: unknown): string | undefine
 }
 
 /** Latency bookkeeping for one streamed response. */
+/** The longest streamed answer the detectors are given, in code points. */
+const EVALUATION_TEXT_LIMIT = 1_000_000;
+
 export class StreamTiming {
   /** null until the first chunk actually arrives. */
   ttft: number | null = null;
@@ -327,6 +330,12 @@ export class StreamTiming {
   usage: UsageDict | null = null;
   /** The completion as it streams; only with content capture on. */
   text: StreamText | undefined;
+  /**
+   * The completion for the detectors, whatever content capture says: passed to
+   * them in-process and never written to the span (SDK_ADDITIONS.md section 12).
+   * Only while evaluation is on.
+   */
+  evaluationText: StreamText | undefined;
 
   constructor(readonly startTime: number) {
     this.lastChunkTime = startTime;
@@ -1433,6 +1442,7 @@ export abstract class BaseInstrumentor implements Instrumentor {
     if (!isAsyncIterable(result)) return false;
     const timing = new StreamTiming(call.startTime);
     if (this.config?.enableContentCapture) timing.text = new StreamText(this.config.contentMaxLength);
+    if (activeEvaluation()) timing.evaluationText = new StreamText(EVALUATION_TEXT_LIMIT);
     const stream = result as unknown as Record<PropertyKey, unknown>;
     // The measuring iterator holds the stream object - deliberately. While a
     // reader holds the iterator the stream must stay alive, or the finalizer
@@ -1549,7 +1559,11 @@ export abstract class BaseInstrumentor implements Instrumentor {
       timing.lastChunkTime = current;
       timing.lastChunk = chunk;
       // With content capture on, the completion is assembled as it streams; off, nothing is kept.
-      if (timing.text) timing.text.add(this.streamChunkTextForContent(chunk));
+      if (timing.text || timing.evaluationText) {
+        const piece = this.streamChunkTextForContent(chunk);
+        timing.text?.add(piece);
+        timing.evaluationText?.add(piece);
+      }
     } catch (error) {
       logger.debug(`Failed to observe a streamed chunk: ${String(error)}`);
     }
@@ -1634,6 +1648,8 @@ export abstract class BaseInstrumentor implements Instrumentor {
       if (completed) {
         if ('params' in call) this.startMedia(span, call.params);
         this.recordTimePerOutputToken(span, spanName, timing.ttft, duration, outputTokens, model);
+        // The detectors read the streamed answer as they read a buffered one; it is not recorded.
+        if (timing.evaluationText?.value) rememberTexts(span, { response: timing.evaluationText.value });
         // Content capture on: the assembled completion, as a buffered call carries it.
         if (timing.text && 'params' in call && !/embed/.test(String(spanAttributes(span)[ATTR.GEN_AI_OPERATION_NAME] ?? ''))) {
           try {
